@@ -61,6 +61,10 @@ Verified by matching every frontend call site against all 23 controllers and the
 
 ## Gotchas verified against the codebase
 
+**Nothing runs without `ASPNETCORE_ENVIRONMENT=Development`.** Both `run-all.ps1` and `start-all.ps1` pass `--no-launch-profile`, which ignores `launchSettings.json` and lets the environment default to Production. The services read their dev `Jwt:Key` from `appsettings.Development.json` and fail fast without it, so all seven exit on startup and only the Gateway stays up. Fixed in both scripts on 2026-07-16; if you start a service by hand, set the variable first.
+
+**`GET /api/bills` returns raw `Bill` rows.** It has `workOrderId` but no `workOrderNo` and no `vendorName` — those live in TenderService and VendorService. Any page showing those columns must join client-side (`workOrderId` → `WorkOrder.workOrderNo` + `vendorId` → `Vendor.name`), which is the pattern `dashboardService.ts` already uses. The same applies to `Bill.VendorId` after Phase 4.1: it identifies the tenant, it does not give you a name.
+
 **DbContext names are inconsistent.** Five services follow `<Svc>ServiceDbContext`, but Identity and Vendor do not. Use exactly these:
 
 | Service | Context type |
