@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 interface BillItem {
     id: string;
@@ -23,19 +24,35 @@ export const AdminBilling = () => {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [filter, setFilter] = useState('All');
 
+    // /api/bills returns raw Bill rows, which carry workOrderId but neither the work
+    // order number nor the vendor name — those live in TenderService and VendorService.
+    // Resolve them client-side via workOrderId -> WorkOrder -> vendorId -> Vendor, the
+    // same join dashboardService.ts already performs.
     const fetchBills = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5249/api/admindashboard/bills', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Failed to fetch bills');
-            const data = await res.json();
-            setBills(data);
+            const [billsRes, workOrdersRes, vendorsRes] = await Promise.all([
+                axiosInstance.get('/bills'),
+                axiosInstance.get('/workorders').catch(() => ({ data: [] })),
+                axiosInstance.get('/vendors').catch(() => ({ data: [] })),
+            ]);
+
+            const workOrders: any[] = workOrdersRes.data ?? [];
+            const vendors: any[] = vendorsRes.data ?? [];
+
+            setBills((billsRes.data ?? []).map((bill: any): BillItem => {
+                const workOrder = workOrders.find(w => w.id === bill.workOrderId);
+                const vendor = vendors.find(v => v.id === workOrder?.vendorId);
+                return {
+                    ...bill,
+                    workOrderNo: workOrder?.workOrderNo ?? '—',
+                    vendorName: vendor?.name ?? '—',
+                };
+            }));
             setError(null);
         } catch (err: any) {
             console.error(err);
-            setError(err.message);
+            setError(err.message ?? 'Failed to fetch bills');
         } finally {
             setLoading(false);
         }
@@ -49,11 +66,7 @@ export const AdminBilling = () => {
         if (!window.confirm('Are you sure you want to approve this bill and forward it to Finance?')) return;
         setActionLoading(id);
         try {
-            const res = await fetch(`http://localhost:5249/api/admindashboard/bills/${id}/approve`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error('Approval failed');
+            await axiosInstance.post(`/bills/${id}/approve`);
             fetchBills();
         } catch (err) {
             alert('Action failed. Please try again.');
@@ -67,15 +80,7 @@ export const AdminBilling = () => {
         if (!reason) return;
         setActionLoading(id);
         try {
-            const res = await fetch(`http://localhost:5249/api/admindashboard/bills/${id}/reject`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
-                },
-                body: JSON.stringify({ reason })
-            });
-            if (!res.ok) throw new Error('Rejection failed');
+            await axiosInstance.post(`/bills/${id}/reject`, { reason });
             fetchBills();
         } catch (err) {
             alert('Action failed. Please try again.');

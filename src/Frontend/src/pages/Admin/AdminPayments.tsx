@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { FileText, Search, CreditCard, Filter } from 'lucide-react';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 export const AdminPayments = () => {
   const { token } = useSelector((state: RootState) => state.auth);
@@ -10,18 +11,48 @@ export const AdminPayments = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // There is no /api/financialdashboard service or gateway route; this page used to
+  // 404 on every load. The KPIs and payment history are all derivable from the bills
+  // and work orders that FinancialService and TenderService already expose.
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const res = await fetch('http://localhost:5249/api/financialdashboard', {
-          headers: { Authorization: `Bearer ${token}` }
+        const [billsRes, workOrdersRes, vendorsRes] = await Promise.all([
+          axiosInstance.get('/bills'),
+          axiosInstance.get('/workorders').catch(() => ({ data: [] })),
+          axiosInstance.get('/vendors').catch(() => ({ data: [] })),
+        ]);
+
+        const bills: any[] = billsRes.data ?? [];
+        const workOrders: any[] = workOrdersRes.data ?? [];
+        const vendors: any[] = vendorsRes.data ?? [];
+
+        const sumOf = (status: string) => bills
+          .filter(b => b.status === status)
+          .reduce((total, b) => total + (b.totalAmount ?? 0), 0);
+
+        const describe = (bill: any) => {
+          const workOrder = workOrders.find(w => w.id === bill.workOrderId);
+          const vendor = vendors.find(v => v.id === workOrder?.vendorId);
+          return {
+            ...bill,
+            workOrderNo: workOrder?.workOrderNo ?? '—',
+            vendorName: vendor?.name ?? '—',
+          };
+        };
+
+        setData({
+          kpis: {
+            totalFundsReleased: sumOf('Paid'),
+            pendingApprovalValue: sumOf('Approved'),
+            rejectedBillsCount: bills.filter(b => b.status === 'Returned').length,
+            totalBudgetAllocated: workOrders.reduce((total, w) => total + (w.totalValue ?? 0), 0),
+          },
+          paymentHistory: bills.filter(b => b.status === 'Paid').map(describe),
         });
-        if (!res.ok) throw new Error('Failed to fetch finance data');
-        const json = await res.json();
-        setData(json);
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message ?? 'Failed to fetch finance data');
       } finally {
         setLoading(false);
       }
