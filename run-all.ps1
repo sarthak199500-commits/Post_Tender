@@ -1,3 +1,10 @@
+# --no-launch-profile ignores launchSettings.json, so ASPNETCORE_ENVIRONMENT would
+# otherwise default to Production. The services read their dev Jwt:Key from
+# appsettings.Development.json and fail fast when it is absent, so without this every
+# service exits on startup with "Jwt:Key is missing or shorter than 32 characters"
+# and only the Gateway (which has no auth of its own) stays up.
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+
 $jobs = @()
 
 $jobs += Start-Job -ScriptBlock { cd $args[0]; cd src\Backend\Services\IdentityService; dotnet run --no-launch-profile --urls http://localhost:5001 } -ArgumentList $PWD

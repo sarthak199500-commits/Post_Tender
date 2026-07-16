@@ -1,6 +1,14 @@
 $ErrorActionPreference = 'Stop'
 Write-Host "Starting all Microservices, Gateway, and Frontend using Start-Process..."
 
+# --no-launch-profile ignores launchSettings.json, so ASPNETCORE_ENVIRONMENT would
+# otherwise default to Production. The services read their dev Jwt:Key from
+# appsettings.Development.json and fail fast when it is absent, so without this every
+# service exits on startup with "Jwt:Key is missing or shorter than 32 characters"
+# and only the Gateway (which has no auth of its own) stays up.
+# Child processes inherit this from the current session.
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+
 $services = @(
     @{ Name = "IdentityService"; Path = "src\Backend\Services\IdentityService"; Port = 5001 }
     @{ Name = "VendorService"; Path = "src\Backend\Services\VendorService"; Port = 5002 }
