@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Post-Tender Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,sans-serif;background:#f1f5f9;color:#1e293b;display:flex;height:100vh;overflow:hidden}
+svg{display:block}
+
+/* SIDEBAR */
+.sidebar{width:194px;min-width:194px;background:#0f1e36;height:100vh;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none}
+.sidebar::-webkit-scrollbar{display:none}
+.sb-logo{padding:14px 14px 13px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer}
+.sb-logo-icon{width:36px;height:36px;background:linear-gradient(140deg,#1e3a8a,#1d4ed8);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(29,78,216,0.45)}
+.sb-logo-text{font-size:8.5px;font-weight:800;color:rgba(255,255,255,0.9);letter-spacing:.07em;line-height:1.45;text-transform:uppercase}
+.sb-nav{padding:8px 0;flex:1}
+.nav-item{display:flex;align-items:center;justify-content:space-between;padding:8px 15px;cursor:pointer;color:rgba(255,255,255,.52);font-size:12px;font-weight:500;transition:background .13s,color .13s;user-select:none;gap:8px}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nav-item.active{background:#1d4ed8;color:#fff}
+.nav-l{display:flex;align-items:center;gap:9px}
+.nav-ic{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-chevron{opacity:.38;flex-shrink:0}
+.sb-qa{border-top:1px solid rgba(255,255,255,.07);padding:10px 0;flex-shrink:0}
+.qa-hdr{font-size:8.5px;font-weight:700;color:rgba(255,255,255,.28);letter-spacing:.13em;text-transform:uppercase;padding:0 15px 8px}
+.qa-item{display:flex;align-items:center;justify-content:space-between;padding:7px 15px;cursor:pointer;color:rgba(255,255,255,.52);font-size:11.5px;font-weight:500;transition:background .13s,color .13s}
+.qa-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.qa-l{display:flex;align-items:center;gap:8px}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{background:#fff;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;flex-shrink:0;gap:14px}
+.pg-meta h1{font-size:19px;font-weight:800;color:#0f172a;letter-spacing:-.025em}
+.pg-meta p{font-size:11.5px;color:#64748b;margin-top:1px}
+.top-ctrls{display:flex;align-items:center;gap:9px}
+.ctrl-btn{display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:pointer;white-space:nowrap;font-family:inherit;transition:border-color .15s}
+.ctrl-btn:hover{border-color:#94a3b8}
+.notif-wrap{position:relative}
+.notif-btn{width:34px;height:34px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#64748b}
+.notif-badge{position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;font-size:8.5px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid #fff}
+.user-block{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 5px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;background:#fff}
+.user-av{width:28px;height:28px;border-radius:6px;background:#1d4ed8;color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.user-nm{font-size:11.5px;font-weight:700;color:#0f172a;line-height:1.1}
+.user-rl{font-size:10px;color:#64748b}
+
+/* SCROLL AREA */
+#page-content{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:14px}
+#page-content::-webkit-scrollbar{width:5px}
+#page-content::-webkit-scrollbar-thumb{background:#c8d4e0;border-radius:3px}
+
+/* SHARED CARD STYLES */
+.card{background:#fff;border-radius:12px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06)}
+.card-pad{padding:16px 18px}
+
+/* KPI GRIDS */
+.kpi-row{display:grid;gap:12px}
+.kpi-6{grid-template-columns:repeat(6,1fr)}
+.kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi-3{grid-template-columns:repeat(3,1fr)}
+.kpi-5{grid-template-columns:repeat(5,1fr)}
+.kpi-card{background:#fff;border-radius:12px;padding:14px 16px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06)}
+.kpi-top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.kpi-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.kpi-lbl{font-size:10.5px;font-weight:500;color:#64748b;line-height:1.3}
+.kpi-val{font-size:23px;font-weight:800;color:#0f172a;letter-spacing:-.03em;line-height:1;margin-bottom:7px}
+.kpi-trend{display:flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600}
+.t-up{color:#16a34a}.t-dn{color:#dc2626}.t-mute{color:#94a3b8;font-weight:400}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:310px 1fr 258px;gap:12px}
+.chart-card{background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06)}
+.c-title{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:13px}
+.donut-body{display:flex;align-items:center;gap:14px}
+.donut-wrap{position:relative;width:138px;height:138px;flex-shrink:0}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.dc-num{font-size:19px;font-weight:800;color:#0f172a;line-height:1}
+.dc-lbl{font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.donut-legend{flex:1}
+.leg-row{display:flex;align-items:center;justify-content:space-between;padding:3.5px 0}
+.leg-l{display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;font-weight:500}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.leg-r{font-size:10.5px;color:#64748b;font-weight:500}
+.lc-legend{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.lc-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;font-weight:500}
+.lc-line{width:22px;height:2.5px;border-radius:2px}
+.dept-rows{display:flex;flex-direction:column;gap:9px}
+.dept-row-item{display:flex;align-items:center;gap:8px}
+.dept-nm{font-size:9.5px;color:#374151;font-weight:500;text-align:right;flex-shrink:0;width:96px;line-height:1.3}
+.dept-track{flex:1;height:10px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.dept-fill{height:100%;background:linear-gradient(90deg,#60a5fa,#1d4ed8);border-radius:4px}
+.dept-val{font-size:10.5px;font-weight:700;color:#1e293b;width:26px;text-align:right;flex-shrink:0}
+.c-link{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:#1d4ed8;font-weight:600;margin-top:12px;cursor:pointer}
+.c-link:hover{text-decoration:underline}
+
+/* TABLE */
+.tbl-card{background:#fff;border-radius:12px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06);overflow:hidden}
+.tbl-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #f1f5f9;gap:12px;flex-wrap:wrap}
+.tbl-title{font-size:13px;font-weight:700;color:#0f172a}
+.tbl-va{display:flex;align-items:center;gap:3px;font-size:12px;color:#1d4ed8;font-weight:600;cursor:pointer;margin-left:auto}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:10px;font-weight:600;color:#94a3b8;text-align:left;padding:8px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
+tbody td{font-size:11.5px;color:#374151;padding:10px 14px;border-bottom:1px solid #f8fafc;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fafbfc}
+.td-id{font-weight:700;color:#1e293b;font-size:11px}
+.td-wo{font-size:11px;color:#64748b}
+.td-proj{font-weight:500;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.td-val{font-weight:700;color:#1e293b}
+.td-date{color:#64748b}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.b-ip{background:#dbeafe;color:#1d4ed8}
+.b-cp{background:#dcfce7;color:#15803d}
+.b-oh{background:#ffedd5;color:#c2410c}
+.b-od{background:#fee2e2;color:#dc2626}
+.b-dr{background:#f1f5f9;color:#64748b}
+.b-hi{background:#fef3c7;color:#92400e}
+.b-md{background:#dbeafe;color:#1e40af}
+.b-lo{background:#f0fdf4;color:#15803d}
+.b-cr{background:#fee2e2;color:#b91c1c}
+.b-open{background:#ede9fe;color:#7c3aed}
+
+/* PROGRESS */
+.prog-cell{display:flex;align-items:center;gap:8px}
+.prog-bar{width:80px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;flex-shrink:0}
+.prog-fill{height:100%;border-radius:3px}
+.pf-blue{background:#3b82f6}.pf-green{background:#22c55e}.pf-orange{background:#f97316}.pf-red{background:#ef4444}.pf-gray{background:#94a3b8}
+.prog-pct{font-size:11px;font-weight:700;color:#475569;width:32px}
+
+/* ACTION BUTTONS */
+.action-eye{width:28px;height:28px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#64748b;transition:background .15s,color .15s}
+.action-eye:hover{background:#dbeafe;color:#1d4ed8}
+
+/* BOTTOM METRICS */
+.bot-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.bot-card{background:#fff;border-radius:12px;padding:14px 15px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06);display:flex;align-items:center;gap:13px}
+.bot-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bot-meta{flex:1;min-width:0}
+.bot-lbl{font-size:10.5px;color:#64748b;font-weight:500;margin-bottom:3px}
+.bot-val{font-size:19px;font-weight:800;color:#0f172a;letter-spacing:-.02em;line-height:1;margin-bottom:5px}
+.bot-trend{display:flex;align-items:center;gap:3px;font-size:10px;font-weight:600}
+
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.filter-tab{padding:5px 12px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid #e2e8f0;background:#fff;color:#64748b;transition:all .15s}
+.filter-tab:hover{border-color:#1d4ed8;color:#1d4ed8}
+.filter-tab.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+.search-input{padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;outline:none;font-family:inherit;margin-left:auto;width:200px}
+.search-input:focus{border-color:#3b82f6}
+
+/* PAGE-SPECIFIC */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.project-card{background:#fff;border-radius:12px;padding:16px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06)}
+.project-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.project-name{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:3px}
+.project-dept{font-size:11px;color:#64748b}
+.project-progress-label{display:flex;justify-content:space-between;margin-bottom:5px}
+.project-prog-bar{width:100%;height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-bottom:8px}
+.project-meta{display:flex;gap:12px;font-size:10.5px;color:#64748b}
+
+/* ALERT CARD */
+.alert-item{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid #f8fafc;cursor:pointer;transition:background .15s}
+.alert-item:hover{background:#f8fafc}
+.alert-item:last-child{border-bottom:none}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.alert-content{flex:1}
+.alert-title{font-size:12.5px;font-weight:600;color:#1e293b;margin-bottom:3px}
+.alert-desc{font-size:11.5px;color:#64748b}
+.alert-time{font-size:10px;color:#94a3b8;margin-top:4px}
+.alert-unread{background:#eff6ff}
+
+/* REPORT TILE */
+.report-tile{background:#fff;border-radius:12px;padding:18px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06);display:flex;flex-direction:column;gap:10px}
+.report-tile-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.report-tile-title{font-size:13px;font-weight:700;color:#0f172a}
+.report-tile-desc{font-size:11px;color:#64748b;line-height:1.5}
+.download-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;background:#eff6ff;color:#1d4ed8;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;margin-top:auto;width:fit-content;transition:background .15s}
+.download-btn:hover{background:#dbeafe}
+
+/* VENDOR SCORE */
+.score-bar-wrap{display:flex;align-items:center;gap:8px}
+.score-bar{flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.score-fill{height:100%;border-radius:3px}
+
+/* SETTINGS */
+.settings-section{background:#fff;border-radius:12px;padding:20px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(15,30,54,.06)}
+.settings-section-title{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px}
+.settings-section-desc{font-size:11.5px;color:#64748b;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11.5px;font-weight:600;color:#374151}
+.form-input{padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;outline:none;font-family:inherit;transition:border-color .15s}
+.form-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.form-select{padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;outline:none;font-family:inherit;background:#fff}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8fafc}
+.toggle-row:last-child{border-bottom:none}
+.toggle-info{font-size:12px;color:#374151;font-weight:500}
+.toggle-info small{display:block;font-size:10.5px;color:#94a3b8;margin-top:1px;font-weight:400}
+.toggle{width:36px;height:20px;background:#e2e8f0;border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:#1d4ed8}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:19px}
+.save-btn{padding:9px 20px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+.save-btn:hover{background:#1e40af}
+.section-divider{height:1px;background:#f1f5f9;margin:4px 0}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-logo" onclick="App.go('dashboard')">
+    <div class="sb-logo-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2.5 4 6.25V12c0 4.97 3.42 9.62 8 10.75C16.58 21.62 20 16.97 20 12V6.25L12 2.5z" fill="rgba(255,255,255,0.88)"/><path d="M9 12l2.2 2.2 3.8-3.8" stroke="#1e3a8a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="sb-logo-text">POST TENDER<br>MANAGEMENT<br>SYSTEM</div>
+  </div>
+  <nav class="sb-nav" id="sb-nav">
+    <div class="nav-item active" data-page="dashboard" onclick="App.go('dashboard')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></div>Dashboard</div>
+    </div>
+    <div class="nav-item" data-page="work-orders" onclick="App.go('work-orders')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></div>Work Orders</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="tenders" onclick="App.go('tenders')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg></div>Tenders</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="execution" onclick="App.go('execution')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>Execution</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="inspections" onclick="App.go('inspections')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>Inspections</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="billing" onclick="App.go('billing')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>Billing</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="payments" onclick="App.go('payments')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>Payments</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="vendors" onclick="App.go('vendors')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>Vendors</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="reports" onclick="App.go('reports')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>Reports</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="alerts" onclick="App.go('alerts')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>Alerts</div>
+    </div>
+    <div class="nav-item" data-page="documents" onclick="App.go('documents')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>Documents</div>
+      <svg class="nav-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <div class="nav-item" data-page="settings" onclick="App.go('settings')">
+      <div class="nav-l"><div class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>Settings</div>
+    </div>
+  </nav>
+  <div class="sb-qa">
+    <div class="qa-hdr">QUICK ACTIONS</div>
+    <div class="qa-item" onclick="App.go('work-orders')"><div class="qa-l"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Create Work Order</div><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
+    <div class="qa-item" onclick="App.go('inspections')"><div class="qa-l"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Add Inspection</div><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
+    <div class="qa-item" onclick="App.go('alerts')"><div class="qa-l"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Raise Alert</div><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
+    <div class="qa-item" onclick="App.go('reports')"><div class="qa-l"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Generate Report</div><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="pg-meta"><h1 id="page-title">Dashboard</h1><p id="page-subtitle">Real-time Overview of All Tenders</p></div>
+    <div class="top-ctrls">
+      <button class="ctrl-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>01 May 2024 – 31 May 2024<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <button class="ctrl-btn">All Departments<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="notif-wrap"><div class="notif-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div class="notif-badge">12</div></div>
+      <div class="user-block"><div class="user-av">AD</div><div><div class="user-nm">Admin User</div><div class="user-rl">Administrator</div></div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+  </div>
+  <div id="page-content"></div>
+</div>
+
+<script>
+const ICO={eye:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',up:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>',dn:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>',chev:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>'};
+
+function kpi(icon,bg,lbl,val,trend,tclass='t-up',vsText='vs Apr 2024'){
+  return`<div class="kpi-card"><div class="kpi-top"><div class="kpi-icon" style="background:${bg}">${icon}</div><span class="kpi-lbl">${lbl}</span></div><div class="kpi-val">${val}</div><div class="kpi-trend">${tclass==='t-up'?ICO.up:ICO.dn}<span class="${tclass}">${trend}</span><span class="t-mute">&nbsp;${vsText}</span></div></div>`;
+}
+function badge(s){const m={'In Progress':'b-ip','Completed':'b-cp','On Hold':'b-oh','Overdue':'b-od','Draft':'b-dr','Open':'b-open','Awarded':'b-cp','Active':'b-cp','Inactive':'b-dr','Critical':'b-cr','High':'b-hi','Medium':'b-md','Low':'b-lo','Submitted':'b-ip','Approved':'b-cp','Paid':'b-cp','Rejected':'b-od','Pending':'b-oh','Scheduled':'b-ip','Unread':'b-ip'};return`<span class="badge ${m[s]||'b-dr'}">${s}</span>`}
+function prog(pct,col='blue'){const c={'blue':'pf-blue','green':'pf-green','orange':'pf-orange','red':'pf-red','gray':'pf-gray'};const auto=pct===100?'green':pct<30?'orange':pct<60?'blue':'blue';return`<div class="prog-cell"><div class="prog-bar"><div class="prog-fill ${c[auto]}" style="width:${pct}%"></div></div><span class="prog-pct">${pct}%</span></div>`}
+function eyeBtn(){return`<div class="action-eye">${ICO.eye}</div>`}
+function tblCard(title,extra,headers,rows){return`<div class="tbl-card"><div class="tbl-hdr"><span class="tbl-title">${title}</span>${extra||''}</div><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`}
+
+let _charts=[];
+function destroyCharts(){_charts.forEach(c=>{try{c.destroy()}catch(e){}});_charts=[]}
+
+// ═══════════════════════════════════════════
+// PAGES
+// ═══════════════════════════════════════════
+const PAGES={
+
+dashboard:{title:'Dashboard',subtitle:'Real-time Overview of All Tenders',render(){return`
+<div class="kpi-row kpi-6">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>','#eff6ff','Total Tenders','1,248','+12.5%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>','#fff7ed','Work Orders Issued','974','+8.3%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>','#fffbeb','In Progress','512','+15.7%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>','#f0fdf4','Completed','396','+10.1%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="10" y1="14" x2="14" y2="18"/><line x1="14" y1="14" x2="10" y2="18"/></svg>','#fef2f2','Overdue','66','+5.2%','t-dn')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 9h5a2 2 0 0 1 0 4H9l3.5 4M8 9V8" stroke-linecap="round"/></svg>','#faf5ff','Total Value (₹)','1,245 Cr','+9.6%')}
+</div>
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="c-title">Tenders by Status</div>
+    <div class="donut-body">
+      <div class="donut-wrap"><canvas id="donutChart" width="138" height="138"></canvas><div class="donut-center"><div class="dc-num">1,248</div><div class="dc-lbl">Total</div></div></div>
+      <div class="donut-legend">
+        <div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#94a3b8"></div>Not Started</div><div class="leg-r">182 (14.6%)</div></div>
+        <div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#3b82f6"></div>In Progress</div><div class="leg-r">512 (41.0%)</div></div>
+        <div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#22c55e"></div>Completed</div><div class="leg-r">396 (31.7%)</div></div>
+        <div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#f59e0b"></div>On Hold</div><div class="leg-r">92 (7.4%)</div></div>
+        <div class="leg-row"><div class="leg-l"><div class="leg-dot" style="background:#ef4444"></div>Overdue</div><div class="leg-r">66 (5.3%)</div></div>
+      </div>
+    </div>
+    <div class="c-link" onclick="App.go('tenders')">View all tenders ${ICO.chev}</div>
+  </div>
+  <div class="chart-card" style="display:flex;flex-direction:column">
+    <div class="c-title">Progress Overview</div>
+    <div class="lc-legend"><div class="lc-item"><div class="lc-line" style="background:#22c55e"></div>Completed</div><div class="lc-item"><div class="lc-line" style="background:#3b82f6"></div>In Progress</div><div class="lc-item"><div class="lc-line" style="background:#ef4444"></div>Overdue</div></div>
+    <div style="flex:1;position:relative;min-height:0"><canvas id="lineChart"></canvas></div>
+    <div class="c-link" onclick="App.go('reports')">View full report ${ICO.chev}</div>
+  </div>
+  <div class="chart-card">
+    <div class="c-title">Tenders by Department</div>
+    <div class="dept-rows">
+      <div class="dept-row-item"><div class="dept-nm">Public Works Dept.</div><div class="dept-track"><div class="dept-fill" style="width:100%"></div></div><div class="dept-val">428</div></div>
+      <div class="dept-row-item"><div class="dept-nm">Urban Development</div><div class="dept-track"><div class="dept-fill" style="width:66.8%"></div></div><div class="dept-val">286</div></div>
+      <div class="dept-row-item"><div class="dept-nm">Water Supply</div><div class="dept-track"><div class="dept-fill" style="width:46.3%"></div></div><div class="dept-val">198</div></div>
+      <div class="dept-row-item"><div class="dept-nm">Education Dept.</div><div class="dept-track"><div class="dept-fill" style="width:29.4%"></div></div><div class="dept-val">126</div></div>
+      <div class="dept-row-item"><div class="dept-nm">Health Department</div><div class="dept-track"><div class="dept-fill" style="width:22.9%"></div></div><div class="dept-val">98</div></div>
+      <div class="dept-row-item"><div class="dept-nm">Others</div><div class="dept-track"><div class="dept-fill" style="width:26.2%;background:linear-gradient(90deg,#94a3b8,#64748b)"></div></div><div class="dept-val">112</div></div>
+    </div>
+    <div class="c-link" onclick="App.go('tenders')">View by department ${ICO.chev}</div>
+  </div>
+</div>
+${tblCard('Recent Tenders',`<div class="tbl-va" onclick="App.go('tenders')">View All ${ICO.chev}</div>`,
+  ['Tender ID','Work Order ID','Project Name','Department','Value (₹)','Status','Progress','Start Date','End Date','Action'],
+  [['TDR-2024-1250','WO-2024-9821','Road Improvement Scheme – Phase II','Public Works Dept','₹ 24.75 Cr','In Progress',68,'12 May 2024','30 Jun 2024'],
+   ['TDR-2024-1249','WO-2024-9815','Water Supply Augmentation Project','Water Supply','₹ 18.60 Cr','In Progress',54,'10 May 2024','28 Jun 2024'],
+   ['TDR-2024-1248','WO-2024-9799','Smart Classroom Construction','Education Dept','₹ 12.30 Cr','Completed',100,'05 Mar 2024','15 May 2024'],
+   ['TDR-2024-1247','WO-2024-9788','Urban Park Development','Urban Development','₹ 9.80 Cr','On Hold',25,'18 Apr 2024','18 Jul 2024'],
+   ['TDR-2024-1246','WO-2024-9775','Hospital Building Renovation','Health Dept','₹ 15.40 Cr','Overdue',87,'02 Apr 2024','20 May 2024']
+  ].map(r=>`<tr><td class="td-id">${r[0]}</td><td class="td-wo">${r[1]}</td><td class="td-proj">${r[2]}</td><td>${r[3]}</td><td class="td-val">${r[4]}</td><td>${badge(r[5])}</td><td>${prog(r[6])}</td><td class="td-date">${r[7]}</td><td class="td-date">${r[8]}</td><td>${eyeBtn()}</td></tr>`).join('')
+)}
+<div class="bot-row">
+  <div class="bot-card"><div class="bot-icon" style="background:#fef2f2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="bot-meta"><div class="bot-lbl">Avg. Time Overdue</div><div class="bot-val">18 days</div><div class="bot-trend"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg><span style="color:#16a34a">-2 days</span>&nbsp;<span style="color:#94a3b8;font-weight:400">vs Apr 2024</span></div></div></div>
+  <div class="bot-card"><div class="bot-icon" style="background:#f0fdf4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="bot-meta"><div class="bot-lbl">On-time Completion</div><div class="bot-val">70.3%</div><div class="bot-trend">${ICO.up}<span class="t-up">+4.6%</span>&nbsp;<span style="color:#94a3b8;font-weight:400">vs Apr 2024</span></div></div></div>
+  <div class="bot-card"><div class="bot-icon" style="background:#faf5ff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="bot-meta"><div class="bot-lbl">Budget Utilization</div><div class="bot-val">68.7%</div><div class="bot-trend">${ICO.up}<span class="t-up">+6.2%</span>&nbsp;<span style="color:#94a3b8;font-weight:400">vs Apr 2024</span></div></div></div>
+  <div class="bot-card"><div class="bot-icon" style="background:#eff6ff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><div class="bot-meta"><div class="bot-lbl">Payments Made</div><div class="bot-val">₹ 842 Cr</div><div class="bot-trend">${ICO.up}<span class="t-up">+11.3%</span>&nbsp;<span style="color:#94a3b8;font-weight:400">vs Apr 2024</span></div></div></div>
+  <div class="bot-card"><div class="bot-icon" style="background:#fff7ed"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="bot-meta"><div class="bot-lbl">Active Vendors</div><div class="bot-val">356</div><div class="bot-trend">${ICO.up}<span class="t-up">+7.8%</span>&nbsp;<span style="color:#94a3b8;font-weight:400">vs Apr 2024</span></div></div></div>
+</div>
+`},initCharts(){
+  _charts.push(new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:['Not Started','In Progress','Completed','On Hold','Overdue'],datasets:[{data:[182,512,396,92,66],backgroundColor:['#94a3b8','#3b82f6','#22c55e','#f59e0b','#ef4444'],borderWidth:0,hoverOffset:5}]},options:{cutout:'72%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#0f172a',bodyColor:'#374151',borderColor:'#e2e8f0',borderWidth:1,padding:10,cornerRadius:8}},animation:{duration:800}}}));
+  _charts.push(new Chart(document.getElementById('lineChart'),{type:'line',data:{labels:['01 May','08 May','15 May','22 May','31 May'],datasets:[{label:'Completed',data:[300,325,351,375,396],borderColor:'#22c55e',borderWidth:2.2,pointRadius:4,pointBackgroundColor:'#22c55e',pointBorderColor:'#fff',pointBorderWidth:1.5,tension:.38,fill:false},{label:'In Progress',data:[380,415,452,487,512],borderColor:'#3b82f6',borderWidth:2.2,pointRadius:4,pointBackgroundColor:'#3b82f6',pointBorderColor:'#fff',pointBorderWidth:1.5,tension:.38,fill:false},{label:'Overdue',data:[50,54,58,63,66],borderColor:'#ef4444',borderWidth:2.2,pointRadius:4,pointBackgroundColor:'#ef4444',pointBorderColor:'#fff',pointBorderWidth:1.5,tension:.38,fill:false}]},options:{responsive:true,maintainAspectRatio:true,aspectRatio:2.6,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'#fff',titleColor:'#0f172a',bodyColor:'#374151',borderColor:'#e2e8f0',borderWidth:1,padding:10,cornerRadius:8}},scales:{x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:'#94a3b8'}},y:{grid:{color:'#f1f5f9'},border:{display:false},ticks:{font:{size:10},color:'#94a3b8',stepSize:100},min:0,max:600}}}}))}},
+
+'work-orders':{title:'Work Orders',subtitle:'Manage & Track All Issued Work Orders',render(){return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>','#eff6ff','Total Work Orders','974','+8.3%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>','#fffbeb','In Progress','412','+11.2%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>','#f0fdf4','Completed','348','+9.4%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="10" y1="14" x2="14" y2="18"/><line x1="14" y1="14" x2="10" y2="18"/></svg>','#fef2f2','Overdue','54','+3.1%','t-dn')}
+</div>
+<div class="tbl-card">
+  <div class="tbl-hdr">
+    <span class="tbl-title">All Work Orders</span>
+    <div class="filter-bar" style="margin-left:0;flex:1;margin-left:16px">
+      <div class="filter-tab active" onclick="filterWO(this,'All')">All</div>
+      <div class="filter-tab" onclick="filterWO(this,'In Progress')">In Progress</div>
+      <div class="filter-tab" onclick="filterWO(this,'Completed')">Completed</div>
+      <div class="filter-tab" onclick="filterWO(this,'On Hold')">On Hold</div>
+      <div class="filter-tab" onclick="filterWO(this,'Overdue')">Overdue</div>
+      <input class="search-input" placeholder="🔍  Search work orders..." oninput="searchWO(this.value)"/>
+    </div>
+  </div>
+  <table><thead><tr><th>WO Number</th><th>Tender ID</th><th>Project Name</th><th>Department</th><th>Vendor</th><th>Value (₹)</th><th>Status</th><th>Progress</th><th>Start Date</th><th>End Date</th><th>Action</th></tr></thead>
+  <tbody id="wo-tbody">
+  ${[['WO-2024-9821','TDR-2024-1250','Road Improvement Scheme – Phase II','Public Works','Infratech Ltd','₹ 24.75 Cr','In Progress',68,'12 May 2024','30 Jun 2024'],
+     ['WO-2024-9815','TDR-2024-1249','Water Supply Augmentation Project','Water Supply','BuildRight Corp','₹ 18.60 Cr','In Progress',54,'10 May 2024','28 Jun 2024'],
+     ['WO-2024-9799','TDR-2024-1248','Smart Classroom Construction','Education','EduBuild Pvt Ltd','₹ 12.30 Cr','Completed',100,'05 Mar 2024','15 May 2024'],
+     ['WO-2024-9788','TDR-2024-1247','Urban Park Development','Urban Dev','GreenSpace Co','₹ 9.80 Cr','On Hold',25,'18 Apr 2024','18 Jul 2024'],
+     ['WO-2024-9775','TDR-2024-1246','Hospital Building Renovation','Health','HealthBuild Inc','₹ 15.40 Cr','Overdue',87,'02 Apr 2024','20 May 2024'],
+     ['WO-2024-9762','TDR-2024-1245','Bridge Repair & Reinforcement Ph3','Public Works','BridgeMaster Ltd','₹ 31.20 Cr','In Progress',42,'01 Apr 2024','31 Aug 2024'],
+     ['WO-2024-9750','TDR-2024-1244','School Sanitation Block Construction','Education','Sanitation Corp','₹ 4.50 Cr','Completed',100,'15 Feb 2024','30 Apr 2024'],
+     ['WO-2024-9741','TDR-2024-1243','Street Lighting Upgrade – Zone C','Urban Dev','LightTech Pvt','₹ 8.90 Cr','Draft',0,'20 Jun 2024','20 Dec 2024'],
+     ['WO-2024-9732','TDR-2024-1242','Sewage Treatment Plant Upgrade','Water Supply','AquaEng Ltd','₹ 22.10 Cr','In Progress',76,'15 Jan 2024','30 Jul 2024'],
+     ['WO-2024-9720','TDR-2024-1241','Community Health Centre Construction','Health','MedBuild Ltd','₹ 7.60 Cr','In Progress',38,'01 May 2024','31 Oct 2024']
+  ].map(r=>`<tr><td class="td-id">${r[0]}</td><td class="td-wo">${r[1]}</td><td class="td-proj">${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td class="td-val">${r[5]}</td><td>${badge(r[6])}</td><td>${prog(r[7])}</td><td class="td-date">${r[8]}</td><td class="td-date">${r[9]}</td><td>${eyeBtn()}</td></tr>`).join('')}
+  </tbody></table>
+</div>
+`},initCharts(){}},
+
+tenders:{title:'Tenders',subtitle:'Browse & Manage All System Tenders',render(){return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>','#eff6ff','Total Tenders','1,248','+12.5%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 9h5a2 2 0 0 1 0 4H9l3.5 4M8 9V8" stroke-linecap="round"/></svg>','#faf5ff','Total Budget','₹ 1,842 Cr','+14.2%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>','#f0fdf4','Awarded','396','+10.1%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>','#fffbeb','Pending Approval','184','+6.8%')}
+</div>
+${tblCard('All Tenders',`<div style="display:flex;gap:8px;align-items:center"><select class="form-select" style="font-size:11px;padding:5px 8px"><option>All Types</option><option>Open</option><option>Limited</option><option>Single Source</option><option>GeM</option></select><input class="search-input" placeholder="🔍  Search tenders..." style="width:180px"/></div>`,
+  ['Tender ID','Title','Type','Department','Budget (₹)','Status','Awarded To','Deadline','Action'],
+  [['TDR-2024-1250','Road Improvement Scheme – Phase II','Open','Public Works Dept','₹ 28.00 Cr','In Progress','Infratech Ltd','30 Jun 2024'],
+   ['TDR-2024-1249','Water Supply Augmentation Project','Limited','Water Supply','₹ 20.50 Cr','In Progress','BuildRight Corp','28 Jun 2024'],
+   ['TDR-2024-1248','Smart Classroom Construction','Open','Education Dept','₹ 13.00 Cr','Completed','EduBuild Pvt','15 May 2024'],
+   ['TDR-2024-1247','Urban Park Development','Open','Urban Development','₹ 11.00 Cr','On Hold','GreenSpace Co','18 Jul 2024'],
+   ['TDR-2024-1246','Hospital Building Renovation','Limited','Health Dept','₹ 17.00 Cr','Overdue','HealthBuild Inc','20 May 2024'],
+   ['TDR-2024-1245','Bridge Repair & Reinforcement Ph3','Open','Public Works Dept','₹ 35.00 Cr','In Progress','BridgeMaster','31 Aug 2024'],
+   ['TDR-2024-1244','School Sanitation Block','Single Source','Education Dept','₹ 5.00 Cr','Completed','Sanitation Corp','30 Apr 2024'],
+   ['TDR-2024-1243','Street Lighting Upgrade Zone C','GeM','Urban Development','₹ 10.00 Cr','Draft','—','20 Dec 2024'],
+   ['TDR-2024-1242','Sewage Treatment Plant Upgrade','Open','Water Supply','₹ 25.00 Cr','In Progress','AquaEng Ltd','30 Jul 2024'],
+   ['TDR-2024-1241','Community Health Centre','Limited','Health Dept','₹ 8.50 Cr','In Progress','MedBuild Ltd','31 Oct 2024'],
+   ['TDR-2024-1240','NH-48 Service Road Extension','Open','Public Works Dept','₹ 42.50 Cr','Draft','—','15 Aug 2024'],
+   ['TDR-2024-1239','Smart Meters Installation','GeM','Water Supply','₹ 6.80 Cr','Awarded','TechMetric Ltd','10 Jun 2024']
+  ].map(r=>`<tr><td class="td-id">${r[0]}</td><td class="td-proj">${r[1]}</td><td>${badge(r[2]=='GeM'?'Open':r[2])} <span style="font-size:10px;color:#94a3b8">${r[2]}</span></td><td>${r[3]}</td><td class="td-val">${r[4]}</td><td>${badge(r[5])}</td><td style="color:#374151;font-size:11px">${r[6]}</td><td class="td-date">${r[7]}</td><td>${eyeBtn()}</td></tr>`).join('')
+)}
+`},initCharts(){}},
+
+execution:{title:'Execution',subtitle:'Track Active Project Execution & Milestones',render(){
+const projects=[
+  {name:'Road Improvement Scheme – Phase II',dept:'Public Works',vendor:'Infratech Ltd',value:'₹ 24.75 Cr',pct:68,status:'In Progress',start:'12 May',end:'30 Jun',milestones:'2/3'},
+  {name:'Water Supply Augmentation Project',dept:'Water Supply',vendor:'BuildRight Corp',value:'₹ 18.60 Cr',pct:54,status:'In Progress',start:'10 May',end:'28 Jun',milestones:'1/3'},
+  {name:'Hospital Building Renovation',dept:'Health Dept',vendor:'HealthBuild Inc',value:'₹ 15.40 Cr',pct:87,status:'Overdue',start:'02 Apr',end:'20 May',milestones:'2/3'},
+  {name:'Bridge Repair & Reinforcement Ph3',dept:'Public Works',vendor:'BridgeMaster Ltd',value:'₹ 31.20 Cr',pct:42,status:'In Progress',start:'01 Apr',end:'31 Aug',milestones:'1/4'},
+  {name:'Sewage Treatment Plant Upgrade',dept:'Water Supply',vendor:'AquaEng Ltd',value:'₹ 22.10 Cr',pct:76,status:'In Progress',start:'15 Jan',end:'30 Jul',milestones:'3/4'},
+  {name:'Community Health Centre Construction',dept:'Health Dept',vendor:'MedBuild Ltd',value:'₹ 7.60 Cr',pct:38,status:'In Progress',start:'01 May',end:'31 Oct',milestones:'1/3'},
+];
+return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>','#eff6ff','Active Projects','6','+2')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>','#f0fdf4','Milestones Met','14','+3')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>','#fffbeb','Pending Milestones','8','+1','t-dn')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>','#faf5ff','Avg. Completion','61%','+8.4%')}
+</div>
+<div class="three-col">
+${projects.map(p=>`
+<div class="project-card">
+  <div class="project-card-header">
+    <div><div class="project-name">${p.name}</div><div class="project-dept">${p.dept} • ${p.vendor}</div></div>
+    ${badge(p.status)}
+  </div>
+  <div class="project-progress-label"><span style="font-size:11px;font-weight:600;color:#374151">Progress</span><span style="font-size:11px;font-weight:800;color:#0f172a">${p.pct}%</span></div>
+  <div class="project-prog-bar"><div class="prog-fill ${p.status==='Overdue'?'pf-red':'pf-blue'}" style="width:${p.pct}%"></div></div>
+  <div class="project-meta"><span>📅 ${p.start} – ${p.end}</span><span>🏁 Milestones: ${p.milestones}</span><span style="font-weight:700;color:#1e293b">${p.value}</span></div>
+</div>`).join('')}
+</div>
+${tblCard('Milestone Tracker','',
+  ['Project','Milestone','Due Date','Weightage','Payment','Status','Action'],
+  [['Road Improvement','Earthwork & Sub-base','30 May 2024','40%','₹ 5.00 Cr','In Progress'],
+   ['Road Improvement','Mobilization & Site Prep','28 Apr 2024','20%','₹ 3.75 Cr','Completed'],
+   ['Hospital Renovation','Structural Work','15 May 2024','50%','₹ 7.70 Cr','Overdue'],
+   ['Bridge Repair','Inspection & Assessment','01 May 2024','15%','₹ 4.68 Cr','Completed'],
+   ['Water Plant','Civil Construction','30 Jun 2024','50%','₹ 9.30 Cr','In Progress'],
+   ['Sewage Plant','Design & Engineering','28 Feb 2024','20%','₹ 4.42 Cr','Completed'],
+   ['Sewage Plant','Civil Works','30 Jun 2024','55%','₹ 12.16 Cr','In Progress']
+  ].map(r=>`<tr><td class="td-proj">${r[0]}</td><td>${r[1]}</td><td class="td-date">${r[2]}</td><td style="font-weight:600">${r[3]}</td><td class="td-val">${r[4]}</td><td>${badge(r[5])}</td><td>${eyeBtn()}</td></tr>`).join('')
+)}
+`},initCharts(){}},
+
+inspections:{title:'Inspections',subtitle:'Schedule & Track Field Inspection Visits',render(){return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>','#eff6ff','Total Inspections','142','+18.3%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>','#fffbeb','Scheduled','28','+5')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>','#f0fdf4','Completed','108','+12.1%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>','#fef2f2','Issues Raised','6','+2','t-dn')}
+</div>
+<div class="two-col">
+${tblCard('Upcoming Inspection Visits','',
+  ['Visit ID','Project','Location','Inspector','Scheduled','Purpose','Status','Action'],
+  [['VIS-001','Road Improvement Ph II','NH-48, Km 165','Ravi Sharma','05 Jun 2024','Quality Check','Scheduled'],
+   ['VIS-002','Water Supply Augment','Zone B Pump Stn','Priya Nair','07 Jun 2024','Progress Review','Scheduled'],
+   ['VIS-003','Hospital Renovation','District Hosp, Block C','Amit Patel','08 Jun 2024','Safety Inspection','Scheduled'],
+   ['VIS-004','Bridge Repair Ph3','Yamuna Bridge','Sunita Rao','10 Jun 2024','Structural Check','Scheduled'],
+   ['VIS-005','Sewage Treatment Plant','Zone D, STP Unit 2','Raj Kumar','12 Jun 2024','Quality Check','Scheduled']
+  ].map(r=>`<tr><td class="td-id">${r[0]}</td><td class="td-proj">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="td-date">${r[4]}</td><td>${r[5]}</td><td>${badge(r[6])}</td><td>${eyeBtn()}</td></tr>`).join('')
+)}
+${tblCard('Recent Inspection Reports','',
+  ['Report ID','Project','Inspector','Date','Findings','Issues','Status','Action'],
+  [['RPT-089','Smart Classroom','Ravi Sharma','28 May 2024','Satisfactory','None','Completed'],
+   ['RPT-088','Road Improvement','Priya Nair','25 May 2024','Minor delays noted','1 raised','Completed'],
+   ['RPT-087','Hospital Renovation','Amit Patel','22 May 2024','Overdue – Structural','2 raised','Completed'],
+   ['RPT-086','Bridge Repair','Sunita Rao','20 May 2024','On track','None','Completed'],
+   ['RPT-085','Sewage Plant','Raj Kumar','18 May 2024','Good progress','None','Completed']
+  ].map(r=>`<tr><td class="td-id">${r[0]}</td><td class="td-proj">${r[1]}</td><td>${r[2]}</td><td class="td-date">${r[3]}</td><td>${r[4]}</td><td style="font-weight:600;color:${r[5]==='None'?'#22c55e':'#ef4444'}">${r[5]}</td><td>${badge(r[6])}</td><td>${eyeBtn()}</td></tr>`).join('')
+)}
+</div>
+`},initCharts(){}},
+
+billing:{title:'Billing',subtitle:'Manage Bills, Invoices & Payment Requests',render(){return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>','#eff6ff','Bills Submitted','214','+15.2%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>','#fffbeb','Pending Approval','38','+4')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>','#f0fdf4','Approved & Paid','168','+11.3%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 9h5a2 2 0 0 1 0 4H9l3.5 4M8 9V8" stroke-linecap="round"/></svg>','#faf5ff','Total Bill Value','₹ 942 Cr','+13.8%')}
+</div>
+${tblCard('All Bills',`<select class="form-select" style="font-size:11px;padding:5px 8px"><option>All Status</option><option>Submitted</option><option>Approved</option><option>Paid</option><option>Rejected</option></select>`,
+  ['Bill No','Work Order','Project','Vendor','Amount (₹)','Submitted Date','Status','Voucher No','Action'],
+  [['BILL-2024-214','WO-2024-9821','Road Improvement Ph II','Infratech Ltd','₹ 3.75 Cr','28 May 2024','Submitted','—'],
+   ['BILL-2024-213','WO-2024-9815','Water Supply Augmentation','BuildRight Corp','₹ 2.20 Cr','25 May 2024','Approved','—'],
+   ['BILL-2024-212','WO-2024-9732','Sewage Treatment Plant','AquaEng Ltd','₹ 5.60 Cr','22 May 2024','Paid','VCH-8821'],
+   ['BILL-2024-211','WO-2024-9799','Smart Classroom','EduBuild Pvt','₹ 1.85 Cr','20 May 2024','Paid','VCH-8820'],
+   ['BILL-2024-210','WO-2024-9775','Hospital Renovation','HealthBuild Inc','₹ 4.20 Cr','18 May 2024','Rejected','—'],
+   ['BILL-2024-209','WO-2024-9762','Bridge Repair Ph3','BridgeMaster','₹ 6.80 Cr','15 May 2024','Paid','VCH-8819'],
+   ['BILL-2024-208','WO-2024-9720','Community Health Centre','MedBuild Ltd','₹ 1.20 Cr','12 May 2024','Submitted','—'],
+   ['BILL-2024-207','WO-2024-9750','School Sanitation Block','Sanitation Corp','₹ 0.90 Cr','10 May 2024','Paid','VCH-8818']
+  ].map(r=>`<tr><td class="td-id">${r[0]}</td><td class="td-wo">${r[1]}</td><td class="td-proj">${r[2]}</td><td>${r[3]}</td><td class="td-val">${r[4]}</td><td class="td-date">${r[5]}</td><td>${badge(r[6])}</td><td style="font-size:11px;color:${r[7]==='—'?'#94a3b8':'#374151'}">${r[7]}</td><td>${eyeBtn()}</td></tr>`).join('')
+)}
+`},initCharts(){}},
+
+payments:{title:'Payments',subtitle:'Track Payment Releases & Transaction History',render(){return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>','#f0fdf4','Total Paid','₹ 842 Cr','+11.3%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>','#fffbeb','Pending Release','₹ 124 Cr','-8.2%','t-dn')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>','#eff6ff','Transactions','168','+11.3%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>','#fef2f2','Avg Payment Days','12','-3 days')}
+</div>
+${tblCard('Payment Transaction History',`<input class="search-input" placeholder="🔍  Search transactions..."/>`,
+  ['Voucher No','Bill No','Project','Vendor','Amount (₹)','Payment Date','Mode','Status','Action'],
+  [['VCH-8821','BILL-2024-212','Sewage Treatment Plant','AquaEng Ltd','₹ 5.60 Cr','22 May 2024','RTGS','Paid'],
+   ['VCH-8820','BILL-2024-211','Smart Classroom','EduBuild Pvt','₹ 1.85 Cr','20 May 2024','NEFT','Paid'],
+   ['VCH-8819','BILL-2024-209','Bridge Repair Ph3','BridgeMaster','₹ 6.80 Cr','15 May 2024','RTGS','Paid'],
+   ['VCH-8818','BILL-2024-207','School Sanitation','Sanitation Corp','₹ 0.90 Cr','10 May 2024','NEFT','Paid'],
+   ['VCH-8817','BILL-2024-205','Road Improvement','Infratech Ltd','₹ 3.75 Cr','05 May 2024','RTGS','Paid'],
+   ['VCH-8816','BILL-2024-202','Hospital Renovation','HealthBuild Inc','₹ 4.62 Cr','28 Apr 2024','RTGS','Paid'],
+   ['VCH-8815','BILL-2024-200','Urban Park Dev','GreenSpace Co','₹ 0.98 Cr','25 Apr 2024','NEFT','Paid'],
+   ['—','BILL-2024-213','Water Supply Augment','BuildRight Corp','₹ 2.20 Cr','—','—','Pending'],
+   ['—','BILL-2024-214','Road Improvement','Infratech Ltd','₹ 3.75 Cr','—','—','Pending']
+  ].map(r=>`<tr><td class="td-id" style="color:${r[0]==='—'?'#94a3b8':'#1e293b'}">${r[0]}</td><td class="td-wo">${r[1]}</td><td class="td-proj">${r[2]}</td><td>${r[3]}</td><td class="td-val">${r[4]}</td><td class="td-date">${r[5]}</td><td style="font-size:11px;color:#64748b">${r[6]}</td><td>${badge(r[7])}</td><td>${eyeBtn()}</td></tr>`).join('')
+)}
+`},initCharts(){}},
+
+vendors:{title:'Vendors',subtitle:'Vendor Directory, Performance & Management',render(){
+const vendors=[
+  ['VEND-001','Infratech Ltd','vendor@example.com','GST27AAACR5055K1Z5',92,'Active'],
+  ['VEND-002','BuildRight Corp','buildright@example.com','GST29AAACR5055K1Z3',67,'Active'],
+  ['VEND-003','CivilCorp Enterprises','civilcorp@example.com','GST07AAACR5055K1Z8',45,'On Hold'],
+  ['VEND-004','EduBuild Pvt Ltd','edubuild@example.com','GST22AAACR5055K1Z2',88,'Active'],
+  ['VEND-005','GreenSpace Co','greenspace@example.com','GST09AAACR5055K1Z1',74,'Active'],
+  ['VEND-006','HealthBuild Inc','healthbuild@example.com','GST19AAACR5055K1Z6',51,'On Hold'],
+  ['VEND-007','BridgeMaster Ltd','bridge@example.com','GST33AAACR5055K1Z4',81,'Active'],
+  ['VEND-008','Sanitation Corp','sanitation@example.com','GST14AAACR5055K1Z7',95,'Active'],
+  ['VEND-009','LightTech Pvt','lighttech@example.com','GST25AAACR5055K1Z9',62,'Active'],
+  ['VEND-010','AquaEng Ltd','aquaeng@example.com','GST11AAACR5055K1Z0',78,'Active'],
+  ['VEND-011','MedBuild Ltd','medbuild@example.com','GST17AAACR5055K1Z3',55,'Active'],
+  ['VEND-012','TechMetric Ltd','techmetric@example.com','GST31AAACR5055K1Z1',89,'Active'],
+];
+function scoreColor(s){return s>=80?'#22c55e':s>=60?'#f59e0b':'#ef4444'}
+return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>','#eff6ff','Total Vendors','356','+7.8%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>','#f0fdf4','Active Vendors','328','+6.2%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>','#fffbeb','On Hold','28','+5','t-dn')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>','#faf5ff','Avg. Score','73.2','+3.1%')}
+</div>
+${tblCard('Vendor Directory',`<input class="search-input" placeholder="🔍  Search vendors..."/>`,
+  ['Vendor Code','Company Name','Email','GST No','Perf. Score','Status','Action'],
+  vendors.map(r=>`<tr>
+    <td class="td-id">${r[0]}</td>
+    <td style="font-weight:600;color:#1e293b">${r[1]}</td>
+    <td style="color:#64748b;font-size:11px">${r[2]}</td>
+    <td style="font-size:11px;color:#94a3b8">${r[3]}</td>
+    <td>
+      <div class="score-bar-wrap">
+        <div class="score-bar"><div class="score-fill" style="width:${r[4]}%;background:${scoreColor(r[4])}"></div></div>
+        <span style="font-size:11px;font-weight:700;color:${scoreColor(r[4])};width:28px">${r[4]}</span>
+      </div>
+    </td>
+    <td>${badge(r[5])}</td>
+    <td>${eyeBtn()}</td>
+  </tr>`).join('')
+)}
+`},initCharts(){}},
+
+reports:{title:'Reports & MIS',subtitle:'Generate, Download & Analyse Management Reports',render(){
+const rpts=[
+  ['#eff6ff','#3b82f6','Tender Status Report','Comprehensive status of all tenders with filters by department, type and status.'],
+  ['#f0fdf4','#22c55e','Work Order Execution Report','Detailed execution progress, milestone status and payment tracking.'],
+  ['#fff7ed','#f97316','Vendor Performance Report','Performance scores, contract history and compliance summary per vendor.'],
+  ['#faf5ff','#a855f7','Financial Utilisation Report','Budget vs. actual expenditure with payment release breakdown.'],
+  ['#fef2f2','#ef4444','Overdue & Delay Analysis','Root cause analysis and trend of delays across all projects.'],
+  ['#fffbeb','#f59e0b','Inspection Compliance Report','Inspection schedules, completion rates and pending visits summary.'],
+];
+return`
+<div class="kpi-row kpi-3">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>','#eff6ff','Reports Generated','284','+22.4%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>','#f0fdf4','Downloads This Month','142','+18.7%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>','#fff7ed','Scheduled Reports','18','+4')}
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+${rpts.map(r=>`<div class="report-tile">
+  <div class="report-tile-icon" style="background:${r[0]}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${r[1]}" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+  <div class="report-tile-title">${r[2]}</div>
+  <div class="report-tile-desc">${r[3]}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <div class="download-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download PDF</div>
+    <div class="download-btn" style="background:#f0fdf4;color:#15803d"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Excel</div>
+  </div>
+</div>`).join('')}
+</div>
+<div class="chart-card">
+  <div class="c-title">Monthly Report Generation Trend</div>
+  <div class="lc-legend"><div class="lc-item"><div class="lc-line" style="background:#3b82f6"></div>Reports Generated</div><div class="lc-item"><div class="lc-line" style="background:#22c55e"></div>Downloads</div></div>
+  <canvas id="reportChart" style="max-height:180px"></canvas>
+</div>
+`},initCharts(){
+  _charts.push(new Chart(document.getElementById('reportChart'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May'],datasets:[{label:'Generated',data:[38,42,51,60,72],backgroundColor:'#3b82f6',borderRadius:6},{label:'Downloads',data:[22,28,38,48,58],backgroundColor:'#22c55e',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#94a3b8'}},y:{grid:{color:'#f1f5f9'},ticks:{font:{size:10},color:'#94a3b8'}}}}}))
+}},
+
+alerts:{title:'Alerts & Notifications',subtitle:'System Alerts, Warnings & Critical Notifications',render(){
+const alerts=[
+  {p:'Critical',dot:'#ef4444',bg:'#fef2f2',title:'Hospital Renovation – Overdue Alert',desc:'WO-2024-9775 is 12 days overdue. Liquidated damages clause may be triggered.',time:'2 hours ago',unread:true},
+  {p:'High',dot:'#f97316',bg:'#fff7ed',title:'Urban Park Development – Work Stopped',desc:'Vendor GreenSpace Co has halted work on WO-2024-9788. Site visit required.',time:'5 hours ago',unread:true},
+  {p:'High',dot:'#f97316',bg:'#fff7ed',title:'Bill Rejection – BILL-2024-210',desc:'Bill submitted by HealthBuild Inc was rejected due to incomplete documentation.',time:'8 hours ago',unread:true},
+  {p:'Medium',dot:'#3b82f6',bg:'#eff6ff',title:'Inspection Due – Road Improvement Ph II',desc:'Scheduled inspection VIS-001 is due on 05 Jun 2024. Inspector Ravi Sharma notified.',time:'1 day ago',unread:false},
+  {p:'Medium',dot:'#3b82f6',bg:'#eff6ff',title:'Milestone Payment Released – WO-2024-9732',desc:'VCH-8821 payment of ₹ 5.60 Cr released to AquaEng Ltd via RTGS.',time:'1 day ago',unread:false},
+  {p:'Low',dot:'#22c55e',bg:'#f0fdf4',title:'Project Completed – Smart Classroom Construction',desc:'WO-2024-9799 successfully completed. Final inspection pending.',time:'3 days ago',unread:false},
+  {p:'Low',dot:'#22c55e',bg:'#f0fdf4',title:'Vendor Performance Score Updated – VEND-003',desc:'CivilCorp Enterprises score dropped to 45. Status changed to On-Hold.',time:'4 days ago',unread:false},
+  {p:'Medium',dot:'#3b82f6',bg:'#eff6ff',title:'New Work Order Drafted – WO-2024-9741',desc:'Street Lighting Upgrade Zone C work order created. Pending vendor allocation.',time:'5 days ago',unread:false},
+  {p:'Critical',dot:'#ef4444',bg:'#fef2f2',title:'Bridge Repair – Budget Overrun Risk',desc:'WO-2024-9762 projected to exceed budget by 8%. Immediate review required.',time:'6 days ago',unread:false},
+  {p:'High',dot:'#f97316',bg:'#fff7ed',title:'Sewage Plant – Delayed Material Delivery',desc:'AquaEng Ltd reports 15-day delay in equipment delivery affecting timeline.',time:'7 days ago',unread:false},
+];
+return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>','#fef2f2','Critical Alerts','2','+1','t-dn')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>','#fff7ed','High Priority','3','+2','t-dn')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>','#eff6ff','Total Unread','12','+4','t-dn')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>','#f0fdf4','Resolved Today','8','+3')}
+</div>
+<div class="tbl-card">
+  <div class="tbl-hdr">
+    <span class="tbl-title">All Alerts</span>
+    <div class="filter-bar" style="margin-left:16px;flex:1">
+      <div class="filter-tab active">All</div>
+      <div class="filter-tab">Critical</div>
+      <div class="filter-tab">High</div>
+      <div class="filter-tab">Medium</div>
+      <div class="filter-tab">Low</div>
+      <div style="margin-left:auto;font-size:11.5px;color:#1d4ed8;font-weight:600;cursor:pointer">Mark All Read</div>
+    </div>
+  </div>
+  ${alerts.map(a=>`<div class="alert-item" style="${a.unread?'background:#fafbff':''}">
+    <div class="alert-dot" style="background:${a.dot}"></div>
+    <div class="alert-content">
+      <div class="alert-title">${a.unread?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#1d4ed8;margin-right:6px;vertical-align:middle"></span>':''}${a.title}</div>
+      <div class="alert-desc">${a.desc}</div>
+      <div class="alert-time">${a.time} · ${badge(a.p)}</div>
+    </div>
+  </div>`).join('')}
+</div>
+`},initCharts(){}},
+
+documents:{title:'Documents',subtitle:'Manage Tender Documents, Agreements & Uploads',render(){
+const docs=[
+  {icon:'📄',name:'WO-2024-9821_Agreement.pdf',project:'Road Improvement Ph II',type:'Agreement',size:'2.4 MB',uploaded:'12 May 2024',uploadedBy:'Admin'},
+  {icon:'📊',name:'TDR-2024-1250_BOQ.xlsx',project:'Road Improvement Ph II',type:'BOQ',size:'1.1 MB',uploaded:'10 May 2024',uploadedBy:'Admin'},
+  {icon:'📄',name:'WO-2024-9815_Agreement.pdf',project:'Water Supply Augment',type:'Agreement',size:'1.8 MB',uploaded:'10 May 2024',uploadedBy:'Admin'},
+  {icon:'🖼',name:'Hospital_Site_Photos.zip',project:'Hospital Renovation',type:'Site Photos',size:'18.2 MB',uploaded:'28 May 2024',uploadedBy:'Inspector'},
+  {icon:'📄',name:'RPT-089_Inspection_Report.pdf',project:'Smart Classroom',type:'Inspection Report',size:'0.9 MB',uploaded:'28 May 2024',uploadedBy:'Ravi Sharma'},
+  {icon:'📊',name:'VCH-8821_Payment_Voucher.pdf',project:'Sewage Treatment Plant',type:'Payment Voucher',size:'0.3 MB',uploaded:'22 May 2024',uploadedBy:'Finance'},
+  {icon:'📄',name:'BILL-2024-214_Invoice.pdf',project:'Road Improvement Ph II',type:'Invoice',size:'0.5 MB',uploaded:'28 May 2024',uploadedBy:'Vendor'},
+  {icon:'📋',name:'Bridge_Repair_DPR.pdf',project:'Bridge Repair Ph3',type:'DPR',size:'5.6 MB',uploaded:'01 Apr 2024',uploadedBy:'Admin'},
+];
+return`
+<div class="kpi-row kpi-4">
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>','#eff6ff','Total Documents','1,284','+12.4%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>','#f0fdf4','Agreements','974','+8.3%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>','#faf5ff','Reports','210','+22.4%')}
+  ${kpi('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>','#fffbeb','Uploads This Month','48','+18.7%')}
+</div>
+<div class="tbl-card">
+  <div class="tbl-hdr">
+    <span class="tbl-title">Document Library</span>
+    <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+      <select class="form-select" style="font-size:11px;padding:5px 8px"><option>All Types</option><option>Agreement</option><option>Invoice</option><option>BOQ</option><option>DPR</option><option>Inspection Report</option></select>
+      <input class="search-input" placeholder="🔍  Search documents..." style="width:180px"/>
+      <div class="download-btn" style="margin:0;white-space:nowrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Upload New</div>
+    </div>
+  </div>
+  <table><thead><tr><th>File</th><th>Project</th><th>Type</th><th>Size</th><th>Uploaded</th><th>Uploaded By</th><th>Action</th></tr></thead>
+  <tbody>${docs.map(d=>`<tr>
+    <td style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">${d.icon}</span><span style="font-weight:600;color:#1e293b;font-size:11.5px">${d.name}</span></td>
+    <td class="td-proj">${d.project}</td>
+    <td><span class="badge b-dr" style="font-size:9.5px">${d.type}</span></td>
+    <td style="color:#64748b;font-size:11px">${d.size}</td>
+    <td class="td-date">${d.uploaded}</td>
+    <td style="font-size:11px;color:#374151">${d.uploadedBy}</td>
+    <td style="display:flex;gap:6px">
+      <div class="action-eye" title="Preview">${ICO.eye}</div>
+      <div class="action-eye" title="Download"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+    </td>
+  </tr>`).join('')}
+  </tbody></table>
+</div>
+`},initCharts(){}},
+
+settings:{title:'Settings',subtitle:'System Configuration & User Preferences',render(){return`
+<div class="two-col">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="settings-section">
+      <div class="settings-section-title">General Settings</div>
+      <div class="settings-section-desc">Configure basic system information and regional settings.</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">System Name</label><input class="form-input" value="Post-Tender Management System"/></div>
+        <div class="form-group"><label class="form-label">Organisation</label><input class="form-input" value="Ministry of Public Works"/></div>
+        <div class="form-group"><label class="form-label">Currency</label><select class="form-select"><option>INR (₹)</option><option>USD ($)</option></select></div>
+        <div class="form-group"><label class="form-label">Timezone</label><select class="form-select"><option>IST (UTC+5:30)</option><option>UTC</option></select></div>
+        <div class="form-group"><label class="form-label">Financial Year</label><select class="form-select"><option>April – March</option><option>January – December</option></select></div>
+        <div class="form-group"><label class="form-label">Date Format</label><select class="form-select"><option>DD MMM YYYY</option><option>YYYY-MM-DD</option></select></div>
+      </div>
+      <div style="margin-top:16px"><button class="save-btn">Save Changes</button></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Profile & Account</div>
+      <div class="settings-section-desc">Update admin user profile and login credentials.</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" value="Admin User"/></div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" value="admin@example.com"/></div>
+        <div class="form-group"><label class="form-label">Role</label><input class="form-input" value="Administrator" disabled style="background:#f8fafc;color:#94a3b8"/></div>
+        <div class="form-group"><label class="form-label">Mobile</label><input class="form-input" value="+91 98765 43210"/></div>
+        <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" placeholder="Leave blank to keep current"/></div>
+        <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" placeholder="Re-enter new password"/></div>
+      </div>
+      <div style="margin-top:16px"><button class="save-btn">Update Profile</button></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="settings-section">
+      <div class="settings-section-title">Notifications</div>
+      <div class="settings-section-desc">Control when and how you receive system alerts.</div>
+      ${[['Email Notifications','Receive alerts via email for critical events','on'],['Overdue Project Alerts','Alert when a work order passes its end date','on'],['Inspection Reminders','Remind inspector 24hrs before scheduled visit','on'],['Payment Release Alerts','Notify on payment voucher generation','off'],['Vendor Score Updates','Alert when vendor performance score changes','off'],['New Document Uploads','Notify on new document added to the system','off']].map(r=>`<div class="toggle-row"><div class="toggle-info">${r[0]}<small>${r[1]}</small></div><div class="toggle ${r[2]}" onclick="this.classList.toggle('on')"></div></div>`).join('')}
+      <div style="margin-top:14px"><button class="save-btn">Save Preferences</button></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">System & Security</div>
+      <div class="settings-section-desc">Advanced system configuration and access controls.</div>
+      ${[['Two-Factor Authentication','Require OTP on every admin login','on'],['Session Timeout','Auto-logout after 30 minutes of inactivity','on'],['Audit Log Retention','Keep audit logs for 2 years','on'],['Public API Access','Allow third-party API integrations','off']].map(r=>`<div class="toggle-row"><div class="toggle-info">${r[0]}<small>${r[1]}</small></div><div class="toggle ${r[2]}" onclick="this.classList.toggle('on')"></div></div>`).join('')}
+      <div style="margin-top:14px;display:flex;gap:8px"><button class="save-btn">Save Settings</button><button style="padding:9px 16px;background:#fef2f2;color:#dc2626;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Clear Cache</button></div>
+    </div>
+  </div>
+</div>
+`},initCharts(){}}
+
+};// end PAGES
+
+// ═══════════════════════════════════════════
+// ROUTER
+// ═══════════════════════════════════════════
+const App={
+  current:null,
+  go(pageId){
+    if(!PAGES[pageId])return;
+    destroyCharts();
+    // Update active nav
+    document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+    const navEl=document.querySelector(`[data-page="${pageId}"]`);
+    if(navEl)navEl.classList.add('active');
+    // Update topbar
+    document.getElementById('page-title').textContent=PAGES[pageId].title;
+    document.getElementById('page-subtitle').textContent=PAGES[pageId].subtitle;
+    // Render content
+    document.getElementById('page-content').innerHTML=PAGES[pageId].render();
+    document.getElementById('page-content').scrollTop=0;
+    this.current=pageId;
+    // Init charts after DOM ready
+    setTimeout(()=>{
+      if(PAGES[pageId].initCharts)PAGES[pageId].initCharts();
+    },30);
+  }
+};
+
+// Work order filter helpers
+function filterWO(el,status){
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#wo-tbody tr').forEach(tr=>{
+    if(status==='All'){tr.style.display='';return;}
+    const tds=[...tr.querySelectorAll('td')];
+    const st=tds[6]?.textContent?.trim()||'';
+    tr.style.display=st===status?'':'none';
+  });
+}
+function searchWO(q){
+  const lq=q.toLowerCase();
+  document.querySelectorAll('#wo-tbody tr').forEach(tr=>{
+    tr.style.display=tr.textContent.toLowerCase().includes(lq)?'':'none';
+  });
+}
+
+// Boot
+App.go('dashboard');
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TenderService.Persistence;
+using TenderService.Entities;
+using TenderService.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace TenderService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class WorkOrdersController : ControllerBase
+{
+    private readonly TenderServiceDbContext _context;
+    private readonly AuditLogger _audit;
+
+    public WorkOrdersController(TenderServiceDbContext context, AuditLogger audit)
+    {
+        _context = context;
+        _audit = audit;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetWorkOrders([FromQuery] Guid? vendorId, [FromQuery] Guid? inspectorId)
+    {
+        var query = _context.WorkOrders.AsQueryable();
+
+        if (vendorId.HasValue)
+            query = query.Where(w => w.VendorId == vendorId.Value);
+
+        if (inspectorId.HasValue)
+            query = query.Where(w => w.InspectorId == inspectorId.Value);
+
+        var workOrders = await query.OrderByDescending(w => w.CreatedAt).ToListAsync();
+        return Ok(workOrders);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var wo = await _context.WorkOrders.FirstOrDefaultAsync(w => w.Id == id);
+        if (wo == null) return NotFound();
+        return Ok(wo);
+    }
+
+    // Creates a Work Order in "Draft" status. Milestones travel in the payload but are
+    // owned by ExecutionService, so they are validated here and persisted by the caller in
+    // a follow-up POST /api/execution/milestones (this codebase composes across services on
+    // the client rather than making service-to-service calls).
+    [HttpPost]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> Create([FromBody] CreateWorkOrderDto dto)
+    {
+        if (dto == null) return BadRequest("Request body is required.");
+
+        if (dto.Milestones.Count > 0)
+        {
+            var totalWeightage = dto.Milestones.Sum(m => m.Weightage);
+            if (totalWeightage != 100)
+                return BadRequest("Sum of Milestone Weightages must equal 100%.");
+        }
+
+        var tender = await _context.Tenders.FindAsync(dto.TenderId);
+        if (tender == null) return BadRequest("Tender not found.");
+
+        if (dto.TotalValue > tender.Budget)
+            return BadRequest($"Project Cost ({dto.TotalValue}) cannot exceed Tender Budget ({tender.Budget}).");
+
+        if (dto.VendorId == Guid.Empty) return BadRequest("Vendor is required.");
+
+        var workOrder = new WorkOrder
+        {
+            VendorId = dto.VendorId,
+            TenderId = dto.TenderId,
+            WorkOrderNo = dto.WorkOrderNo,
+            TotalValue = dto.TotalValue,
+            ScopeDescription = dto.ScopeDescription,
+            PaymentTerms = dto.PaymentTerms,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            LiquidatedDamagesTerms = dto.LiquidatedDamagesTerms,
+            AgreementDocumentUrl = dto.AgreementDocumentUrl,
+            InspectorId = dto.InspectorId,
+            Status = "Draft"
+        };
+
+        _context.WorkOrders.Add(workOrder);
+        await _context.SaveChangesAsync();
+
+        await _audit.LogAsync("WorkOrder", workOrder.Id.ToString(), "Draft Created",
+            $"Work Order {workOrder.WorkOrderNo} created with {dto.Milestones.Count} milestone(s).");
+
+        // Return a scalar projection: the tracked Tender is fixed up onto workOrder.Tender by
+        // EF, which would otherwise serialize as a WorkOrder<->Tender reference cycle.
+        return Ok(new
+        {
+            workOrder.Id,
+            workOrder.TenderId,
+            workOrder.VendorId,
+            workOrder.InspectorId,
+            workOrder.WorkOrderNo,
+            workOrder.TotalValue,
+            workOrder.StartDate,
+            workOrder.EndDate,
+            workOrder.ScopeDescription,
+            workOrder.PaymentTerms,
+            workOrder.LiquidatedDamagesTerms,
+            workOrder.AgreementDocumentUrl,
+            workOrder.Status,
+            workOrder.CreatedAt
+        });
+    }
+
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.NewStatus))
+            return BadRequest("newStatus is required.");
+
+        var workOrder = await _context.WorkOrders.FirstOrDefaultAsync(w => w.Id == id);
+        if (workOrder == null) return NotFound("Work Order not found.");
+
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
+        var oldStatus = workOrder.Status;
+
+        // Only these transitions are legal; anything else (typos, arbitrary jumps such as
+        // Draft -> Completed, or regressions) is rejected so a client cannot skip the workflow.
+        var allowedTransitions = new Dictionary<string, string[]>
+        {
+            ["Draft"] = new[] { "Authority Approval", "Pending Vendor Acceptance" },
+            ["Authority Approval"] = new[] { "Pending Vendor Acceptance" },
+            ["Pending Vendor Acceptance"] = new[] { "Accepted" },
+            ["Accepted"] = new[] { "Project Activated", "Completed" },
+            ["Project Activated"] = new[] { "Completed" }
+        };
+
+        if (!allowedTransitions.TryGetValue(oldStatus, out var nextStates) ||
+            !nextStates.Contains(request.NewStatus))
+            return BadRequest($"Illegal status transition: '{oldStatus}' -> '{request.NewStatus}'.");
+
+        // Only a Vendor may accept a Work Order (matches the original workflow rules).
+        if (request.NewStatus == "Accepted" && userRole != "Vendor")
+            return Forbid();
+
+        workOrder.Status = request.NewStatus;
+
+        // On acceptance the system activates a Project record for the Work Order.
+        // Idempotent: only one Project per Work Order, so a double-click/retry cannot create duplicates.
+        // NOTE: Milestones are owned by ExecutionService, so linking them to this Project
+        // (the monolith set milestone.ProjectId here) is not done cross-service.
+        if (request.NewStatus == "Accepted" &&
+            !await _context.Projects.AnyAsync(p => p.WorkOrderId == workOrder.Id))
+        {
+            _context.Projects.Add(new Project
+            {
+                WorkOrderId = workOrder.Id,
+                Name = $"Project for WO {workOrder.WorkOrderNo}",
+                Budget = workOrder.TotalValue,
+                Status = "Activated"
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        await _audit.LogAsync("WorkOrder", id.ToString(), "Status changed",
+            $"{oldStatus} -> {request.NewStatus}");
+
+        return Ok(new { message = $"Status successfully transitioned to {request.NewStatus}" });
+    }
+
+    // Authority approval step: moves a Work Order from "Authority Approval" to the vendor.
+    [HttpPut("{id}/approve")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> Approve(Guid id)
+    {
+        var workOrder = await _context.WorkOrders.FirstOrDefaultAsync(w => w.Id == id);
+        if (workOrder == null) return NotFound("Work Order not found.");
+
+        // Only a Work Order awaiting authority approval can be approved — prevents regressing
+        // an already-Accepted/Completed Work Order back to "Pending Vendor Acceptance".
+        if (workOrder.Status != "Draft" && workOrder.Status != "Authority Approval")
+            return BadRequest($"Only a Draft or Authority Approval work order can be approved (current: '{workOrder.Status}').");
+
+        workOrder.Status = "Pending Vendor Acceptance";
+        await _context.SaveChangesAsync();
+
+        await _audit.LogAsync("WorkOrder", id.ToString(), "Approved & sent to vendor",
+            $"Work Order {workOrder.WorkOrderNo} sent for vendor acceptance.");
+
+        return Ok(new { message = "Work Order approved and sent to vendor." });
+    }
+
+    public class CreateWorkOrderDto
+    {
+        public Guid VendorId { get; set; }
+        public Guid TenderId { get; set; }
+        public string WorkOrderNo { get; set; } = string.Empty;
+        public decimal TotalValue { get; set; }
+        public string ScopeDescription { get; set; } = string.Empty;
+        public string PaymentTerms { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string LiquidatedDamagesTerms { get; set; } = string.Empty;
+        public string AgreementDocumentUrl { get; set; } = string.Empty;
+        public Guid? InspectorId { get; set; }
+        public List<MilestoneInput> Milestones { get; set; } = new();
+    }
+
+    public class MilestoneInput
+    {
+        public string Title { get; set; } = string.Empty;
+        public decimal Weightage { get; set; }
+        public decimal PaymentPercentage { get; set; }
+        public DateTime TargetDate { get; set; }
+    }
+
+    public class UpdateStatusRequest
+    {
+        public string NewStatus { get; set; } = string.Empty;
+    }
+}

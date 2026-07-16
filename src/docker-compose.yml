@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: ${DOCKER_REGISTRY-}gateway
+    build:
+      context: .
+      dockerfile: Backend/PostTenderSystem.Gateway/Dockerfile
+    ports:
+      - "5154:8080"
+      - "7162:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - post-tender-network
+
+  monolith-core:
+    image: ${DOCKER_REGISTRY-}monolithcore
+    build:
+      context: .
+      dockerfile: Backend/PostTenderSystem.API/Dockerfile
+    ports:
+      - "5249:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - post-tender-network
+
+  identity-service:
+    image: ${DOCKER_REGISTRY-}identityservice
+    build:
+      context: .
+      dockerfile: Backend/PostTenderSystem.IdentityService/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - post-tender-network
+
+networks:
+  post-tender-network:
+    driver: bridge
