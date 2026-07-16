@@ -61,6 +61,10 @@ Verified by matching every frontend call site against all 23 controllers and the
 
 ## Gotchas verified against the codebase
 
+**Two build traps on Windows, hit during execution:**
+- **Running services lock their output DLLs.** If any service is up (e.g. from a browser-verification run), `dotnet test` or `dotnet build` fails with MSB3021 "being used by another process". Stop the service processes first — target them by the PIDs listening on 5001-5007/5249, never a blanket `Stop-Process -Name dotnet` (that kills unrelated dotnet processes and will be denied).
+- **`dotnet ef ... --no-build` uses the last compiled assembly.** Add a migration, then run `database update --no-build`, and EF reports "already up to date" because the built DLL predates the new migration. Always `dotnet build` between `migrations add` and `database update`, or omit `--no-build`.
+
 **Nothing runs without `ASPNETCORE_ENVIRONMENT=Development`.** Both `run-all.ps1` and `start-all.ps1` pass `--no-launch-profile`, which ignores `launchSettings.json` and lets the environment default to Production. The services read their dev `Jwt:Key` from `appsettings.Development.json` and fail fast without it, so all seven exit on startup and only the Gateway stays up. Fixed in both scripts on 2026-07-16; if you start a service by hand, set the variable first.
 
 **`GET /api/bills` returns raw `Bill` rows.** It has `workOrderId` but no `workOrderNo` and no `vendorName` — those live in TenderService and VendorService. Any page showing those columns must join client-side (`workOrderId` → `WorkOrder.workOrderNo` + `vendorId` → `Vendor.name`), which is the pattern `dashboardService.ts` already uses. The same applies to `Bill.VendorId` after Phase 4.1: it identifies the tenant, it does not give you a name.
