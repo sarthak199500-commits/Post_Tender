@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VendorService.Clients;
 using VendorService.Persistence;
+using VendorService.Security;
 using VendorService.Entities;
 
 namespace VendorService.Controllers;
@@ -25,7 +26,16 @@ public class VendorsController : ControllerBase
     public async Task<IActionResult> GetVendors([FromQuery] string? search, [FromQuery] string? status)
     {
         var query = _context.Vendors.AsQueryable();
-        
+
+        // Scope before any other filter so a vendor cannot search across tenants.
+        // Fail closed: a Vendor token without the claim gets nothing, not everything.
+        if (CallerContext.IsVendor(User))
+        {
+            var me = CallerContext.VendorId(User);
+            if (me is null) return Forbid();
+            query = query.Where(v => v.Id == me);
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             query = query.Where(v => v.Name.Contains(search) || v.VendorCode.Contains(search));

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ExecutionService.Persistence;
+using ExecutionService.Security;
 using ExecutionService.Services;
 using System;
 using System.Linq;
@@ -26,7 +27,19 @@ public class ProgressReportsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        return Ok(await _context.ProgressReports.OrderByDescending(r => r.ReportedAt).ToListAsync());
+        var query = _context.ProgressReports.AsQueryable();
+
+        // A vendor sees only their own reports. Reviewers (Inspector/Department/Admin/PMU)
+        // must still see everyone's, so scope on the Vendor role rather than on the claim
+        // being present. Fail closed if a vendor token carries no claim.
+        if (CallerContext.IsVendor(User))
+        {
+            var me = CallerContext.VendorId(User);
+            if (me is null) return Forbid();
+            query = query.Where(r => r.VendorId == me);
+        }
+
+        return Ok(await query.OrderByDescending(r => r.ReportedAt).ToListAsync());
     }
 
     // Reports still awaiting inspector/department review. milestoneTitle is joined locally;
