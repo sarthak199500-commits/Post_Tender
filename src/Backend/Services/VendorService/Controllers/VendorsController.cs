@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using VendorService.Clients;
 using VendorService.Persistence;
 using VendorService.Entities;
 
@@ -12,10 +13,12 @@ namespace VendorService.Controllers;
 public class VendorsController : ControllerBase
 {
     private readonly VendorDbContext _context;
+    private readonly IIdentityClient _identity;
 
-    public VendorsController(VendorDbContext context)
+    public VendorsController(VendorDbContext context, IIdentityClient identity)
     {
         _context = context;
+        _identity = identity;
     }
 
     [HttpGet]
@@ -50,17 +53,29 @@ public class VendorsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> AddVendor([FromBody] VendorDto dto)
     {
-        // In a true Microservices architecture, creating a Vendor user account
-        // should be done via a synchronous HTTP call to IdentityService or via RabbitMQ Event.
-        // For this local SQLite migration demo, we assume the user creation is handled by IdentityService API.
-        
-        var generatedUserId = Guid.NewGuid(); // Mocking identity creation for now
+        if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            return BadRequest("Email and password are required to provision a vendor login.");
 
+        // VendorDto.CategoryId is a non-nullable Guid, so an omitted category arrives as
+        // Guid.Empty. Vendor.CategoryId is a nullable FK, so Guid.Empty must become null or
+        // SQLite rejects the insert with "FOREIGN KEY constraint failed".
+        Guid? categoryId = dto.CategoryId == Guid.Empty ? null : dto.CategoryId;
+
+        // Validate the category BEFORE registering the login. Anything that can fail the
+        // save must fail here instead: registration is not transactional with this save, so
+        // a later failure would strand a login whose vendorId claim points at no vendor.
+        if (categoryId.HasValue &&
+            !await _context.VendorCategories.AnyAsync(c => c.Id == categoryId.Value))
+            return BadRequest($"Vendor category '{categoryId}' does not exist.");
+
+        // Build in memory first so the row's Id can be handed to IdentityService, and so
+        // nothing is persisted if registration fails.
         var vendor = new Vendor
         {
+            Id = Guid.NewGuid(),
             Name = dto.Name,
             VendorCode = $"VEND-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}",
             GSTNo = dto.GSTNo ?? string.Empty,
@@ -69,11 +84,21 @@ public class VendorsController : ControllerBase
             Mobile = dto.Mobile ?? string.Empty,
             AlternativeNumber = dto.AlternativeNumber ?? string.Empty,
             ContactEmail = dto.Email,
-            UserId = generatedUserId,
-            CategoryId = dto.CategoryId,
+            CategoryId = categoryId,
             Status = "Active"
         };
 
+        Guid userId;
+        try
+        {
+            userId = await _identity.RegisterVendorAsync(dto.Name, dto.Email, dto.Password, vendor.Id);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest($"Could not provision vendor login: {ex.Message}");
+        }
+
+        vendor.UserId = userId;
         _context.Vendors.Add(vendor);
         await _context.SaveChangesAsync();
 

@@ -18,6 +18,11 @@ public static class DbSeeder
     {
         public static readonly Guid VendorUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         public static readonly Guid InspectorUserId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+        // Must equal VendorService.Persistence.DbSeeder.DemoVendorId. The services do not
+        // share a database, so this pair is kept in sync by hand. TenderService's seeded
+        // TenderAllotment also references this id — do not mint a new one.
+        public static readonly Guid VendorRecordId = Guid.Parse("a0000000-0000-0000-0000-000000000001");
     }
 
     public static void Seed(IdentityDbContext context)
@@ -35,10 +40,18 @@ public static class DbSeeder
             },
             new User
             {
+                Name = "Demo PMU Officer",
+                Email = "pmu@posttender.local",
+                Role = Role.PMU,
+                PasswordHash = PasswordHasher.Hash("Pmu@123456")
+            },
+            new User
+            {
                 Id = DemoIds.VendorUserId,
                 Name = "Demo Vendor",
                 Email = "vendor@posttender.local",
                 Role = Role.Vendor,
+                VendorId = DemoIds.VendorRecordId,
                 PasswordHash = PasswordHasher.Hash("Vendor@123")
             },
             new User

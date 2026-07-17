@@ -1,3 +1,4 @@
+using VendorService.Clients;
 using VendorService.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,6 +9,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Vendor provisioning calls IdentityService to create the vendor's login. The caller's
+// bearer token is forwarded per-request, hence the context accessor.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<IIdentityClient, IdentityClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Services:Identity"] ?? "http://localhost:5001");
+});
 
 // Configure Entity Framework Core with SQLite
 builder.Services.AddDbContext<VendorDbContext>(options =>
