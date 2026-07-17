@@ -15,8 +15,11 @@ import {
   Plus,
 } from 'lucide-react';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
-const API_BASE = 'http://localhost:5249';
+// Still needed for evidence media rendered via <img src>/<video src>, which cannot go
+// through axios. Mirrors axiosInstance's base so this is not pinned to localhost.
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5249';
 const MAX_MEDIA = 10;
 const PREVIEW_COUNT = 3; // show up to 3 thumbnails; 3rd becomes the "+N" tile
 
@@ -114,34 +117,36 @@ export const ProgressReporting = () => {
 
   // ── data ──────────────────────────────────────────────────────────────────
 
+  // /api/vendordashboard/summary has no controller and no gateway route. /projects is
+  // now scoped to the caller's own vendor, so this returns exactly this vendor's projects.
   useEffect(() => {
-    fetch(`${API_BASE}/api/vendordashboard/summary`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => setProjects(d.recentProjects ?? []));
+    axiosInstance
+      .get('/projects')
+      .then((r) => setProjects(r.data ?? []))
+      .catch((err) => console.error('Error loading projects:', err));
   }, [token]);
 
   const loadSubmissions = (projectId: string) => {
-    fetch(`${API_BASE}/api/progressreports/project/${projectId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then(setSubmissions);
+    axiosInstance
+      .get(`/progressreports/project/${projectId}`)
+      .then((r) => setSubmissions(r.data ?? []))
+      .catch((err) => console.error('Error loading submissions:', err));
   };
 
   useEffect(() => {
     if (selectedProject) {
       loadSubmissions(selectedProject.id);
-      
-      // Fetch project details to load milestones
-      fetch(`${API_BASE}/api/projects/${selectedProject.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          setMilestones(d.workOrder?.milestones ?? []);
-        })
+
+      // Milestones are owned by ExecutionService and keyed by workOrderId; TenderService's
+      // Project has no milestones navigation, so the old d.workOrder?.milestones was always
+      // undefined and this dropdown was always empty. Resolve them via the project's
+      // workOrderId instead.
+      const workOrderId = selectedProject.workOrderId;
+      if (!workOrderId) { setMilestones([]); return; }
+
+      axiosInstance
+        .get('/execution/milestones', { params: { workOrderId } })
+        .then((r) => setMilestones(r.data ?? []))
         .catch((err) => console.error('Error loading milestones:', err));
     } else {
       setMilestones([]);
@@ -164,15 +169,12 @@ export const ProgressReporting = () => {
       const fd = new FormData();
       fd.append('file', file);
       try {
-        const res = await fetch(`${API_BASE}/api/files/upload`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
+        // Let the browser set the multipart boundary; axiosInstance defaults to
+        // application/json, which would corrupt the upload.
+        const res = await axiosInstance.post('/files/upload', fd, {
+          headers: { 'Content-Type': undefined },
         });
-        if (res.ok) {
-          const data = await res.json();
-          setMediaUrls((prev) => [...prev, data.url]);
-        }
+        setMediaUrls((prev) => [...prev, res.data.url]);
       } catch (e) {
         console.error(e);
       }
@@ -214,20 +216,15 @@ export const ProgressReporting = () => {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/api/progressreports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(report),
-      });
-      if (res.ok) {
-        alert('Progress report submitted successfully!');
-        setWorkDescription('');
-        setLocation(null);
-        setMediaUrls([]);
-        setSelectedMilestoneId('');
-        if (selectedProject) loadSubmissions(selectedProject.id);
-      }
-    } catch (e) {
+      await axiosInstance.post('/progressreports', report);
+      alert('Progress report submitted successfully!');
+      setWorkDescription('');
+      setLocation(null);
+      setMediaUrls([]);
+      setSelectedMilestoneId('');
+      if (selectedProject) loadSubmissions(selectedProject.id);
+    } catch (e: any) {
+      alert(e?.response?.data ?? 'Failed to submit progress report.');
       console.error(e);
     }
   };
@@ -444,15 +441,10 @@ export const ProgressReporting = () => {
                       key={sub.id}
                       onClick={async () => {
                         try {
-                          const res = await fetch(`${API_BASE}/api/progressreports/${sub.id}`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (res.ok) {
-                            setSelectedSubmission(await res.json());
-                          } else {
-                            setSelectedSubmission(sub);
-                          }
-                        } catch (err) {
+                          const res = await axiosInstance.get(`/progressreports/${sub.id}`);
+                          setSelectedSubmission(res.data);
+                        } catch {
+                          // Fall back to the row we already have rather than blanking the panel.
                           setSelectedSubmission(sub);
                         }
                       }}

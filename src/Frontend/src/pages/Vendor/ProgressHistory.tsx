@@ -15,8 +15,11 @@ import {
   ClipboardList
 } from 'lucide-react';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
-const API_BASE = 'http://localhost:5249';
+// Still needed for evidence media rendered via <img src>/<video src>, which cannot go
+// through axios. Mirrors axiosInstance's base so this is not pinned to localhost.
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5249';
 
 interface Submission {
   id: string;
@@ -72,17 +75,24 @@ export const ProgressHistory = () => {
   const [selectedProject, setSelectedProject] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
 
+  // ProgressReport carries projectId but no projectName — project names live in
+  // TenderService — so resolve them here. Without this the PROJECT NAME column renders
+  // blank and the filter collapses to a single undefined entry.
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/api/progressreports/my`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to load history');
-      const data = await res.json();
-      setSubmissions(data);
+      const [reportsRes, projectsRes] = await Promise.all([
+        axiosInstance.get('/progressreports/my'),
+        axiosInstance.get('/projects').catch(() => ({ data: [] })),
+      ]);
+
+      const projects: any[] = projectsRes.data ?? [];
+      setSubmissions((reportsRes.data ?? []).map((r: any) => ({
+        ...r,
+        projectName: projects.find(p => p.id === r.projectId)?.name ?? 'Unknown Project',
+      })));
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.response?.data ?? 'Failed to load history');
     } finally {
       setLoading(false);
     }
@@ -98,12 +108,8 @@ export const ProgressHistory = () => {
   const handleSelectSubmission = async (id: string) => {
     setModalLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/progressreports/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        setSelectedSubmission(await res.json());
-      }
+      const res = await axiosInstance.get(`/progressreports/${id}`);
+      setSelectedSubmission(res.data);
     } catch (err) {
       console.error(err);
     } finally {
