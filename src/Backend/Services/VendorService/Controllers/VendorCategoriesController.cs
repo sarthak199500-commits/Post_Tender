@@ -26,7 +26,7 @@ public class VendorCategoriesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> AddCategory([FromBody] VendorCategory category)
     {
         if (string.IsNullOrWhiteSpace(category.Name))
@@ -38,7 +38,7 @@ public class VendorCategoriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> DeleteCategory(Guid id)
     {
         var category = await _context.VendorCategories.FindAsync(id);

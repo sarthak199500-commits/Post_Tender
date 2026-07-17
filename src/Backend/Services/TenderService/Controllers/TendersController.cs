@@ -25,7 +25,7 @@ public class TendersController : ControllerBase
     }
 
     [HttpGet("awarded")]
-    [Authorize(Roles = "Admin,Department")]
+    [Authorize(Roles = "Admin,PMU,Department")]
     public async Task<IActionResult> GetAwardedTenders()
     {
         var awardedTenders = await _context.Tenders
@@ -47,7 +47,7 @@ public class TendersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> GetAllTenders()
     {
         var tenders = await _context.Tenders
@@ -63,7 +63,7 @@ public class TendersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> AddTender([FromForm] TenderFormDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.TenderNo))
@@ -103,7 +103,7 @@ public class TendersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> UpdateTender(Guid id, [FromForm] TenderFormDto dto)
     {
         var tender = await _context.Tenders.FindAsync(id);
@@ -135,7 +135,7 @@ public class TendersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> DeleteTender(Guid id)
     {
         var tender = await _context.Tenders.FindAsync(id);

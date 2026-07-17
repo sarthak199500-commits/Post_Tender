@@ -106,7 +106,7 @@ public class VendorsController : ControllerBase
     }
 
     [HttpPatch("{id}/status")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> UpdateVendorStatus(Guid id, [FromBody] StatusUpdateDto dto)
     {
         var vendor = await _context.Vendors.FindAsync(id);
@@ -123,7 +123,7 @@ public class VendorsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> DeleteVendor(Guid id)
     {
         var vendor = await _context.Vendors.FindAsync(id);
