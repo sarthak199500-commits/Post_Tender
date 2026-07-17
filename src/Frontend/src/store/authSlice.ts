@@ -6,6 +6,9 @@ interface User {
   email: string;
   name: string;
   role: string;
+  // Present only for Vendor logins. Minted into the JWT as the vendorId claim and
+  // returned nested under `user` by /api/auth/login, so it arrives via the spread below.
+  vendorId?: string | null;
 }
 
 // Maps numeric role enum values (from old cached sessions) to string names

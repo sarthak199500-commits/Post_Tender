@@ -2,33 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { selectVendorId } from '../../api/currentVendor';
+import axiosInstance from '../../api/axiosInstance';
 
 export const VendorWorkOrderView = () => {
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [acceptId, setAcceptId] = useState<string | null>(null);
-  const { token, user } = useSelector((state: RootState) => state.auth);
+  const { token } = useSelector((state: RootState) => state.auth);
+  const vendorId = useSelector(selectVendorId);
 
-  useEffect(() => { fetchWorkOrders(); }, [token]);
+  useEffect(() => { fetchWorkOrders(); }, [token, vendorId]);
 
+  // Work Orders are keyed by Vendor.Id. That now comes from the vendorId claim, so this
+  // no longer downloads every vendor to find itself — the old approach depended on a
+  // cross-tenant read that the backend is closing.
   const fetchWorkOrders = async () => {
+    if (!vendorId) { setWorkOrders([]); return; }
     try {
-      const h = { headers: { Authorization: `Bearer ${token}` } };
-
-      // Work Orders are keyed by Vendor.Id, but the logged-in identity is a User.Id, so we
-      // first resolve this vendor's own record before requesting only their work orders.
-      const vendorsRes = await fetch('http://localhost:5249/api/vendors', h);
-      const vendors: any[] = vendorsRes.ok ? await vendorsRes.json() : [];
-      const myVendor = vendors.find((v: any) => v.userId === user?.id);
-      if (!myVendor) { setWorkOrders([]); return; }
-
       const [woRes, msRes] = await Promise.all([
-        fetch(`http://localhost:5249/api/workorders?vendorId=${myVendor.id}`, h),
-        fetch('http://localhost:5249/api/execution/milestones', h).catch(() => null),
+        axiosInstance.get('/workorders', { params: { vendorId } }),
+        axiosInstance.get('/execution/milestones').catch(() => ({ data: [] })),
       ]);
 
-      const wos: any[] = woRes.ok ? await woRes.json() : [];
-      const milestones: any[] = msRes && msRes.ok ? await msRes.json() : [];
-      setWorkOrders(wos.map((w: any) => ({
+      const milestones: any[] = msRes.data ?? [];
+      setWorkOrders((woRes.data ?? []).map((w: any) => ({
         ...w,
         milestones: milestones.filter((m: any) => m.workOrderId === w.id),
       })));
@@ -37,17 +34,12 @@ export const VendorWorkOrderView = () => {
 
   const handleAccept = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:5249/api/workorders/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ newStatus: 'Accepted' })
-      });
-      if (res.ok) {
-        fetchWorkOrders();
-      } else {
-        alert(await res.text());
-      }
-    } catch (e) { console.error(e); }
+      await axiosInstance.put(`/workorders/${id}/status`, { newStatus: 'Accepted' });
+      fetchWorkOrders();
+    } catch (e: any) {
+      alert(e?.response?.data ?? 'Failed to accept work order.');
+      console.error(e);
+    }
   };
 
   const pendingAccept = workOrders.find(w => w.id === acceptId);
