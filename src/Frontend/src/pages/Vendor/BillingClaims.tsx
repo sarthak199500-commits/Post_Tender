@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { RootState } from '../../store';
 import { SubmitBillModal } from './SubmitBillModal';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Bill {
   id: string;
@@ -32,14 +33,13 @@ export const BillingClaims = () => {
   const [showSubmit, setShowSubmit] = useState(false);
   const { token } = useSelector((state: RootState) => state.auth);
 
-  useEffect(() => {
-    fetch('http://localhost:5249/api/bills', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(setBills)
-    .catch(console.error);
-  }, [token]);
+  const loadBills = () => {
+    axiosInstance.get('/bills')
+      .then(res => setBills(res.data ?? []))
+      .catch(console.error);
+  };
+
+  useEffect(loadBills, [token]);
 
   return (
     <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
@@ -65,10 +65,8 @@ export const BillingClaims = () => {
           onClose={() => setShowSubmit(false)} 
           onSuccess={() => {
             setShowSubmit(false);
-            // Refresh bills
-            fetch('http://localhost:5249/api/bills', { headers: { Authorization: `Bearer ${token}` } })
-              .then(res => res.json()).then(setBills).catch(console.error);
-          }} 
+            loadBills();
+          }}
         />
       )}
 

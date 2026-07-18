@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { X, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import type { RootState } from '../../store';
 import { rupeesCompact } from '../../utils/currency';
+import axiosInstance from '../../api/axiosInstance';
 
 interface SubmitBillModalProps {
   onClose: () => void;
@@ -23,12 +24,9 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
 
   // Fetch Work Orders
   useEffect(() => {
-    fetch('http://localhost:5249/api/workorders', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => setWorkOrders(data.filter((w: any) => w.status === 'Accepted')))
-    .catch(() => setError('Failed to load work orders'));
+    axiosInstance.get('/workorders')
+      .then(res => setWorkOrders((res.data ?? []).filter((w: any) => w.status === 'Accepted')))
+      .catch(() => setError('Failed to load work orders'));
   }, [token]);
 
   // Fetch WO Details when selected
@@ -39,19 +37,16 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
       return;
     }
     setLoading(true);
-    fetch(`http://localhost:5249/api/workorders/${selectedWO}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => {
-      setWoDetails(data);
-      setSelectedMilestones([]);
-      setLoading(false);
-    })
-    .catch(() => {
-      setError('Failed to load work order details');
-      setLoading(false);
-    });
+    axiosInstance.get(`/workorders/${selectedWO}`)
+      .then(res => {
+        setWoDetails(res.data);
+        setSelectedMilestones([]);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Failed to load work order details');
+        setLoading(false);
+      });
   }, [selectedWO, token]);
 
   const toggleMilestone = (id: string) => {
@@ -94,23 +89,10 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
     };
 
     try {
-      const res = await fetch('http://localhost:5249/api/bills', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Failed to submit bill');
-      }
-      
+      await axiosInstance.post('/bills', payload);
       onSuccess();
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.response?.data ?? 'Failed to submit bill');
       setLoading(false);
     }
   };
