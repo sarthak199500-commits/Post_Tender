@@ -63,4 +63,39 @@ public class FilesController : ControllerBase
 
         return PhysicalFile(fullPath, contentType);
     }
+
+    // Deletes a stored file. The frontend passes the public url (e.g. /api/files/{stored}),
+    // so accept either that form or a bare name. Guard hard against path traversal: reject
+    // anything with ".." or a rooted path, and confirm the resolved path stays inside the
+    // uploads directory before deleting.
+    [HttpDelete]
+    public IActionResult Delete([FromQuery] string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return BadRequest("url is required.");
+
+        // Reject anything that even looks like traversal on the raw input, before reducing
+        // it to a file name.
+        if (url.Contains(".."))
+            return BadRequest("Invalid file reference.");
+
+        var name = url.Split('/')[^1];   // /api/files/{stored} -> {stored}
+
+        if (name.Contains("..") || name.Contains('/') || name.Contains('\\') ||
+            Path.IsPathRooted(name))
+            return BadRequest("Invalid file reference.");
+
+        var uploads = Path.GetFullPath(UploadsDir);
+        var fullPath = Path.GetFullPath(Path.Combine(uploads, name));
+
+        // Defence in depth: the resolved path must live under the uploads directory.
+        if (!fullPath.StartsWith(uploads + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+            !fullPath.StartsWith(uploads, StringComparison.Ordinal))
+            return BadRequest("Invalid file reference.");
+
+        if (System.IO.File.Exists(fullPath))
+            System.IO.File.Delete(fullPath);
+
+        return Ok(new { message = "File removed" });
+    }
 }

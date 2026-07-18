@@ -12,8 +12,7 @@ import {
   Clock
 } from 'lucide-react';
 import type { RootState } from '../../store';
-
-const API_BASE = 'http://localhost:5249';
+import axiosInstance from '../../api/axiosInstance';
 
 export const DocumentUploads = () => {
   const { token } = useSelector((state: RootState) => state.auth);
@@ -21,12 +20,9 @@ export const DocumentUploads = () => {
   const [docs, setDocs] = useState<any[]>([]);
 
   const loadDocs = () => {
-    fetch(`${API_BASE}/api/documents`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(setDocs)
-    .catch(console.error);
+    axiosInstance.get('/documents')
+      .then(res => setDocs(res.data ?? []))
+      .catch(console.error);
   };
 
   useEffect(() => {
@@ -42,56 +38,49 @@ export const DocumentUploads = () => {
     formData.append('file', file);
 
     try {
-      const res = await fetch(`${API_BASE}/api/files/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
+      const { data } = await axiosInstance.post('/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      if (res.ok) {
-        const data = await res.json();
-        
-        // Save metadata to database
-        const docMeta = {
-            name: data.name,
-            type: 'General',
-            size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-            url: data.url
-        };
 
-        await fetch(`${API_BASE}/api/documents`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}` 
-            },
-            body: JSON.stringify(docMeta)
-        });
+      // Record the metadata now that the file is on disk.
+      await axiosInstance.post('/documents', {
+        name: data.name,
+        type: 'General',
+        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        url: data.url
+      });
 
-        loadDocs();
-        alert("Document uploaded and recorded successfully!");
-      }
-    } catch (e) { console.error(e); }
+      loadDocs();
+      alert('Document uploaded and recorded successfully!');
+    } catch (e) { console.error(e); alert('Upload failed.'); }
     finally { setIsUploading(false); }
   };
 
   const handleDelete = async (id: string, url: string) => {
-    if (!window.confirm("Are you sure you want to delete this document?")) return;
+    if (!window.confirm('Are you sure you want to delete this document?')) return;
 
     try {
-        // Delete from database
-        await fetch(`${API_BASE}/api/documents/${id}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` }
-        });
-
-        // Delete from file system
-        await fetch(`${API_BASE}/api/files?url=${url}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` }
-        });
-
-        loadDocs();
+      await axiosInstance.delete(`/documents/${id}`);
+      await axiosInstance.delete('/files', { params: { url } });
+      loadDocs();
     } catch (e) { console.error(e); }
+  };
+
+  // The files endpoint requires the bearer token, so a plain <a target="_blank"> cannot
+  // download it. Fetch as a blob (the interceptor attaches the token) and save it.
+  const handleDownload = async (url: string, name: string) => {
+    try {
+      const path = url.replace(/^\/api/, '');   // baseURL already ends in /api
+      const res = await axiosInstance.get(path, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = name || 'document';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (e) { console.error(e); alert('Failed to download document.'); }
   };
 
   return (
@@ -155,7 +144,7 @@ export const DocumentUploads = () => {
                       </div>
                       <div>
                          <p className="font-bold text-slate-800">{doc.name}</p>
-                         <p className="text-xs text-slate-600 font-medium">{doc.type} • {doc.size} • Uploaded on {doc.date}</p>
+                         <p className="text-xs text-slate-600 font-medium">{doc.type} • {doc.size}{doc.uploadedAt ? ` • Uploaded on ${new Date(doc.uploadedAt).toLocaleDateString()}` : ''}</p>
                       </div>
                    </div>
                     <div className="flex items-center gap-4">
@@ -165,14 +154,13 @@ export const DocumentUploads = () => {
                           {doc.status}
                        </span>
                        <div className="flex gap-2">
-                          <a 
-                            href={`${API_BASE}${doc.url}`} 
-                            target="_blank" 
-                            rel="noreferrer"
+                          <button
+                            onClick={() => handleDownload(doc.url, doc.name)}
                             className="p-2 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Download"
                           >
                              <Upload className="w-4 h-4 rotate-180" />
-                          </a>
+                          </button>
                           <button 
                             onClick={() => handleDelete(doc.id, doc.url)}
                             className="p-2 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
