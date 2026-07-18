@@ -4,11 +4,12 @@ import axiosInstance from '../../api/axiosInstance';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 
+// GET /progressreports/{id} returns a bare report — it carries ids, not the nested
+// project/vendor/milestone objects the old shape assumed (those live in other services).
 interface ProgressReport {
     id: string;
     projectId: string;
-    project: { name: string, workOrder: { workOrderNo: string, tender: { title: string } } };
-    vendor: { name: string };
+    vendorId?: string;
     physicalPercentage: number;
     workDescription: string;
     latitude: number;
@@ -16,7 +17,7 @@ interface ProgressReport {
     mediaUrls: string[];
     reportedAt: string;
     status: string;
-    milestone?: { title: string };
+    milestoneId?: string;
 }
 
 const ReviewReportDetail: React.FC = () => {
@@ -27,14 +28,48 @@ const ReviewReportDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [remarks, setRemarks] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    // Composed from other services (the report carries only ids): project/work order names
+    // from TenderService, vendor name from VendorService, milestone title from ExecutionService.
+    const [projectName, setProjectName] = useState('');
+    const [workOrderNo, setWorkOrderNo] = useState('');
+    const [vendorName, setVendorName] = useState('');
+    const [milestoneTitle, setMilestoneTitle] = useState('');
 
     useEffect(() => {
         const fetchReport = async () => {
             try {
-                const res = await axiosInstance.get(`/progressreports/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setReport(res.data);
+                const rep = (await axiosInstance.get(`/progressreports/${id}`)).data;
+                setReport(rep);
+
+                let workOrderId: string | undefined;
+                try {
+                    const proj = (await axiosInstance.get(`/projects/${rep.projectId}`)).data;
+                    setProjectName(proj?.name ?? '');
+                    workOrderId = proj?.workOrderId;
+                } catch { /* project not visible — leave blank */ }
+
+                if (workOrderId) {
+                    try {
+                        const wo = (await axiosInstance.get(`/workorders/${workOrderId}`)).data;
+                        setWorkOrderNo(wo?.workOrderNo ?? '');
+                    } catch { /* ignore */ }
+
+                    if (rep.milestoneId) {
+                        try {
+                            const ms = (await axiosInstance.get('/execution/milestones', { params: { workOrderId } })).data;
+                            const m = (ms ?? []).find((x: any) => x.id === rep.milestoneId);
+                            if (m) setMilestoneTitle(m.title);
+                        } catch { /* ignore */ }
+                    }
+                }
+
+                if (rep.vendorId) {
+                    try {
+                        const vendors = (await axiosInstance.get('/vendors')).data;
+                        const v = (vendors ?? []).find((x: any) => x.id === rep.vendorId);
+                        if (v) setVendorName(v.name ?? v.authPersonName ?? '');
+                    } catch { /* ignore */ }
+                }
             } catch (err) {
                 console.error('Failed to fetch report details', err);
             } finally {
@@ -44,12 +79,12 @@ const ReviewReportDetail: React.FC = () => {
         fetchReport();
     }, [id, token]);
 
-    const handleAction = async (status: string) => {
+    // The inspector records a recommendation (Accept | Reject) and remarks; the report moves
+    // to "Reviewed", which is the precondition the department's approval now checks.
+    const handleAction = async (recommendation: string) => {
         setSubmitting(true);
         try {
-            await axiosInstance.post(`/progressreports/${id}/review`, { status, remarks }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await axiosInstance.post(`/progressreports/${id}/review`, { recommendation, remarks });
             navigate('/inspector/progress-review');
         } catch (err) {
             alert('Failed to submit review');
@@ -72,7 +107,7 @@ const ReviewReportDetail: React.FC = () => {
             <header className="mb-10">
                 <Link to="/inspector/progress-review" className="text-blue-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1">&larr; Back to Review List</Link>
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Review Progress Report</h1>
-                <p className="text-slate-600 mt-2 font-medium">Verification for <span className="text-slate-900">{report.project.name}</span></p>
+                <p className="text-slate-600 mt-2 font-medium">Verification for <span className="text-slate-900">{projectName || 'this project'}</span></p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -82,7 +117,7 @@ const ReviewReportDetail: React.FC = () => {
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-lg font-bold text-slate-800">Vendor Submission</h2>
                             <span className="text-sm font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-full">
-                                {report.milestone?.title ? `Milestone: ${report.milestone.title}` : 'General Progress (N/A)'}
+                                {milestoneTitle ? `Milestone: ${milestoneTitle}` : 'General Progress (N/A)'}
                             </span>
                         </div>
                         <div className="space-y-6">
@@ -127,18 +162,18 @@ const ReviewReportDetail: React.FC = () => {
                         
                         <div className="flex gap-4 mt-8">
                             <button
-                                onClick={() => handleAction('Reviewed')}
+                                onClick={() => handleAction('Accept')}
                                 disabled={submitting}
                                 className="flex-1 bg-emerald-700 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:"
                             >
-                                {submitting ? 'Processing...' : 'Approve & Mark Reviewed'}
+                                {submitting ? 'Processing...' : 'Recommend Approval'}
                             </button>
                             <button
-                                onClick={() => handleAction('Returned')}
+                                onClick={() => handleAction('Reject')}
                                 disabled={submitting}
                                 className="flex-1 bg-white text-orange-700 border-2 border-orange-100 hover:border-orange-200 font-black py-4 rounded-2xl transition-all active:scale-95 disabled:"
                             >
-                                Return to Vendor
+                                Recommend Rejection
                             </button>
                         </div>
                     </div>
@@ -151,7 +186,7 @@ const ReviewReportDetail: React.FC = () => {
                         <div className="space-y-4">
                             <div className="py-3 border-b border-white/10">
                                 <div className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Submitted By</div>
-                                <div className="font-bold text-blue-400">{report.vendor.name}</div>
+                                <div className="font-bold text-blue-400">{vendorName || '—'}</div>
                             </div>
                             <div className="py-3 border-b border-white/10">
                                 <div className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Date & Time</div>
@@ -159,7 +194,7 @@ const ReviewReportDetail: React.FC = () => {
                             </div>
                             <div className="py-3 border-b border-white/10">
                                 <div className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Work Order</div>
-                                <div className="font-bold">{report.project.workOrder.workOrderNo}</div>
+                                <div className="font-bold">{workOrderNo || '—'}</div>
                             </div>
                         </div>
                     </div>
