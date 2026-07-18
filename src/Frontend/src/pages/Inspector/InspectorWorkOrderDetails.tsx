@@ -52,7 +52,7 @@ const InspectorWorkOrderDetails: React.FC = () => {
     const handleApproveMilestone = async (milestoneId: string) => {
         if (!window.confirm('Are you sure you want to approve and complete this milestone?')) return;
         try {
-            await axiosInstance.post(`/projects/milestone/${milestoneId}/approve`, {}, {
+            await axiosInstance.post(`/execution/milestones/${milestoneId}/approve`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             alert('Milestone approved and completed successfully.');

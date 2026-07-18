@@ -51,7 +51,7 @@ export const AdminMilestoneApprovals = () => {
     const fetchPendingMilestones = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5249/api/projects/milestones/pending', {
+            const res = await fetch('http://localhost:5249/api/execution/milestones/pending', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
@@ -70,7 +70,7 @@ export const AdminMilestoneApprovals = () => {
     const handleApprove = async (id: string) => {
         setActing(id);
         try {
-            const res = await fetch(`http://localhost:5249/api/projects/milestone/${id}/approve`, {
+            const res = await fetch(`http://localhost:5249/api/execution/milestones/${id}/approve`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -90,7 +90,7 @@ export const AdminMilestoneApprovals = () => {
     const handleReturn = async (id: string, reason: string) => {
         setActing(id);
         try {
-            const res = await fetch(`http://localhost:5249/api/projects/milestone/${id}/return`, {
+            const res = await fetch(`http://localhost:5249/api/execution/milestones/${id}/return`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

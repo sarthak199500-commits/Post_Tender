@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ExecutionService.Persistence;
 using ExecutionService.Entities;
+using ExecutionService.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,10 +17,12 @@ namespace ExecutionService.Controllers;
 public class ExecutionController : ControllerBase
 {
     private readonly ExecutionServiceDbContext _context;
+    private readonly AuditLogger _audit;
 
-    public ExecutionController(ExecutionServiceDbContext context)
+    public ExecutionController(ExecutionServiceDbContext context, AuditLogger audit)
     {
         _context = context;
+        _audit = audit;
     }
 
     [HttpGet("milestones")]
@@ -62,6 +65,130 @@ public class ExecutionController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(milestones);
+    }
+
+    // ── Milestone approvals ──────────────────────────────────────────────────
+    // Milestones live in this service, but the frontend historically called
+    // /api/projects/milestone/{id}/... which the gateway routed to TenderService — the
+    // wrong service. These endpoints put the logic where the data is. Approving a milestone
+    // marks it Completed, which is what unlocks a vendor's RA bill for that milestone.
+
+    // Milestones for which a vendor has submitted a completion package awaiting approval.
+    // Reviewers only; vendors must not see other tenants' pending work.
+    [HttpGet("milestones/pending")]
+    [Authorize(Roles = "Admin,PMU,Department,Inspector")]
+    public async Task<IActionResult> PendingMilestones()
+    {
+        var submitted = await _context.MilestoneSubmissions
+            .Where(s => s.Status == "Submitted")
+            .OrderByDescending(s => s.SubmittedAt)
+            .ToListAsync();
+
+        var milestoneIds = submitted.Select(s => s.MilestoneId).Distinct().ToList();
+
+        var milestones = await _context.Milestones
+            .Where(m => milestoneIds.Contains(m.Id))
+            .ToDictionaryAsync(m => m.Id);
+
+        // Progress reports tied to these milestones supply the evidence panel.
+        var reports = await _context.ProgressReports
+            .Where(r => r.MilestoneId.HasValue && milestoneIds.Contains(r.MilestoneId.Value))
+            .ToListAsync();
+
+        var result = submitted
+            .Where(s => milestones.ContainsKey(s.MilestoneId))
+            .Select(s =>
+            {
+                var m = milestones[s.MilestoneId];
+                return new
+                {
+                    id = m.Id,                 // approve/return act on the milestone id
+                    submissionId = s.Id,
+                    m.Title,
+                    m.Weightage,
+                    m.PaymentPercentage,
+                    m.TargetDate,
+                    workOrderId = m.WorkOrderId,
+                    projectId = s.ProjectId,
+                    vendorId = s.VendorId,
+                    status = s.Status,         // "Submitted" — gates the Approve button
+                    notes = s.Notes,
+                    reports = reports
+                        .Where(r => r.MilestoneId == m.Id)
+                        .OrderByDescending(r => r.ReportedAt)
+                        .Select(r => new
+                        {
+                            r.Id,
+                            r.PhysicalPercentage,
+                            r.WorkDescription,
+                            r.MediaUrls,
+                            r.Status,
+                            r.ReportedAt
+                        })
+                };
+            });
+
+        return Ok(result);
+    }
+
+    // Marks the milestone Completed (this is the gate the RA-bill flow checks) and any
+    // submitted package for it Approved.
+    [HttpPost("milestones/{id}/approve")]
+    [Authorize(Roles = "Admin,PMU,Department")]
+    public async Task<IActionResult> ApproveMilestone(Guid id)
+    {
+        var milestone = await _context.Milestones.FindAsync(id);
+        if (milestone == null) return NotFound("Milestone not found.");
+
+        milestone.Status = "Completed";
+        milestone.CompletionDate = DateTime.UtcNow;
+
+        var subs = await _context.MilestoneSubmissions
+            .Where(s => s.MilestoneId == id && s.Status == "Submitted")
+            .ToListAsync();
+        foreach (var s in subs) s.Status = "Approved";
+
+        await _context.SaveChangesAsync();
+
+        await _audit.LogAsync("Milestone", id.ToString(), "Milestone Approved",
+            $"Milestone '{milestone.Title}' marked Completed; RA billing unlocked.");
+
+        return Ok(new { message = "Milestone approved and completed" });
+    }
+
+    // Returns the milestone package to the vendor with a reason, reopening it for edit.
+    [HttpPost("milestones/{id}/return")]
+    [Authorize(Roles = "Admin,PMU,Department")]
+    public async Task<IActionResult> ReturnMilestone(Guid id, [FromBody] MilestoneActionRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.Reason))
+            return BadRequest("A reason is required to return a milestone.");
+
+        var milestone = await _context.Milestones.FindAsync(id);
+        if (milestone == null) return NotFound("Milestone not found.");
+
+        var subs = await _context.MilestoneSubmissions
+            .Where(s => s.MilestoneId == id && s.Status == "Submitted")
+            .ToListAsync();
+        if (subs.Count == 0) return NotFound("No submitted package found for this milestone.");
+
+        foreach (var s in subs)
+        {
+            s.Status = "Rejected";
+            s.IsImmutable = false;   // let the vendor revise and resubmit
+        }
+        milestone.Remarks = request.Reason;
+
+        await _context.SaveChangesAsync();
+
+        await _audit.LogAsync("Milestone", id.ToString(), "Milestone Returned", request.Reason);
+
+        return Ok(new { message = "Milestone returned to vendor" });
+    }
+
+    public class MilestoneActionRequest
+    {
+        public string? Reason { get; set; }
     }
 
     public class CreateMilestonesDto
