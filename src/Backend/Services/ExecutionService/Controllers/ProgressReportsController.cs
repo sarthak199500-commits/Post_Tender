@@ -8,6 +8,7 @@ using ExecutionService.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace ExecutionService.Controllers;
@@ -169,12 +170,52 @@ public class ProgressReportsController : ControllerBase
         public string? Reason { get; set; }
     }
 
+    public class ReviewRequest
+    {
+        public string Recommendation { get; set; } = string.Empty;  // Accept, Reject
+        public string? Remarks { get; set; }
+    }
+
+    // Inspector review stage. An inspector inspects the reported work and records a
+    // recommendation; only after this can the department approve. This is what turns the
+    // two previously-independent buttons into a real Inspector -> Department chain.
+    [HttpPost("{id}/review")]
+    [Authorize(Roles = "Inspector")]
+    public async Task<IActionResult> Review(Guid id, [FromBody] ReviewRequest request)
+    {
+        var report = await _context.ProgressReports.FirstOrDefaultAsync(r => r.Id == id);
+        if (report is null) return NotFound();
+
+        if (report.Status != "Submitted")
+            return BadRequest($"Only a Submitted report can be reviewed (current: '{report.Status}').");
+
+        if (request.Recommendation != "Accept" && request.Recommendation != "Reject")
+            return BadRequest("Recommendation must be 'Accept' or 'Reject'.");
+
+        report.InspectorRecommendation = request.Recommendation;
+        report.InspectorRemarks = request.Remarks;
+        report.ReviewedByInspectorId = Guid.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+        report.InspectorReviewedAt = DateTime.UtcNow;
+        report.Status = "Reviewed";
+
+        await _context.SaveChangesAsync();
+
+        await _audit.LogAsync("ProgressReport", id.ToString(), "Report Reviewed",
+            $"Inspector recommendation: {request.Recommendation}.");
+
+        return Ok(report);
+    }
+
     [HttpPost("{id}/approve")]
     [Authorize(Roles = "Department,Admin,PMU")]
     public async Task<IActionResult> Approve(Guid id)
     {
         var report = await _context.ProgressReports.FindAsync(id);
         if (report == null) return NotFound("Report not found");
+
+        if (report.Status != "Reviewed")
+            return BadRequest("A report must be reviewed by an inspector before approval.");
 
         report.Status = "Approved";
         await _context.SaveChangesAsync();
