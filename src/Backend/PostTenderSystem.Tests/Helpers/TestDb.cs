@@ -12,9 +12,19 @@ namespace PostTenderSystem.Tests.Helpers;
 public static class TestDb
 {
     public static TContext Create<TContext>() where TContext : DbContext
+        => Create<TContext>(Guid.NewGuid().ToString());
+
+    /// <summary>
+    /// Opens a context over a named in-memory database. Passing the same name twice yields
+    /// two contexts backed by the same store, which models the real world where each HTTP
+    /// request gets a fresh DbContext — seed in one, act in another. This also sidesteps an
+    /// InMemory quirk where updating a tracked parent while adding a child on the same
+    /// context throws a spurious DbUpdateConcurrencyException.
+    /// </summary>
+    public static TContext Create<TContext>(string databaseName) where TContext : DbContext
     {
         var options = new DbContextOptionsBuilder<TContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(databaseName: databaseName)
             .Options;
 
         var context = (TContext)Activator.CreateInstance(typeof(TContext), options)!;

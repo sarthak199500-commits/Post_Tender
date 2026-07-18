@@ -10,6 +10,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 export const QueriesClarifications = () => {
   const [queries, setQueries] = useState<any[]>([]);
@@ -20,11 +21,9 @@ export const QueriesClarifications = () => {
   const { token } = useSelector((state: RootState) => state.auth);
 
   const loadQueries = () => {
-    fetch('http://localhost:5249/api/queries', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => {
+    axiosInstance.get('/queries')
+    .then(res => {
+        const data = res.data ?? [];
         setQueries(data);
         if (selectedQuery) {
             const updated = data.find((q: any) => q.id === selectedQuery.id);
@@ -42,18 +41,9 @@ export const QueriesClarifications = () => {
     if (!selectedQuery || !newMessage.trim()) return;
 
     try {
-        const res = await fetch(`http://localhost:5249/api/queries/${selectedQuery.id}/message`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}` 
-            },
-            body: JSON.stringify({ content: newMessage })
-        });
-        if (res.ok) {
-            setNewMessage('');
-            loadQueries();
-        }
+        await axiosInstance.post(`/queries/${selectedQuery.id}/message`, { content: newMessage });
+        setNewMessage('');
+        loadQueries();
     } catch (e) { console.error(e); }
   };
 
@@ -61,23 +51,14 @@ export const QueriesClarifications = () => {
       if (!newQuerySubject.trim() || !newMessage.trim()) return;
 
       try {
-          const res = await fetch('http://localhost:5249/api/queries', {
-              method: 'POST',
-              headers: { 
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}` 
-              },
-              body: JSON.stringify({ 
-                  subject: newQuerySubject,
-                  messages: [{ content: newMessage }]
-              })
+          await axiosInstance.post('/queries', {
+              subject: newQuerySubject,
+              messages: [{ content: newMessage }]
           });
-          if (res.ok) {
-              setNewQuerySubject('');
-              setNewMessage('');
-              setIsCreating(false);
-              loadQueries();
-          }
+          setNewQuerySubject('');
+          setNewMessage('');
+          setIsCreating(false);
+          loadQueries();
       } catch (e) { console.error(e); }
   };
 

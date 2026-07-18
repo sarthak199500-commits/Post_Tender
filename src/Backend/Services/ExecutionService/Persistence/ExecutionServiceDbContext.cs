@@ -9,6 +9,7 @@ public class ExecutionServiceDbContext : DbContext {
     public DbSet<MilestoneDocument> MilestoneDocuments { get; set; }
     public DbSet<ProgressReport> ProgressReports { get; set; }
     public DbSet<Query> Queries { get; set; }
+    public DbSet<QueryMessage> QueryMessages { get; set; }
 }
 
 
