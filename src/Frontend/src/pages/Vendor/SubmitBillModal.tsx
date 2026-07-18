@@ -15,7 +15,10 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [selectedWO, setSelectedWO] = useState<string>('');
   const [woDetails, setWoDetails] = useState<any>(null);
-  
+  // Milestones are owned by ExecutionService, not returned by /workorders/{id}, so they are
+  // fetched separately. Only "Completed" milestones (approved by the department) are billable.
+  const [milestones, setMilestones] = useState<any[]>([]);
+
   const [selectedMilestones, setSelectedMilestones] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   
@@ -29,17 +32,22 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
       .catch(() => setError('Failed to load work orders'));
   }, [token]);
 
-  // Fetch WO Details when selected
+  // Fetch WO Details + milestones when selected
   useEffect(() => {
     if (!selectedWO) {
       setWoDetails(null);
+      setMilestones([]);
       setSelectedMilestones([]);
       return;
     }
     setLoading(true);
-    axiosInstance.get(`/workorders/${selectedWO}`)
-      .then(res => {
-        setWoDetails(res.data);
+    Promise.all([
+      axiosInstance.get(`/workorders/${selectedWO}`),
+      axiosInstance.get('/execution/milestones', { params: { workOrderId: selectedWO } }),
+    ])
+      .then(([woRes, msRes]) => {
+        setWoDetails(woRes.data);
+        setMilestones(msRes.data ?? []);
         setSelectedMilestones([]);
         setLoading(false);
       })
@@ -58,7 +66,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
   const calculateAmount = () => {
     if (!woDetails) return 0;
     const totalValue = woDetails.totalValue;
-    const percentage = woDetails.milestones
+    const percentage = milestones
       .filter((m: any) => selectedMilestones.includes(m.id))
       .reduce((acc: number, m: any) => acc + m.paymentPercentage, 0);
     return totalValue * (percentage / 100);
@@ -125,7 +133,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
               >
                 <option value="">-- Select Work Order --</option>
                 {workOrders.map(wo => (
-                  <option key={wo.id} value={wo.id}>{wo.workOrderNo} (Milestones: {wo.completedMilestones}/{wo.milestoneCount})</option>
+                  <option key={wo.id} value={wo.id}>{wo.workOrderNo}</option>
                 ))}
               </select>
             </div>
@@ -134,7 +142,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Select Completed Milestones</label>
                 <div className="space-y-3">
-                  {woDetails.milestones.filter((m: any) => m.status === 'Completed').map((m: any) => (
+                  {milestones.filter((m: any) => m.status === 'Completed').map((m: any) => (
                     <label key={m.id} className="flex items-start gap-3 p-4 border border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-colors group">
                       <div className="mt-0.5">
                         <input 
@@ -153,7 +161,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
                       </div>
                     </label>
                   ))}
-                  {woDetails.milestones.filter((m: any) => m.status === 'Completed').length === 0 && (
+                  {milestones.filter((m: any) => m.status === 'Completed').length === 0 && (
                     <div className="p-4 bg-slate-50 text-slate-600 rounded-xl text-center text-sm border border-slate-100">
                       No completed milestones available to bill for this Work Order.
                     </div>
