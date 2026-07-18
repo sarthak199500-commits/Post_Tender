@@ -6,8 +6,12 @@ namespace FinancialService.Entities;
 public class Bill
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    
+
     public Guid WorkOrderId { get; set; }
+
+    // Denormalized from the WorkOrder so FinancialService can scope bills to a vendor
+    // without a cross-service call. Stamped from the vendorId claim at creation.
+    public Guid VendorId { get; set; }
 
     public string BillNo { get; set; } = string.Empty;
     public string Type { get; set; } = "RA"; // RA (Running Account), Final
