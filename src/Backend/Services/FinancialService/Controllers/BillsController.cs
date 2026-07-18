@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FinancialService.Persistence;
 using FinancialService.Entities;
+using FinancialService.Security;
 using FinancialService.Services;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -27,7 +29,62 @@ public class BillsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        return Ok(await _context.Bills.ToListAsync());
+        var query = _context.Bills.AsQueryable();
+
+        // A vendor sees only their own bills. Reviewers (Department/Finance/Admin/PMU)
+        // see all. Fail closed if a vendor token carries no claim.
+        if (CallerContext.IsVendor(User))
+        {
+            var me = CallerContext.VendorId(User);
+            if (me is null) return Forbid();
+            query = query.Where(b => b.VendorId == me);
+        }
+
+        return Ok(await query.OrderByDescending(b => b.SubmittedAt).ToListAsync());
+    }
+
+    public class CreateBillDto
+    {
+        public Guid WorkOrderId { get; set; }
+        public string BillNo { get; set; } = string.Empty;
+        public string Type { get; set; } = "RA";
+        public decimal Amount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public string AttachmentUrl { get; set; } = string.Empty;
+        public List<Guid> MilestoneIds { get; set; } = new();
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Vendor")]
+    public async Task<IActionResult> Create([FromBody] CreateBillDto dto)
+    {
+        var vendorId = CallerContext.VendorId(User);
+        if (vendorId is null) return Forbid();
+
+        if (dto.WorkOrderId == Guid.Empty) return BadRequest("WorkOrderId is required.");
+        if (dto.Amount <= 0) return BadRequest("Amount must be greater than zero.");
+        if (dto.Type != "RA" && dto.Type != "Final") return BadRequest("Type must be 'RA' or 'Final'.");
+
+        var bill = new Bill
+        {
+            WorkOrderId = dto.WorkOrderId,
+            VendorId = vendorId.Value,
+            BillNo = dto.BillNo,
+            Type = dto.Type,
+            Amount = dto.Amount,
+            TaxAmount = dto.TaxAmount,
+            AttachmentUrl = dto.AttachmentUrl,
+            MilestoneIds = dto.MilestoneIds,
+            Status = "Submitted"
+        };
+
+        _context.Bills.Add(bill);
+        await _context.SaveChangesAsync();
+
+        await _audit.LogAsync("Bill", bill.Id.ToString(), "Bill submitted",
+            $"{bill.Type} bill {bill.BillNo} for {bill.TotalAmount:C} submitted.");
+
+        return Ok(bill);
     }
 
     public class ActionRequest
