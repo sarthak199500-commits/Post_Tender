@@ -6,8 +6,12 @@ namespace InspectionService.Entities;
 public class Inspection
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    
+
     public Guid ProjectId { get; set; }
+
+    // Denormalized from the project's work order so the vendor's defects can be scoped
+    // without a cross-service call (same rationale as Bill.VendorId).
+    public Guid VendorId { get; set; }
 
     public Guid InspectorId { get; set; }
         

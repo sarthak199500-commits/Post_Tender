@@ -9,8 +9,7 @@ import {
   Camera
 } from 'lucide-react';
 import type { RootState } from '../../store';
-
-const API_BASE = 'http://localhost:5249';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Defect {
   id: string;
@@ -38,12 +37,9 @@ export const QualityDefects = () => {
   const { token } = useSelector((state: RootState) => state.auth);
 
   const loadInspections = () => {
-    fetch(`${API_BASE}/api/inspections/vendor`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(setInspections)
-    .catch(console.error);
+    axiosInstance.get('/inspections/vendor')
+      .then(res => setInspections(res.data ?? []))
+      .catch(console.error);
   };
 
   useEffect(() => {
@@ -59,15 +55,10 @@ export const QualityDefects = () => {
     formData.append('file', file);
 
     try {
-      const res = await fetch(`${API_BASE}/api/files/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
+      const { data } = await axiosInstance.post('/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      if (res.ok) {
-        const data = await res.json();
-        setReworkEvidence(data.url);
-      }
+      setReworkEvidence(data.url);
     } catch (e) { console.error(e); }
     finally { setIsUploading(false); }
   };
@@ -79,20 +70,11 @@ export const QualityDefects = () => {
       }
 
       try {
-          const res = await fetch(`${API_BASE}/api/inspections/defect/${defectId}/rectify`, {
-              method: 'PUT',
-              headers: { 
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}` 
-              },
-              body: JSON.stringify({ reworkReportUrl: reworkEvidence })
-          });
-          if (res.ok) {
-              alert(`Rework report submitted for defect ${defectId}. PMU will verify shortly.`);
-              setSelectedDefect(null);
-              setReworkEvidence('');
-              loadInspections();
-          }
+          await axiosInstance.put(`/inspections/defect/${defectId}/rectify`, { reworkReportUrl: reworkEvidence });
+          alert(`Rework report submitted for defect ${defectId}. PMU will verify shortly.`);
+          setSelectedDefect(null);
+          setReworkEvidence('');
+          loadInspections();
       } catch (e) { console.error(e); }
   };
 
