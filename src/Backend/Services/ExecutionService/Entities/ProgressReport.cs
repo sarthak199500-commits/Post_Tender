@@ -22,10 +22,18 @@ public class ProgressReport
     public List<string> MediaUrls { get; set; } = new List<string>();
     
     public DateTime ReportedAt { get; set; } = DateTime.UtcNow;
-    
-    public string Status { get; set; } = "Submitted"; // Submitted, Reviewed, Returned
+
+    // Lifecycle: Submitted -> Reviewed -> Approved | Returned. An inspector reviews first,
+    // then the department approves; approval is gated on the review having happened.
+    public string Status { get; set; } = "Submitted";
     public bool IsImmutable { get; set; } = true;
-    
+
+    // Inspector review stage (precedes Department approval)
+    public string? InspectorRemarks { get; set; }
+    public Guid? ReviewedByInspectorId { get; set; }
+    public DateTime? InspectorReviewedAt { get; set; }
+    public string? InspectorRecommendation { get; set; }  // Accept, Reject
+
     // Optional link to milestone
     public Guid? MilestoneId { get; set; }
     public Milestone? Milestone { get; set; }
