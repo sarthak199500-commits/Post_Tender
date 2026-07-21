@@ -318,8 +318,9 @@ export const WorkOrderDetails = () => {
                         </div>
                     )}
 
-                    {/* Administrative Actions */}
-                    {wo.status !== 'Completed' && wo.status !== 'Cancelled' && (user?.role === 'Admin' || user?.role === 'PMU') && (
+                    {/* Administrative Actions — cancellation is only permitted before the
+                        vendor accepts the work order (matches the backend transition rules). */}
+                    {['Draft', 'Authority Approval', 'Pending Vendor Acceptance'].includes(wo.status) && (user?.role === 'Admin' || user?.role === 'PMU') && (
                         <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm">
                             <h2 className="text-xs font-black text-red-400 uppercase tracking-widest mb-4">Danger Zone</h2>
                             <button

@@ -25,7 +25,7 @@ public class WorkOrder
     public string LiquidatedDamagesTerms { get; set; } = string.Empty;
     public string AgreementDocumentUrl { get; set; } = string.Empty;
     
-    public string Status { get; set; } = "Draft"; // Draft, Authority Approval, Pending Vendor Acceptance, Accepted, Completed
+    public string Status { get; set; } = "Draft"; // Draft, Authority Approval, Pending Vendor Acceptance, Accepted, Project Activated, Completed, Cancelled
     
 
         

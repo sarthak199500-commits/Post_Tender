@@ -131,11 +131,14 @@ public class WorkOrdersController : ControllerBase
 
         // Only these transitions are legal; anything else (typos, arbitrary jumps such as
         // Draft -> Completed, or regressions) is rejected so a client cannot skip the workflow.
+        // Cancellation is allowed only BEFORE the vendor has accepted the work order — once a
+        // vendor has accepted and work is in flight, closing it out is a different process, so
+        // Cancelled is deliberately absent from Accepted/Project Activated/Completed.
         var allowedTransitions = new Dictionary<string, string[]>
         {
-            ["Draft"] = new[] { "Authority Approval", "Pending Vendor Acceptance" },
-            ["Authority Approval"] = new[] { "Pending Vendor Acceptance" },
-            ["Pending Vendor Acceptance"] = new[] { "Accepted" },
+            ["Draft"] = new[] { "Authority Approval", "Pending Vendor Acceptance", "Cancelled" },
+            ["Authority Approval"] = new[] { "Pending Vendor Acceptance", "Cancelled" },
+            ["Pending Vendor Acceptance"] = new[] { "Accepted", "Cancelled" },
             ["Accepted"] = new[] { "Project Activated", "Completed" },
             ["Project Activated"] = new[] { "Completed" }
         };
@@ -146,6 +149,10 @@ public class WorkOrdersController : ControllerBase
 
         // Only a Vendor may accept a Work Order (matches the original workflow rules).
         if (request.NewStatus == "Accepted" && userRole != "Vendor")
+            return Forbid();
+
+        // Only Admin/PMU may cancel a work order.
+        if (request.NewStatus == "Cancelled" && userRole != "Admin" && userRole != "PMU")
             return Forbid();
 
         workOrder.Status = request.NewStatus;
