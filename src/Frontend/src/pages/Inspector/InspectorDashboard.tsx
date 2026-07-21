@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import type { RootState } from '../../store';
-import axiosInstance from '../../api/axiosInstance';
 
 const InspectorDashboard: React.FC = () => {
     const { user, token } = useSelector((state: RootState) => state.auth);
@@ -13,8 +12,8 @@ const InspectorDashboard: React.FC = () => {
         pendingReviews: 0,
         upcomingVisits: 0
     });
-    const [upcomingVisitsList, setUpcomingVisitsList] = useState<any[]>([]);
-    const [recentActivity, setRecentActivity] = useState<any[]>([]);
+    const [upcomingVisitsList, setUpcomingVisitsList] = useState<{ scheduledDate: string; location?: string; status: string }[]>([]);
+    const [recentActivity, setRecentActivity] = useState<{ entityName: string; changesInfo?: string; timestamp: string }[]>([]);
 
 
     useEffect(() => {
@@ -100,7 +99,7 @@ const InspectorDashboard: React.FC = () => {
     );
 };
 
-const StatCard = ({ title, value, icon, color, link }: any) => (
+const StatCard = ({ title, value, icon, color, link }: { title: string; value: number | string; icon: React.ReactNode; color: string; link: string }) => (
     <Link to={link} className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all hover:-translate-y-1 block">
         <div className="flex justify-between items-start mb-4">
             <span className="text-4xl">{icon}</span>
@@ -111,7 +110,7 @@ const StatCard = ({ title, value, icon, color, link }: any) => (
     </Link>
 );
 
-const VisitItem = ({ date, time, location, status }: any) => (
+const VisitItem = ({ date, time, location, status }: { date: string; time: string; location?: string; status: string }) => (
     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
         <div className="flex items-center gap-4">
             <div className="bg-white px-3 py-2 rounded-lg text-center shadow-sm border border-slate-100">
@@ -129,7 +128,7 @@ const VisitItem = ({ date, time, location, status }: any) => (
     </div>
 );
 
-const ActivityItem = ({ text, time }: any) => (
+const ActivityItem = ({ text, time }: { text?: string; time: string }) => (
     <div className="flex gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors">
         <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 shrink-0" />
         <div>

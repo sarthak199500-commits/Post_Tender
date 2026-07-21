@@ -51,7 +51,7 @@ const MilestoneTemplateMaster: React.FC = () => {
             setIsEditing(false);
             setEditId('');
             fetchData();
-        } catch (err) {
+        } catch {
             alert('Failed to save');
         }
     };
@@ -70,7 +70,7 @@ const MilestoneTemplateMaster: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchData();
-        } catch (err) {
+        } catch {
             alert('Failed to delete');
         }
     };

@@ -12,11 +12,12 @@ import {
 } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
+import type { Project, Milestone as MilestoneRow } from '../../types/domain';
 
 export const MilestoneUpdates = () => {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [milestones, setMilestones] = useState<any[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneRow[]>([]);
   const { token } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 

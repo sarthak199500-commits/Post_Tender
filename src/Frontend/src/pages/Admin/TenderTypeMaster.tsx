@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 
 interface TenderType {
@@ -41,8 +42,8 @@ const TenderTypeMaster: React.FC = () => {
             });
             setNewName('');
             fetchTypes();
-        } catch (err: any) {
-            setError(err.response?.data || 'Failed to add tender type');
+        } catch (err) {
+            setError((isAxiosError(err) && typeof err.response?.data === 'string' && err.response.data) || 'Failed to add tender type');
         } finally {
             setLoading(false);
         }
@@ -56,7 +57,7 @@ const TenderTypeMaster: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchTypes();
-        } catch (err) {
+        } catch {
             alert('Failed to delete');
         }
     };

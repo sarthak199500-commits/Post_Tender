@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 
 const AddInspector: React.FC = () => {
@@ -30,8 +31,8 @@ const AddInspector: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             navigate('/admin/masters/inspectors');
-        } catch (err: any) {
-            setError(err.response?.data || 'Failed to add inspector');
+        } catch (err) {
+            setError((isAxiosError(err) && typeof err.response?.data === 'string' && err.response.data) || 'Failed to add inspector');
         } finally {
             setLoading(false);
         }

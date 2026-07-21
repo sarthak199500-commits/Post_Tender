@@ -59,7 +59,6 @@ export const AdminMilestoneApprovals = () => {
 
     useEffect(() => {
         fetchPendingMilestones();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleApprove = async (id: string) => {

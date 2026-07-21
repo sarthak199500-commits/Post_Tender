@@ -37,10 +37,10 @@ export const AdminBilling = () => {
                 axiosInstance.get('/vendors').catch(() => ({ data: [] })),
             ]);
 
-            const workOrders: any[] = workOrdersRes.data ?? [];
-            const vendors: any[] = vendorsRes.data ?? [];
+            const workOrders: { id: string; workOrderNo?: string; vendorId?: string }[] = workOrdersRes.data ?? [];
+            const vendors: { id: string; name?: string }[] = vendorsRes.data ?? [];
 
-            setBills((billsRes.data ?? []).map((bill: any): BillItem => {
+            setBills((billsRes.data ?? []).map((bill: Omit<BillItem, 'workOrderNo' | 'vendorName'> & { workOrderId?: string }): BillItem => {
                 const workOrder = workOrders.find(w => w.id === bill.workOrderId);
                 const vendor = vendors.find(v => v.id === workOrder?.vendorId);
                 return {
@@ -50,9 +50,9 @@ export const AdminBilling = () => {
                 };
             }));
             setError(null);
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            setError(err.message ?? 'Failed to fetch bills');
+            setError(err instanceof Error ? err.message : 'Failed to fetch bills');
         } finally {
             setLoading(false);
         }
@@ -68,7 +68,7 @@ export const AdminBilling = () => {
         try {
             await axiosInstance.post(`/bills/${id}/approve`);
             fetchBills();
-        } catch (err) {
+        } catch {
             alert('Action failed. Please try again.');
         } finally {
             setActionLoading(null);
@@ -82,7 +82,7 @@ export const AdminBilling = () => {
         try {
             await axiosInstance.post(`/bills/${id}/reject`, { reason });
             fetchBills();
-        } catch (err) {
+        } catch {
             alert('Action failed. Please try again.');
         } finally {
             setActionLoading(null);

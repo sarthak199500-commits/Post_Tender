@@ -18,5 +18,12 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // This experimental rule flags the standard fetch-then-setState pattern in
+      // useEffect even when the setState happens after an await. This codebase
+      // fetches data in effects throughout; re-enable if/when we adopt a data
+      // fetching library (React Query etc.).
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

@@ -98,7 +98,6 @@ export const Settings = () => {
   // Styles
   const labelCls = 'block text-sm font-semibold text-slate-700 mb-2';
   const inputCls = 'w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 focus:bg-white text-slate-800 transition-colors text-sm';
-  const selectCls = 'w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 focus:bg-white text-slate-800 transition-colors text-sm';
 
   const tabItemCls = (tab: string) => `
     flex items-center gap-3 px-6 py-4 text-sm font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap

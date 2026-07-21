@@ -57,7 +57,7 @@ const ReviewReportDetail: React.FC = () => {
                     if (rep.milestoneId) {
                         try {
                             const ms = (await axiosInstance.get('/execution/milestones', { params: { workOrderId } })).data;
-                            const m = (ms ?? []).find((x: any) => x.id === rep.milestoneId);
+                            const m = ((ms ?? []) as { id: string; title: string }[]).find(x => x.id === rep.milestoneId);
                             if (m) setMilestoneTitle(m.title);
                         } catch { /* ignore */ }
                     }
@@ -66,7 +66,7 @@ const ReviewReportDetail: React.FC = () => {
                 if (rep.vendorId) {
                     try {
                         const vendors = (await axiosInstance.get('/vendors')).data;
-                        const v = (vendors ?? []).find((x: any) => x.id === rep.vendorId);
+                        const v = ((vendors ?? []) as { id: string; name?: string; authPersonName?: string }[]).find(x => x.id === rep.vendorId);
                         if (v) setVendorName(v.name ?? v.authPersonName ?? '');
                     } catch { /* ignore */ }
                 }
@@ -86,7 +86,7 @@ const ReviewReportDetail: React.FC = () => {
         try {
             await axiosInstance.post(`/progressreports/${id}/review`, { recommendation, remarks });
             navigate('/inspector/progress-review');
-        } catch (err) {
+        } catch {
             alert('Failed to submit review');
         } finally {
             setSubmitting(false);

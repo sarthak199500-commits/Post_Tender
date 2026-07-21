@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -47,12 +48,12 @@ const InspectorVisits: React.FC = () => {
     const fetchVisits = async (woList?: AssignedWorkOrder[]) => {
         try {
             const list = woList ?? workOrders;
-            const woById = new Map(list.map((w: any) => [w.id, w]));
-            const res = await axiosInstance.get('/InspectionVisits');
-            setVisits((res.data || []).map((v: any) => ({
+            const woById = new Map(list.map(w => [w.id, w]));
+            const res = await axiosInstance.get<Visit[]>('/InspectionVisits');
+            setVisits((res.data || []).map(v => ({
                 ...v,
-                workOrderNo: v.workOrderNo || (woById.get(v.workOrderId) as any)?.workOrderNo || '—',
-                tenderTitle: v.tenderTitle || (woById.get(v.workOrderId) as any)?.tenderTitle || '—',
+                workOrderNo: v.workOrderNo || woById.get(v.workOrderId)?.workOrderNo || '—',
+                tenderTitle: v.tenderTitle || woById.get(v.workOrderId)?.tenderTitle || '—',
             })));
         } catch (err) {
             console.error('Failed to fetch visits', err);
@@ -65,22 +66,23 @@ const InspectorVisits: React.FC = () => {
     // service, so resolve the inspector's own id and compose titles on the client.
     const fetchWorkOrders = async (): Promise<AssignedWorkOrder[]> => {
         try {
-            const inspectorsRes = await axiosInstance.get('/inspectors');
-            const me = (inspectorsRes.data || []).find((i: any) => i.userId === user?.id);
+            const inspectorsRes = await axiosInstance.get<{ id: string; userId?: string }[]>('/inspectors');
+            const me = (inspectorsRes.data || []).find(i => i.userId === user?.id);
             if (!me) { setWorkOrders([]); return []; }
 
+            interface WoRow { id: string; workOrderNo: string; tenderId?: string; vendorId?: string; }
             const [woRes, tendersRes, vendorsRes] = await Promise.all([
-                axiosInstance.get('/workorders', { params: { inspectorId: me.id } }),
-                axiosInstance.get('/tenders').catch(() => ({ data: [] })),
-                axiosInstance.get('/vendors').catch(() => ({ data: [] })),
+                axiosInstance.get<WoRow[]>('/workorders', { params: { inspectorId: me.id } }),
+                axiosInstance.get<{ id: string; title?: string }[]>('/tenders').catch(() => ({ data: [] as { id: string; title?: string }[] })),
+                axiosInstance.get<{ id: string; name?: string }[]>('/vendors').catch(() => ({ data: [] as { id: string; name?: string }[] })),
             ]);
 
-            const tenderById = new Map((tendersRes.data || []).map((t: any) => [t.id, t]));
-            const vendorById = new Map((vendorsRes.data || []).map((v: any) => [v.id, v]));
-            const composed: AssignedWorkOrder[] = (woRes.data || []).map((w: any) => ({
+            const tenderById = new Map((tendersRes.data || []).map(t => [t.id, t]));
+            const vendorById = new Map((vendorsRes.data || []).map(v => [v.id, v]));
+            const composed: AssignedWorkOrder[] = (woRes.data || []).map(w => ({
                 ...w,
-                tenderTitle: (tenderById.get(w.tenderId) as any)?.title || '—',
-                vendorName: (vendorById.get(w.vendorId) as any)?.name || '—',
+                tenderTitle: (w.tenderId && tenderById.get(w.tenderId)?.title) || '—',
+                vendorName: (w.vendorId && vendorById.get(w.vendorId)?.name) || '—',
             }));
             setWorkOrders(composed);
             return composed;
@@ -97,6 +99,7 @@ const InspectorVisits: React.FC = () => {
                 await fetchVisits(wos);
             })();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, user?.id]);
 
     // Handle incoming redirect with pre-selected work order
@@ -133,8 +136,9 @@ const InspectorVisits: React.FC = () => {
             setScheduledDate('');
             setPurpose('');
             fetchVisits();
-        } catch (err: any) {
-            alert(err.response?.data || 'Failed to schedule visit');
+        } catch (err) {
+            const detail = isAxiosError(err) && typeof err.response?.data === 'string' ? err.response.data : '';
+            alert(detail || 'Failed to schedule visit');
         } finally {
             setSubmitting(false);
         }
@@ -155,7 +159,7 @@ const InspectorVisits: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchVisits();
-        } catch (err) {
+        } catch {
             alert('Failed to update visit status');
         }
     };
@@ -170,7 +174,7 @@ const InspectorVisits: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchVisits();
-        } catch (err) {
+        } catch {
             alert('Failed to cancel visit');
         }
     };

@@ -3,10 +3,27 @@ import { useSelector } from 'react-redux';
 import { FileText, Search, CreditCard, Filter } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
+import type { Bill, WorkOrder, Vendor } from '../../types/domain';
+
+interface EnrichedBill extends Bill {
+  totalAmount?: number;
+  workOrderNo: string;
+  vendorName: string;
+}
+
+interface PaymentsData {
+  kpis: {
+    totalFundsReleased: number;
+    pendingApprovalValue: number;
+    rejectedBillsCount: number;
+    totalBudgetAllocated: number;
+  };
+  paymentHistory: EnrichedBill[];
+}
 
 export const AdminPayments = () => {
   const { token } = useSelector((state: RootState) => state.auth);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<PaymentsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,20 +36,20 @@ export const AdminPayments = () => {
       try {
         setLoading(true);
         const [billsRes, workOrdersRes, vendorsRes] = await Promise.all([
-          axiosInstance.get('/bills'),
-          axiosInstance.get('/workorders').catch(() => ({ data: [] })),
-          axiosInstance.get('/vendors').catch(() => ({ data: [] })),
+          axiosInstance.get<(Bill & { totalAmount?: number })[]>('/bills'),
+          axiosInstance.get<WorkOrder[]>('/workorders').catch(() => ({ data: [] as WorkOrder[] })),
+          axiosInstance.get<Vendor[]>('/vendors').catch(() => ({ data: [] as Vendor[] })),
         ]);
 
-        const bills: any[] = billsRes.data ?? [];
-        const workOrders: any[] = workOrdersRes.data ?? [];
-        const vendors: any[] = vendorsRes.data ?? [];
+        const bills = billsRes.data ?? [];
+        const workOrders = workOrdersRes.data ?? [];
+        const vendors = vendorsRes.data ?? [];
 
         const sumOf = (status: string) => bills
           .filter(b => b.status === status)
           .reduce((total, b) => total + (b.totalAmount ?? 0), 0);
 
-        const describe = (bill: any) => {
+        const describe = (bill: Bill & { totalAmount?: number }): EnrichedBill => {
           const workOrder = workOrders.find(w => w.id === bill.workOrderId);
           const vendor = vendors.find(v => v.id === workOrder?.vendorId);
           return {
@@ -51,8 +68,8 @@ export const AdminPayments = () => {
           },
           paymentHistory: bills.filter(b => b.status === 'Paid').map(describe),
         });
-      } catch (err: any) {
-        setError(err.message ?? 'Failed to fetch finance data');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch finance data');
       } finally {
         setLoading(false);
       }
@@ -64,7 +81,7 @@ export const AdminPayments = () => {
   if (error) return <div className="p-12 text-red-700 font-bold text-center">{error}</div>;
   if (!data) return null;
 
-  const filteredHistory = data.paymentHistory.filter((p: any) => 
+  const filteredHistory = data.paymentHistory.filter(p =>
     p.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.workOrderNo.toLowerCase().includes(searchTerm.toLowerCase())
@@ -146,17 +163,17 @@ export const AdminPayments = () => {
               {filteredHistory.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600 py-8 font-medium">No payment history found.</td></tr>
               ) : (
-                filteredHistory.map((p: any) => (
+                filteredHistory.map(p => (
                   <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <td className="p-4 font-bold text-emerald-700">{p.paymentVoucherNo}</td>
-                    <td className="p-4 text-sm font-medium text-slate-700">{new Date(p.paidAt).toLocaleDateString()}</td>
+                    <td className="p-4 text-sm font-medium text-slate-700">{new Date(p.paidAt ?? 0).toLocaleDateString()}</td>
                     <td className="p-4 text-sm font-bold text-slate-800 flex items-center gap-2">
                       <FileText className="w-4 h-4 text-slate-600" />
                       {p.billNo}
                     </td>
                     <td className="p-4 text-sm text-slate-600 font-medium">{p.workOrderNo}</td>
                     <td className="p-4 text-sm text-slate-600">{p.vendorName}</td>
-                    <td className="p-4 text-right font-black text-slate-800">₹{p.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="p-4 text-right font-black text-slate-800">₹{(p.totalAmount ?? 0).toLocaleString('en-IN')}</td>
                     <td className="p-4">
                       <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-full">Paid</span>
                     </td>

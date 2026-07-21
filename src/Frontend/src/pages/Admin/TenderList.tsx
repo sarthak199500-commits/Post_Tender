@@ -46,7 +46,7 @@ const TenderList: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchTenders();
-        } catch (err) {
+        } catch {
             alert('Failed to delete tender');
         }
     };

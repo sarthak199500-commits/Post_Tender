@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Send, AlertTriangle } from 'lucide-react';
+import { Bell, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const RaiseAlert = () => {

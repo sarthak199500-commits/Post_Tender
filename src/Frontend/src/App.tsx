@@ -22,7 +22,6 @@ import { AddVendor } from './pages/Admin/AddVendor';
 import { AddTender } from './pages/Admin/AddTender';
 import { AllottedTenders } from './pages/Admin/AllottedTenders';
 import AddInspector from './pages/Admin/AddInspector';
-import IssueWorkOrder from './pages/Admin/IssueWorkOrder';
 import TenderTypeMaster from './pages/Admin/TenderTypeMaster';
 import TenderList from './pages/Admin/TenderList';
 import InspectorList from './pages/Admin/InspectorList';
@@ -99,7 +98,19 @@ const DashboardHome = () => {
   );
 };
 
-const NavItem = ({ to, icon, text, hasChevron = false, indent = false, onChevronClick, chevronRotated, onClick, active }: any) => {
+interface NavItemProps {
+  to?: string;
+  icon: React.ReactNode;
+  text: string;
+  hasChevron?: boolean;
+  indent?: boolean;
+  onChevronClick?: () => void;
+  chevronRotated?: boolean;
+  onClick?: () => void;
+  active?: boolean;
+}
+
+const NavItem = ({ to, icon, text, hasChevron = false, indent = false, onChevronClick, chevronRotated, onClick, active }: NavItemProps) => {
   const location = useLocation();
   const isActive = active !== undefined ? active : (to ? (location.pathname === to || (location.pathname.startsWith(to + '/') && !location.pathname.startsWith(to + '/history'))) : false);
 
@@ -229,6 +240,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     const activeExecution = collapsibleExecutionRoutes.some(route => location.pathname === route);
     if (activeExecution) setExecutionCollapsed(false);
+    // The route arrays are stable per-render literals; only the pathname matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   return (

@@ -3,20 +3,25 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { selectVendorId } from '../../api/currentVendor';
+import { isAxiosError } from 'axios';
 import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
+import type { WorkOrder, Milestone } from '../../types/domain';
 
 export const VendorWorkOrderView = () => {
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [acceptId, setAcceptId] = useState<string | null>(null);
   const { token } = useSelector((state: RootState) => state.auth);
   const vendorId = useSelector(selectVendorId);
 
-  useEffect(() => { fetchWorkOrders(); }, [token, vendorId]);
+  useEffect(() => {
+    fetchWorkOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, vendorId]);
 
   // Work Orders are keyed by Vendor.Id. That now comes from the vendorId claim, so this
   // no longer downloads every vendor to find itself — the old approach depended on a
   // cross-tenant read that the backend is closing.
-  const fetchWorkOrders = async () => {
+  async function fetchWorkOrders() {
     if (!vendorId) { setWorkOrders([]); return; }
     try {
       const [woRes, msRes] = await Promise.all([
@@ -24,20 +29,21 @@ export const VendorWorkOrderView = () => {
         axiosInstance.get('/execution/milestones').catch(() => ({ data: [] })),
       ]);
 
-      const milestones: any[] = msRes.data ?? [];
-      setWorkOrders((woRes.data ?? []).map((w: any) => ({
+      const milestones: Milestone[] = msRes.data ?? [];
+      setWorkOrders((woRes.data ?? []).map((w: WorkOrder) => ({
         ...w,
-        milestones: milestones.filter((m: any) => m.workOrderId === w.id),
+        milestones: milestones.filter(m => m.workOrderId === w.id),
       })));
     } catch (e) { console.error(e); }
-  };
+  }
 
   const handleAccept = async (id: string) => {
     try {
       await axiosInstance.put(`/workorders/${id}/status`, { newStatus: 'Accepted' });
       fetchWorkOrders();
-    } catch (e: any) {
-      alert(e?.response?.data ?? 'Failed to accept work order.');
+    } catch (e) {
+      const detail = isAxiosError(e) && typeof e.response?.data === 'string' ? e.response.data : '';
+      alert(detail || 'Failed to accept work order.');
       console.error(e);
     }
   };

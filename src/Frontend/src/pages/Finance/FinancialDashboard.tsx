@@ -6,7 +6,7 @@ import axiosInstance from '../../api/axiosInstance';
 
 export const FinancialDashboard = () => {
   const { token } = useSelector((state: RootState) => state.auth);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<Awaited<ReturnType<typeof fetchFinancialDashboard>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -132,7 +132,7 @@ export const FinancialDashboard = () => {
               {data.pendingApprovals.length === 0 ? (
                 <tr><td colSpan={8} className="text-center text-slate-600 py-6">No bills pending approval</td></tr>
               ) : (
-                data.pendingApprovals.map((b: any) => (
+                data.pendingApprovals.map(b => (
                   <tr key={b.id}>
                     <td className="td-id">{b.billNo}</td>
                     <td className="td-wo">{b.workOrderNo}</td>
@@ -185,7 +185,7 @@ export const FinancialDashboard = () => {
               {data.paymentHistory.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600 py-6">No payment history found</td></tr>
               ) : (
-                data.paymentHistory.map((p: any) => (
+                data.paymentHistory.map(p => (
                   <tr key={p.id}>
                     <td className="td-id text-emerald-700">{p.paymentVoucherNo}</td>
                     <td className="td-date">{new Date(p.paidAt).toLocaleString('en-IN')}</td>

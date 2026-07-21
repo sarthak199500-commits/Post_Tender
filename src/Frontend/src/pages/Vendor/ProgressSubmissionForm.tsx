@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, MapPin, Send, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Camera, MapPin, Send,  CheckCircle } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 
 interface Props {

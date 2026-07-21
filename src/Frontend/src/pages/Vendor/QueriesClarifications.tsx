@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { 
-  MessageSquare, 
-  Send, 
-  User, 
-  Clock, 
-  Search,
-  Filter,
-  CheckCircle2
+import {
+  MessageSquare,
+  Send,
+  Clock,
+  Search
 } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
+import type { QueryThread, QueryMessage } from '../../types/domain';
 
 export const QueriesClarifications = () => {
-  const [queries, setQueries] = useState<any[]>([]);
-  const [selectedQuery, setSelectedQuery] = useState<any>(null);
+  const [queries, setQueries] = useState<QueryThread[]>([]);
+  const [selectedQuery, setSelectedQuery] = useState<QueryThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [newQuerySubject, setNewQuerySubject] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -26,7 +24,7 @@ export const QueriesClarifications = () => {
         const data = res.data ?? [];
         setQueries(data);
         if (selectedQuery) {
-            const updated = data.find((q: any) => q.id === selectedQuery.id);
+            const updated = data.find((q: QueryThread) => q.id === selectedQuery.id);
             if (updated) setSelectedQuery(updated);
         }
     })
@@ -35,6 +33,7 @@ export const QueriesClarifications = () => {
 
   useEffect(() => {
     loadQueries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handleSendMessage = async () => {
@@ -110,8 +109,8 @@ export const QueriesClarifications = () => {
                          <span className="text-[10px] font-bold text-slate-600 uppercase">{new Date(q.createdAt).toLocaleDateString()}</span>
                       </div>
                       <h3 className="text-sm font-bold text-slate-800 line-clamp-1">{q.subject}</h3>
-                      {q.messages?.length > 0 && (
-                          <p className="text-xs text-slate-600 mt-1 line-clamp-1 italic">"{q.messages[q.messages.length - 1].content}"</p>
+                      {(q.messages?.length ?? 0) > 0 && (
+                          <p className="text-xs text-slate-600 mt-1 line-clamp-1 italic">"{q.messages![q.messages!.length - 1].content}"</p>
                       )}
                    </div>
                  ))}
@@ -143,7 +142,7 @@ export const QueriesClarifications = () => {
                     </div>
 
                     <div className="flex-1 p-8 space-y-6 overflow-y-auto max-h-[500px]">
-                        {selectedQuery.messages?.map((msg: any) => (
+                        {selectedQuery.messages?.map((msg: QueryMessage) => (
                             <div key={msg.id} className={`flex gap-4 max-w-lg ${msg.senderRole === 'Vendor' ? '' : 'ml-auto flex-row-reverse'}`}>
                                 <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${msg.senderRole === 'Vendor' ? 'bg-slate-200 text-slate-600' : 'bg-indigo-600 text-white'}`}>
                                     {msg.senderName.substring(0, 2).toUpperCase()}

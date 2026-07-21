@@ -9,7 +9,7 @@ import {
   FileText, 
   TrendingUp,
   ChevronRight,
-  MapPin,
+  
   Camera,
   History
 } from 'lucide-react';
@@ -36,7 +36,7 @@ interface ProjectSummary {
 }
 
 export const VendorDashboard = () => {
-  const [data, setData] = useState<{ stats: DashboardStats; bills: any; recentProjects: ProjectSummary[] } | null>(null);
+  const [data, setData] = useState<{ stats: DashboardStats; bills: Record<string, number>; recentProjects: ProjectSummary[] } | null>(null);
   const { token, user } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 
@@ -48,7 +48,6 @@ export const VendorDashboard = () => {
 
   if (!data) return <div className="p-8">Loading Vendor Portal...</div>;
 
-  const progressPercent = (data.stats.completedMilestones / data.stats.totalMilestones) * 100 || 0;
 
   return (
     <div className="p-8 space-y-8 bg-slate-50 min-h-screen">

@@ -26,26 +26,33 @@ const ProgressReview: React.FC = () => {
         // project -> work order -> tender chain.
         const fetchReports = async () => {
             try {
+                interface VendorRow { id: string; name?: string; }
+                interface ProjectRow { id: string; workOrderId?: string; }
+                interface WoRow { id: string; workOrderNo?: string; tenderId?: string; }
+                interface TenderRow { id: string; title?: string; }
+                interface ReportRow extends ProgressReport { projectId?: string; vendorId?: string; }
+
+                const empty = <T,>() => ({ data: [] as T[] });
                 const [reportsRes, vendorsRes, projectsRes, woRes, tendersRes] = await Promise.all([
-                    axiosInstance.get('/progressreports/pending-review'),
-                    axiosInstance.get('/vendors').catch(() => ({ data: [] })),
-                    axiosInstance.get('/projects').catch(() => ({ data: [] })),
-                    axiosInstance.get('/workorders').catch(() => ({ data: [] })),
-                    axiosInstance.get('/tenders').catch(() => ({ data: [] })),
+                    axiosInstance.get<ReportRow[]>('/progressreports/pending-review'),
+                    axiosInstance.get<VendorRow[]>('/vendors').catch(empty<VendorRow>),
+                    axiosInstance.get<ProjectRow[]>('/projects').catch(empty<ProjectRow>),
+                    axiosInstance.get<WoRow[]>('/workorders').catch(empty<WoRow>),
+                    axiosInstance.get<TenderRow[]>('/tenders').catch(empty<TenderRow>),
                 ]);
 
-                const vendorById = new Map((vendorsRes.data || []).map((v: any) => [v.id, v]));
-                const projectById = new Map((projectsRes.data || []).map((p: any) => [p.id, p]));
-                const woById = new Map((woRes.data || []).map((w: any) => [w.id, w]));
-                const tenderById = new Map((tendersRes.data || []).map((t: any) => [t.id, t]));
+                const vendorById = new Map((vendorsRes.data || []).map(v => [v.id, v]));
+                const projectById = new Map((projectsRes.data || []).map(p => [p.id, p]));
+                const woById = new Map((woRes.data || []).map(w => [w.id, w]));
+                const tenderById = new Map((tendersRes.data || []).map(t => [t.id, t]));
 
-                setReports((reportsRes.data || []).map((r: any) => {
-                    const project = projectById.get(r.projectId) as any;
-                    const wo = project ? (woById.get(project.workOrderId) as any) : undefined;
-                    const tender = wo ? (tenderById.get(wo.tenderId) as any) : undefined;
+                setReports((reportsRes.data || []).map(r => {
+                    const project = r.projectId ? projectById.get(r.projectId) : undefined;
+                    const wo = project?.workOrderId ? woById.get(project.workOrderId) : undefined;
+                    const tender = wo?.tenderId ? tenderById.get(wo.tenderId) : undefined;
                     return {
                         ...r,
-                        vendorName: (vendorById.get(r.vendorId) as any)?.name || '—',
+                        vendorName: (r.vendorId && vendorById.get(r.vendorId)?.name) || '—',
                         workOrderNo: wo?.workOrderNo || '—',
                         tenderTitle: tender?.title || '—',
                     };

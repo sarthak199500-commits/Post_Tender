@@ -37,7 +37,7 @@ export const WorkOrderDetails = () => {
     const { token, user } = useSelector((state: RootState) => state.auth);
     const [wo, setWo] = useState<WorkOrder | null>(null);
     const [loading, setLoading] = useState(true);
-    const [reports, setReports] = useState<any[]>([]);
+    const [reports, setReports] = useState<{ id: string; physicalPercentage: number; workDescription: string; reportedAt: string; status: string; mediaUrls?: string[]; remarks?: string; milestone?: { title: string } }[]>([]);
     const [acting, setActing] = useState(false);
 
     // Confirm dialog state
@@ -74,6 +74,7 @@ export const WorkOrderDetails = () => {
 
     useEffect(() => {
         fetchDetails();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, token]);
 
     const handleApproveMilestone = async (milestoneId: string) => {
@@ -97,7 +98,7 @@ export const WorkOrderDetails = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchDetails();
-        } catch (err) {
+        } catch {
             alert('Failed to cancel work order');
         } finally {
             setActing(false);

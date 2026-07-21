@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   Milestone as MilestoneIcon,
   Calendar,
   TrendingUp,
@@ -23,6 +22,12 @@ import {
 } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance, { GATEWAY_BASE as API_BASE } from '../../api/axiosInstance';
+import type { Milestone, ProgressReport } from '../../types/domain';
+
+interface SubmissionDocument { id: string; name: string; type?: string; url?: string; size?: string; uploadedAt?: string; }
+
+// /progressreports/project/{id} enriches each report with its milestone (when linked).
+type ReportRow = ProgressReport & { milestone?: { title: string } };
 
 /* ─── helpers ──────────────────────────────────────────────────────────── */
 
@@ -52,16 +57,16 @@ export const MilestoneSubmissionPage = () => {
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('projectId') || '';
   const navigate = useNavigate();
-  const { token, user } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
   const isVendor = user?.role === 'Vendor';
 
   // ── state ──
-  const [milestone, setMilestone] = useState<any>(null);
+  const [milestone, setMilestone] = useState<Milestone | null>(null);
   const [projectName, setProjectName] = useState('');
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<ReportRow[]>([]);
   const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState('');
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<SubmissionDocument[]>([]);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [isImmutable, setIsImmutable] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState('');
@@ -120,7 +125,7 @@ export const MilestoneSubmissionPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [projectId, milestoneId, token]);
+  }, [projectId, milestoneId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -129,7 +134,7 @@ export const MilestoneSubmissionPage = () => {
     if (isReadOnly) return;
     setSelectedReportIds(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -406,7 +411,7 @@ export const MilestoneSubmissionPage = () => {
                           {r.latitude && (
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
-                              {r.latitude.toFixed(2)}, {r.longitude.toFixed(2)}
+                              {r.latitude.toFixed(2)}, {(r.longitude ?? 0).toFixed(2)}
                             </span>
                           )}
                         </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 
 interface TenderAllotment {
@@ -128,8 +129,8 @@ const IssueWorkOrder: React.FC = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             navigate('/admin/work-orders');
-        } catch (err: any) {
-            setError(err.response?.data || 'Failed to issue work order');
+        } catch (err) {
+            setError((isAxiosError(err) && typeof err.response?.data === 'string' && err.response.data) || 'Failed to issue work order');
         } finally {
             setLoading(false);
         }

@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { rupeesCompact } from '../../utils/currency';
 import axiosInstance from '../../api/axiosInstance';
+import type { Inspector, Vendor, TenderAllotment } from '../../types/domain';
 
 export const CreateWorkOrderForm = () => {
   const [step, setStep] = useState(1);
-  const [inspectors, setInspectors] = useState<any[]>([]);
-  const [allotments, setAllotments] = useState<any[]>([]);
-  const [vendors, setVendors] = useState<any[]>([]);
+  const [inspectors, setInspectors] = useState<Inspector[]>([]);
+  const [allotments, setAllotments] = useState<TenderAllotment[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const navigate = useNavigate();
 
   // Form State
@@ -54,13 +54,13 @@ export const CreateWorkOrderForm = () => {
     setTenderId(id);
     const allot = allotments.find(a => a.tenderId === id);
     if (allot) {
-      setVendorId(allot.l1VendorId);
+      setVendorId(allot.l1VendorId ?? '');
       setVendorName(vendors.find(v => v.id === allot.l1VendorId)?.name || allot.l1VendorName || '');
       setTenderBudget(allot.tenderBudget || 0);
       
       // Re-validate cost if tender changes
-      if (totalValue > allot.tenderBudget) {
-        setCostError(`Cost exceeds Tender Budget (₹${allot.tenderBudget.toLocaleString('en-IN')})`);
+      if (totalValue > (allot.tenderBudget ?? 0)) {
+        setCostError(`Cost exceeds Tender Budget (₹${(allot.tenderBudget ?? 0).toLocaleString('en-IN')})`);
       } else {
         setCostError('');
       }
@@ -76,7 +76,7 @@ export const CreateWorkOrderForm = () => {
 
   const addMilestone = () => setMilestones([...milestones, { title: '', weightage: 0, paymentPercentage: 0, targetDate: '' }]);
 
-  const handleMilestoneChange = (index: number, field: string, value: any) => {
+  const handleMilestoneChange = (index: number, field: string, value: string | number) => {
     const newM = [...milestones];
     newM[index] = { ...newM[index], [field]: value };
     setMilestones(newM);
@@ -242,7 +242,7 @@ export const CreateWorkOrderForm = () => {
               <select aria-label="Select an option" value={inspectorId} onChange={e => setInspectorId(e.target.value)} className="w-full p-3 border rounded-lg bg-white">
                 <option value="">-- Select Inspector --</option>
                 {inspectors.map(i => (
-                  <option key={i.id} value={i.id}>{i.name} ({i.type === '3rd Party' ? i.companyName : 'Dept'})</option>
+                  <option key={i.id} value={i.id}>{i.name} ({i.type === '3rd Party' ? (i.companyName ?? '3rd Party') : 'Dept'})</option>
                 ))}
               </select>
             </div>

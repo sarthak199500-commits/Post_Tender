@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { AlertTriangle, CheckCircle2, ShieldAlert, Plus, Camera, X } from 'lucide-react';
+import {  CheckCircle2, ShieldAlert, Plus, Camera, X } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 

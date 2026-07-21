@@ -26,7 +26,7 @@ const InspectorWorkOrders: React.FC = () => {
         const fetchWorkOrders = async () => {
             try {
                 const inspectorsRes = await axiosInstance.get('/inspectors');
-                const me = (inspectorsRes.data || []).find((i: any) => i.userId === user?.id);
+                const me = ((inspectorsRes.data || []) as { id: string; userId?: string }[]).find(i => i.userId === user?.id);
                 if (!me) { setWorkOrders([]); return; }
 
                 const [woRes, tendersRes, vendorsRes] = await Promise.all([
@@ -35,13 +35,13 @@ const InspectorWorkOrders: React.FC = () => {
                     axiosInstance.get('/vendors').catch(() => ({ data: [] })),
                 ]);
 
-                const tenderById = new Map((tendersRes.data || []).map((t: any) => [t.id, t]));
-                const vendorById = new Map((vendorsRes.data || []).map((v: any) => [v.id, v]));
+                const tenderById = new Map(((tendersRes.data || []) as { id: string; title?: string }[]).map(t => [t.id, t]));
+                const vendorById = new Map(((vendorsRes.data || []) as { id: string; name?: string }[]).map(v => [v.id, v]));
 
-                setWorkOrders((woRes.data || []).map((w: any) => ({
+                setWorkOrders(((woRes.data || []) as (WorkOrder & { tenderId?: string; vendorId?: string })[]).map(w => ({
                     ...w,
-                    tenderTitle: (tenderById.get(w.tenderId) as any)?.title || '—',
-                    vendorName: (vendorById.get(w.vendorId) as any)?.name || '—',
+                    tenderTitle: (w.tenderId && tenderById.get(w.tenderId)?.title) || '—',
+                    vendorName: (w.vendorId && vendorById.get(w.vendorId)?.name) || '—',
                 })));
             } catch (err) {
                 console.error('Failed to fetch assigned work orders', err);

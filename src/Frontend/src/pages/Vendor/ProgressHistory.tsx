@@ -7,7 +7,7 @@ import {
   Filter,
   MapPin,
   FileText,
-  Video,
+  
   X,
   ChevronRight,
   TrendingUp,
@@ -15,6 +15,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 import type { RootState } from '../../store';
+import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 
 // Still needed for evidence media rendered via <img src>/<video src>, which cannot go
@@ -33,6 +34,8 @@ interface Submission {
   reportedAt: string;
   status: string;
   milestoneId?: string;
+  milestone?: { title: string };
+  remarks?: string;
   milestoneTitle?: string;
 }
 
@@ -67,8 +70,7 @@ export const ProgressHistory = () => {
   const [error, setError] = useState('');
   
   // Selection & Detail Modal
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
-  const [modalLoading, setModalLoading] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,13 +88,13 @@ export const ProgressHistory = () => {
         axiosInstance.get('/projects').catch(() => ({ data: [] })),
       ]);
 
-      const projects: any[] = projectsRes.data ?? [];
-      setSubmissions((reportsRes.data ?? []).map((r: any) => ({
+      const projects: { id: string; name?: string }[] = projectsRes.data ?? [];
+      setSubmissions((reportsRes.data ?? []).map((r: Submission) => ({
         ...r,
         projectName: projects.find(p => p.id === r.projectId)?.name ?? 'Unknown Project',
       })));
-    } catch (err: any) {
-      setError(err?.response?.data ?? 'Failed to load history');
+    } catch (err) {
+      setError((isAxiosError(err) && typeof err.response?.data === 'string' && err.response.data) || 'Failed to load history');
     } finally {
       setLoading(false);
     }
@@ -106,14 +108,11 @@ export const ProgressHistory = () => {
 
   // Load detailed report with comments when selected
   const handleSelectSubmission = async (id: string) => {
-    setModalLoading(true);
     try {
       const res = await axiosInstance.get(`/progressreports/${id}`);
       setSelectedSubmission(res.data);
     } catch (err) {
       console.error(err);
-    } finally {
-      setModalLoading(false);
     }
   };
 

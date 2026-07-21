@@ -12,6 +12,10 @@ interface WorkOrderSummary {
 }
 
 interface ProjectSummary {
+  id: string;
+  vendorName?: string;
+  endDate?: string;
+  ldStatus?: string;
   name?: string;
   budget: number;
   utilized: number;
@@ -142,7 +146,7 @@ export const ReportsMIS = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {projects.map((p: any) => (
+            {projects.map(p => (
               <tr key={p.id} className={p.ldAmount > 0 ? 'bg-red-50/30' : ''}>
                 <td className="py-2 px-3 font-medium text-slate-700">{p.name}</td>
                 <td className="py-2 px-3 text-slate-600">{p.vendorName}</td>

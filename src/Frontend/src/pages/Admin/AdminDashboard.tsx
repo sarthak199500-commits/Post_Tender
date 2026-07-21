@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip,   XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
 import { rupeesCompact } from '../../utils/currency';
 import { Eye } from 'lucide-react';
 

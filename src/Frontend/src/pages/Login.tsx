@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { setCredentials } from '../store/authSlice';
 import logo from '../assets/logo.png';
 import axiosInstance from '../api/axiosInstance';
@@ -35,8 +35,8 @@ export const Login = () => {
       } else {
         navigate('/vendor/dashboard');
       }
-    } catch (err: any) {
-      setError(err.message || 'Invalid credentials');
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Invalid credentials');
     } finally {
       setLoading(false);
     }

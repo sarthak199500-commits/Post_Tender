@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, Target, AlertTriangle, CheckCircle, Clock, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Activity, Target, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { rupees, rupeesCompact } from '../../utils/currency';
 import axiosInstance from '../../api/axiosInstance';
 
@@ -24,7 +23,6 @@ interface Project {
 export const GlobalProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Project | null>(null);
 
   useEffect(() => {
     axiosInstance.get<Project[]>('/projects')

@@ -11,11 +11,16 @@ import {
   Video,
   Trash2,
   X,
-  ExternalLink,
+  
   Plus,
 } from 'lucide-react';
 import type { RootState } from '../../store';
+import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
+import type { Project, Milestone, ProgressReport } from '../../types/domain';
+
+// /progressreports/project/{id} enriches rows with the project name and linked milestone.
+type SubmissionRow = ProgressReport & { projectName?: string; milestone?: { title: string }; milestoneTitle?: string };
 
 // Still needed for evidence media rendered via <img src>/<video src>, which cannot go
 // through axios. Mirrors axiosInstance's base so this is not pinned to localhost.
@@ -99,16 +104,16 @@ export const ProgressReporting = () => {
   const navigate = useNavigate();
   const { token } = useSelector((state: RootState) => state.auth);
 
-  const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [milestones, setMilestones] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string>('');
   const [workDescription, setWorkDescription] = useState('');
   const [descError, setDescError] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+  const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<SubmissionRow | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
 
@@ -223,8 +228,8 @@ export const ProgressReporting = () => {
       setMediaUrls([]);
       setSelectedMilestoneId('');
       if (selectedProject) loadSubmissions(selectedProject.id);
-    } catch (e: any) {
-      alert(e?.response?.data ?? 'Failed to submit progress report.');
+    } catch (e) {
+      alert((isAxiosError(e) && typeof e.response?.data === 'string' && e.response.data) || 'Failed to submit progress report.');
       console.error(e);
     }
   };
@@ -582,7 +587,7 @@ export const ProgressReporting = () => {
                 <div>
                   <p className="text-[10px] font-black text-emerald-700/60 uppercase tracking-widest">GPS Coordinates</p>
                   <p className="text-sm font-bold text-emerald-700">
-                    {selectedSubmission.latitude.toFixed(6)}, {selectedSubmission.longitude.toFixed(6)}
+                    {(selectedSubmission.latitude ?? 0).toFixed(6)}, {(selectedSubmission.longitude ?? 0).toFixed(6)}
                   </p>
                 </div>
               </div>
@@ -594,11 +599,11 @@ export const ProgressReporting = () => {
                 </div>
               )}
 
-              {selectedSubmission.mediaUrls?.length > 0 && (
+              {(selectedSubmission.mediaUrls?.length ?? 0) > 0 && (
                 <div>
                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-4">Evidence Gallery</p>
                   <div className="grid grid-cols-3 gap-4">
-                    {selectedSubmission.mediaUrls.map((url: string, i: number) => (
+                    {(selectedSubmission.mediaUrls ?? []).map((url: string, i: number) => (
                       <div key={i} className="aspect-square rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm">
                         {isVideo(url) ? (
                           <video src={`${API_BASE}${url}`} className="w-full h-full object-cover" controls />

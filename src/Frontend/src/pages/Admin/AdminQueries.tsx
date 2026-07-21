@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { MessageSquare, Send, Clock, Search, CheckCircle2, User } from 'lucide-react';
+import { MessageSquare, Send,  Search } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
+import type { QueryThread, QueryMessage } from '../../types/domain';
 
 export const AdminQueries = () => {
-  const [queries, setQueries] = useState<any[]>([]);
-  const [selectedQuery, setSelectedQuery] = useState<any>(null);
+  const [queries, setQueries] = useState<QueryThread[]>([]);
+  const [selectedQuery, setSelectedQuery] = useState<QueryThread | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const { token } = useSelector((state: RootState) => state.auth);
@@ -17,7 +18,7 @@ export const AdminQueries = () => {
         const data = res.data ?? [];
         setQueries(data);
         if (selectedQuery) {
-            const updated = data.find((q: any) => q.id === selectedQuery.id);
+            const updated = data.find((q: QueryThread) => q.id === selectedQuery.id);
             if (updated) setSelectedQuery(updated);
         }
     })
@@ -26,6 +27,7 @@ export const AdminQueries = () => {
 
   useEffect(() => {
     loadQueries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handleSendMessage = async () => {
@@ -87,7 +89,7 @@ export const AdminQueries = () => {
                                 <span className="text-[10px] font-bold text-slate-600 uppercase">{new Date(q.createdAt).toLocaleDateString()}</span>
                             </div>
                             <h3 className="text-sm font-bold text-slate-800 line-clamp-2">{q.subject}</h3>
-                            <p className="text-xs text-slate-600 font-medium mt-1">Vendor: {q.vendorId.substring(0,8)}...</p>
+                            <p className="text-xs text-slate-600 font-medium mt-1">Vendor: {q.vendorId?.substring(0,8)}...</p>
                         </div>
                       ))}
                       {filteredQueries.length === 0 && (
@@ -115,7 +117,7 @@ export const AdminQueries = () => {
                     </div>
 
                     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                        {selectedQuery.messages?.map((msg: any) => (
+                        {selectedQuery.messages?.map((msg: QueryMessage) => (
                             <div key={msg.id} className={`flex gap-4 max-w-xl ${msg.senderRole === 'Vendor' ? '' : 'ml-auto flex-row-reverse'}`}>
                                 <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold ${msg.senderRole === 'Vendor' ? 'bg-slate-200 text-slate-600' : 'bg-indigo-600 text-white shadow-md'}`}>
                                     {msg.senderRole === 'Vendor' ? 'V' : 'PMU'}

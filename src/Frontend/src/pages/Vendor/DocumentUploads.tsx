@@ -3,9 +3,9 @@ import { useSelector } from 'react-redux';
 import { 
   FolderOpen, 
   Upload, 
-  File, 
+   
   Trash2, 
-  CheckCircle,
+  
   FileText,
   Shield,
   Briefcase,
@@ -17,7 +17,8 @@ import axiosInstance from '../../api/axiosInstance';
 export const DocumentUploads = () => {
   const { token } = useSelector((state: RootState) => state.auth);
   const [isUploading, setIsUploading] = useState(false);
-  const [docs, setDocs] = useState<any[]>([]);
+  interface DocRecord { id: string; name: string; type?: string; size?: string; url: string; status?: string; uploadedAt?: string; }
+  const [docs, setDocs] = useState<DocRecord[]>([]);
 
   const loadDocs = () => {
     axiosInstance.get('/documents')

@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { 
   Wallet, 
-  FileCheck, 
+   
   History, 
-  ArrowRight, 
+   
   ShieldCheck,
   Plus,
   FileText,

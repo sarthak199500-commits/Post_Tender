@@ -25,7 +25,7 @@ export const VendorDirectory = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const fetchVendors = async (filterStatus: string = '') => {
+  async function fetchVendors(filterStatus: string = '') {
     try {
       const params: Record<string, string> = { search };
       if (filterStatus) params.status = filterStatus;
@@ -34,7 +34,7 @@ export const VendorDirectory = () => {
     } catch (e) {
       console.error(e);
     }
-  };
+  }
 
   const handleStatusChange = async (vendorId: string, newStatus: string) => {
     try {
