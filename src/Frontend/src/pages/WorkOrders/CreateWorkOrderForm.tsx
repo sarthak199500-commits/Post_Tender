@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { rupeesCompact } from '../../utils/currency';
+import axiosInstance from '../../api/axiosInstance';
 
 export const CreateWorkOrderForm = () => {
   const [step, setStep] = useState(1);
   const [inspectors, setInspectors] = useState<any[]>([]);
   const [allotments, setAllotments] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
-  const { token } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 
   // Form State
@@ -35,24 +34,21 @@ export const CreateWorkOrderForm = () => {
 
   useEffect(() => {
     // Fetch Tender Allotments (Awarded Tenders with L1 Vendors)
-    fetch('http://localhost:5249/api/tenderallotments', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setAllotments(data))
+    axiosInstance.get('/tenderallotments')
+      .then(({ data }) => setAllotments(data))
       .catch(console.error);
 
     // Fetch Inspectors
-    fetch('http://localhost:5249/api/inspectors', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setInspectors(data))
+    axiosInstance.get('/inspectors')
+      .then(({ data }) => setInspectors(data))
       .catch(console.error);
 
     // Fetch Vendors — used to resolve the L1 vendor's display name (which lives in
     // VendorService, not on the allotment) from the allotment's l1VendorId.
-    fetch('http://localhost:5249/api/vendors', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => setVendors(data))
+    axiosInstance.get('/vendors')
+      .then(({ data }) => setVendors(data))
       .catch(console.error);
-  }, [token]);
+  }, []);
 
   const handleTenderChange = (id: string) => {
     setTenderId(id);
@@ -94,16 +90,11 @@ export const CreateWorkOrderForm = () => {
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
-      
-      const fileRes = await fetch('http://localhost:5249/api/files/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (!fileRes.ok) throw new Error('File upload failed');
-      const { url } = await fileRes.json();
-      
+
+      const { url } = (await axiosInstance.post('/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })).data;
+
       const normalizedMilestones = milestones.map(m => ({
         ...m,
         weightage: Number(m.weightage),
@@ -111,10 +102,9 @@ export const CreateWorkOrderForm = () => {
       }));
 
       // Step 1: create the Work Order (owned by TenderService).
-      const res = await fetch('http://localhost:5249/api/workorders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
+      let createdWO;
+      try {
+        createdWO = (await axiosInstance.post('/workorders', {
           vendorId,
           tenderId,
           inspectorId,
@@ -127,28 +117,25 @@ export const CreateWorkOrderForm = () => {
           startDate,
           endDate,
           milestones: normalizedMilestones
-        })
-      });
-
-      if (!res.ok) {
-        alert(await res.text());
-        return;
+        })).data;
+      } catch (e) {
+        if (isAxiosError(e) && typeof e.response?.data === 'string' && e.response.data) {
+          alert(e.response.data);
+          return;
+        }
+        throw e;
       }
 
-      const createdWO = await res.json();
-
       // Step 2: persist the milestones (owned by ExecutionService) against the new Work Order.
-      const msRes = await fetch('http://localhost:5249/api/execution/milestones', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ workOrderId: createdWO.id, milestones: normalizedMilestones })
-      });
-
-      if (!msRes.ok) {
-        alert('Work Order was created, but saving milestones failed: ' + (await msRes.text()) +
-          '\nOpen the draft to retry.');
-      } else {
+      try {
+        await axiosInstance.post('/execution/milestones', {
+          workOrderId: createdWO.id,
+          milestones: normalizedMilestones
+        });
         alert('Work Order Draft Created!');
+      } catch (e) {
+        const detail = isAxiosError(e) && typeof e.response?.data === 'string' ? e.response.data : '';
+        alert('Work Order was created, but saving milestones failed: ' + detail + '\nOpen the draft to retry.');
       }
       navigate('/admin/work-orders');
     } catch (e) {

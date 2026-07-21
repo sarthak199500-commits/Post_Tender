@@ -6,6 +6,10 @@ import axios from 'axios';
 // prefix and relies on it being added here.
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5249';
 
+// Gateway host without the /api prefix — for static file links (uploads, media)
+// that are hrefs rather than API calls.
+export const GATEWAY_BASE = BASE_URL;
+
 const axiosInstance = axios.create({
     baseURL: `${BASE_URL}/api`,
     headers: {

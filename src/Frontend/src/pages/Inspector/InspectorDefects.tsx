@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { AlertTriangle, CheckCircle2, ShieldAlert, Plus, Camera, X } from 'lucide-react';
 import type { RootState } from '../../store';
+import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 
-const API_BASE = 'http://localhost:5249';
+interface ProjectOption {
+  id: string;
+  name: string;
+}
 
 interface Defect {
   id: string;
@@ -25,7 +29,7 @@ interface Inspection {
 
 export const InspectorDefects = () => {
   const [inspections, setInspections] = useState<Inspection[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [isLogging, setIsLogging] = useState(false);
   const [newInspection, setNewInspection] = useState({
       projectId: '',
@@ -37,13 +41,11 @@ export const InspectorDefects = () => {
 
   const loadData = async () => {
       try {
-          const insRes = await fetch(`${API_BASE}/api/inspections/inspector`, { headers: { Authorization: `Bearer ${token}` } });
-          const insData = await insRes.json();
-          setInspections(insData);
+          const insRes = await axiosInstance.get<Inspection[]>('/inspections/inspector');
+          setInspections(insRes.data);
 
-          const projRes = await fetch(`${API_BASE}/api/projects`, { headers: { Authorization: `Bearer ${token}` } });
-          const projData = await projRes.json();
-          setProjects(projData);
+          const projRes = await axiosInstance.get<ProjectOption[]>('/projects');
+          setProjects(projRes.data);
       } catch (err) { console.error(err); }
   };
 
@@ -71,33 +73,17 @@ export const InspectorDefects = () => {
           return;
       }
       try {
-          const res = await fetch(`${API_BASE}/api/inspections`, {
-              method: 'POST',
-              headers: { 
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}` 
-              },
-              body: JSON.stringify(newInspection)
-          });
-          if (res.ok) {
-              setIsLogging(false);
-              setNewInspection({ projectId: '', remarks: '', defects: [] });
-              loadData();
-          }
+          await axiosInstance.post('/inspections', newInspection);
+          setIsLogging(false);
+          setNewInspection({ projectId: '', remarks: '', defects: [] });
+          loadData();
       } catch (err) { console.error(err); }
   };
 
   const handleVerifyDefect = async (defectId: string, isVerified: boolean) => {
       try {
-          const res = await fetch(`${API_BASE}/api/inspections/defect/${defectId}/verify`, {
-              method: 'PUT',
-              headers: { 
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}` 
-              },
-              body: JSON.stringify({ isVerified })
-          });
-          if (res.ok) loadData();
+          await axiosInstance.put(`/inspections/defect/${defectId}/verify`, { isVerified });
+          loadData();
       } catch (err) { console.error(err); }
   };
 
@@ -164,7 +150,7 @@ export const InspectorDefects = () => {
                                     
                                     {defect.reworkReportUrl && (
                                         <div className="mt-3">
-                                            <a href={`http://localhost:5249${defect.reworkReportUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors">
+                                            <a href={`${GATEWAY_BASE}${defect.reworkReportUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors">
                                                 <Camera className="w-3.5 h-3.5" /> View Rework Evidence
                                             </a>
                                         </div>

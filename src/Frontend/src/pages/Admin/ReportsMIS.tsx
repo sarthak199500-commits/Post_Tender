@@ -1,42 +1,52 @@
 import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
 import { BarChart2, TrendingUp, AlertTriangle } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { rupees, rupeesCompact } from '../../utils/currency';
+import axiosInstance from '../../api/axiosInstance';
+
+interface WorkOrderSummary {
+  totalValue?: number;
+  status: string;
+}
+
+interface ProjectSummary {
+  name?: string;
+  budget: number;
+  utilized: number;
+  ldAmount: number;
+}
 
 export const ReportsMIS = () => {
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrderSummary[]>([]);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const { token } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:5249/api/workorders', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch('http://localhost:5249/api/projects', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      axiosInstance.get<WorkOrderSummary[]>('/workorders'),
+      axiosInstance.get<ProjectSummary[]>('/projects'),
     ]).then(([wo, pr]) => {
-      setWorkOrders(wo);
-      setProjects(pr);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [token]);
+      setWorkOrders(wo.data);
+      setProjects(pr.data);
+    }).catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) return <div className="p-8 text-slate-600">Generating reports...</div>;
 
-  const totalContractValue = workOrders.reduce((s: number, w: any) => s + (w.totalValue || 0), 0);
-  const totalUtilized = projects.reduce((s: number, p: any) => s + (p.utilized || 0), 0);
-  const totalLd = projects.reduce((s: number, p: any) => s + (p.ldAmount || 0), 0);
-  const onTime = projects.filter((p: any) => p.ldAmount === 0).length;
+  const totalContractValue = workOrders.reduce((s, w) => s + (w.totalValue || 0), 0);
+  const totalUtilized = projects.reduce((s, p) => s + (p.utilized || 0), 0);
+  const totalLd = projects.reduce((s, p) => s + (p.ldAmount || 0), 0);
+  const onTime = projects.filter(p => p.ldAmount === 0).length;
 
   const woStatusData = ['Draft', 'Authority Approval', 'Pending Vendor Acceptance', 'Accepted', 'Completed'].map(s => ({
     status: s.split(' ')[0],
-    count: workOrders.filter((w: any) => w.status === s).length
+    count: workOrders.filter(w => w.status === s).length
   }));
 
-  const financialData = projects.map((p: any) => ({
+  const financialData = projects.map(p => ({
     name: p.name?.split(' ').slice(0, 3).join(' ') + '...',
     Budget: Math.round(p.budget / 100000),
     Utilized: Math.round(p.utilized / 100000),

@@ -22,8 +22,7 @@ import {
   Eye,
 } from 'lucide-react';
 import type { RootState } from '../../store';
-
-const API_BASE = 'http://localhost:5249';
+import axiosInstance, { GATEWAY_BASE as API_BASE } from '../../api/axiosInstance';
 
 /* ─── helpers ──────────────────────────────────────────────────────────── */
 
@@ -75,8 +74,6 @@ export const MilestoneSubmissionPage = () => {
 
   const isReadOnly = isImmutable || !isVendor;
 
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
   // ── load milestone & project data ──
   const loadData = useCallback(async () => {
     if (!milestoneId) {
@@ -88,9 +85,8 @@ export const MilestoneSubmissionPage = () => {
       let activeProjectId = projectId;
 
       // Check if a submission already exists
-      const subRes = await fetch(`${API_BASE}/api/milestonesubmissions/milestone/${milestoneId}`, { headers });
-      if (subRes.ok) {
-        const subs = await subRes.json();
+      try {
+        const subs = (await axiosInstance.get(`/milestonesubmissions/milestone/${milestoneId}`)).data;
         if (subs.length > 0) {
           const existing = subs[0];
           setSubmissionId(existing.id);
@@ -103,23 +99,21 @@ export const MilestoneSubmissionPage = () => {
             activeProjectId = existing.projectId;
           }
         }
-      }
+      } catch (err) { console.error(err); }
 
       if (activeProjectId) {
         // Fetch project (milestones are nested)
-        const projRes = await fetch(`${API_BASE}/api/projects/${activeProjectId}`, { headers });
-        if (projRes.ok) {
-          const proj = await projRes.json();
+        try {
+          const proj = (await axiosInstance.get(`/projects/${activeProjectId}`)).data;
           setProjectName(proj.name);
-          const ms = proj.workOrder?.milestones?.find((m: any) => m.id.toLowerCase() === milestoneId.toLowerCase());
+          const ms = proj.workOrder?.milestones?.find((m: { id: string }) => m.id.toLowerCase() === milestoneId.toLowerCase());
           if (ms) setMilestone(ms);
-        }
+        } catch (err) { console.error(err); }
 
         // Fetch progress reports for project
-        const rpRes = await fetch(`${API_BASE}/api/progressreports/project/${activeProjectId}`, { headers });
-        if (rpRes.ok) {
-          setReports(await rpRes.json());
-        }
+        try {
+          setReports((await axiosInstance.get(`/progressreports/project/${activeProjectId}`)).data);
+        } catch (err) { console.error(err); }
       }
     } catch (err) {
       console.error(err);
@@ -147,28 +141,22 @@ export const MilestoneSubmissionPage = () => {
     try {
       if (submissionId) {
         // Update existing
-        await fetch(`${API_BASE}/api/milestonesubmissions/${submissionId}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({ notes, linkedReportIds: Array.from(selectedReportIds) }),
+        await axiosInstance.put(`/milestonesubmissions/${submissionId}`, {
+          notes,
+          linkedReportIds: Array.from(selectedReportIds),
         });
       } else {
         // Create new
-        const res = await fetch(`${API_BASE}/api/milestonesubmissions`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            milestoneId,
-            projectId,
-            notes,
-            linkedReportIds: Array.from(selectedReportIds),
-          }),
-        });
-        if (res.ok) {
-          const sub = await res.json();
-          setSubmissionId(sub.id);
-        }
+        const sub = (await axiosInstance.post('/milestonesubmissions', {
+          milestoneId,
+          projectId,
+          notes,
+          linkedReportIds: Array.from(selectedReportIds),
+        })).data;
+        setSubmissionId(sub.id);
       }
+    } catch (err) {
+      console.error(err);
     } finally {
       setSaving(false);
     }
@@ -187,15 +175,13 @@ export const MilestoneSubmissionPage = () => {
 
       if (!submissionId) return;
 
-      const res = await fetch(`${API_BASE}/api/milestonesubmissions/${submissionId}/submit`, {
-        method: 'POST',
-        headers,
-      });
-      if (res.ok) {
-        setIsImmutable(true);
-        setSubmissionStatus('Submitted');
-        await loadData();
-      }
+      await axiosInstance.post(`/milestonesubmissions/${submissionId}/submit`);
+      setIsImmutable(true);
+      setSubmissionStatus('Submitted');
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to submit the milestone package.');
     } finally {
       setSubmitting(false);
     }
@@ -212,34 +198,25 @@ export const MilestoneSubmissionPage = () => {
       // Upload file via FilesController
       const formData = new FormData();
       formData.append('file', file);
-      const uploadRes = await fetch(`${API_BASE}/api/files/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
       let fileUrl = '';
-      if (uploadRes.ok) {
-        const uploadData = await uploadRes.json();
+      try {
+        const uploadData = (await axiosInstance.post('/files/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })).data;
         fileUrl = uploadData.url || uploadData.filePath || '';
-      }
+      } catch (err) { console.error(err); }
 
       // Add document record to submission
-      const docRes = await fetch(`${API_BASE}/api/milestonesubmissions/${submissionId}/documents`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: file.name,
-          type: uploadDocType,
-          url: fileUrl || `uploaded/${file.name}`,
-          size: `${(file.size / 1024).toFixed(1)} KB`,
-        }),
-      });
-
-      if (docRes.ok) {
-        const doc = await docRes.json();
-        setDocuments(prev => [...prev, doc]);
-      }
+      const doc = (await axiosInstance.post(`/milestonesubmissions/${submissionId}/documents`, {
+        name: file.name,
+        type: uploadDocType,
+        url: fileUrl || `uploaded/${file.name}`,
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+      })).data;
+      setDocuments(prev => [...prev, doc]);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to attach the document.');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -249,13 +226,10 @@ export const MilestoneSubmissionPage = () => {
   // ── remove document ──
   const handleRemoveDocument = async (docId: string) => {
     if (isReadOnly || !submissionId) return;
-    const res = await fetch(`${API_BASE}/api/milestonesubmissions/${submissionId}/documents/${docId}`, {
-      method: 'DELETE',
-      headers,
-    });
-    if (res.ok) {
+    try {
+      await axiosInstance.delete(`/milestonesubmissions/${submissionId}/documents/${docId}`);
       setDocuments(prev => prev.filter(d => d.id !== docId));
-    }
+    } catch (err) { console.error(err); }
   };
 
   /* ─── loading / error states ─────────────────────────────────────────── */

@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { selectVendorId } from '../../api/currentVendor';
-import axiosInstance from '../../api/axiosInstance';
+import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 
 export const VendorWorkOrderView = () => {
   const [workOrders, setWorkOrders] = useState<any[]>([]);
@@ -89,7 +89,7 @@ export const VendorWorkOrderView = () => {
               <div className="mt-4 md:mt-0 md:pl-6 md:border-l border-slate-100 flex flex-col gap-3 min-w-[200px]">
                 {wo.agreementDocumentUrl ? (
                   <a
-                    href={wo.agreementDocumentUrl.startsWith('http') ? wo.agreementDocumentUrl : `http://localhost:5249${wo.agreementDocumentUrl}`}
+                    href={wo.agreementDocumentUrl.startsWith('http') ? wo.agreementDocumentUrl : `${GATEWAY_BASE}${wo.agreementDocumentUrl}`}
                     target="_blank"
                     rel="noreferrer"
                     className="w-full border border-blue-700 text-blue-700 hover:bg-blue-50 py-2 rounded-lg font-medium transition-colors flex justify-center items-center"

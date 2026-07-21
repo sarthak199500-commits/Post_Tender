@@ -1,36 +1,55 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { FileText, Search, File, Download, Folder, Filter } from 'lucide-react';
-import type { RootState } from '../../store';
+import { useEffect, useState } from 'react';
+import { Search, File, Download, Folder, Filter } from 'lucide-react';
+import axiosInstance from '../../api/axiosInstance';
+
+interface ContractDocument {
+  id: string;
+  vendorId: string;
+  name: string;
+  type: string;
+  size: string;
+  url: string;
+  uploadedAt: string;
+  status: string;
+}
 
 export const AdminDocuments = () => {
-  const { token } = useSelector((state: RootState) => state.auth);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<ContractDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5249/api/documents', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        setDocuments(data);
-        setLoading(false);
-      })
+    axiosInstance.get<ContractDocument[]>('/documents')
+      .then(({ data }) => setDocuments(data))
       .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, [token]);
+        console.error(err);
+        setError('Failed to load documents.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleDownload = async (url: string, name: string) => {
+    try {
+      const path = url.replace(/^\/api/, '');   // baseURL already ends in /api
+      const res = await axiosInstance.get(path, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = name || 'document';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (e) { console.error(e); alert('Failed to download document.'); }
+  };
 
   if (loading) return <div className="p-12 text-slate-600 font-bold text-center">Loading documents...</div>;
   if (error) return <div className="p-12 text-red-700 font-bold text-center">Error: {error}</div>;
 
-  const filteredDocs = documents.filter(doc => 
-    doc.documentType.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    doc.fileUrl.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDocs = documents.filter(doc =>
+    (doc.type ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (doc.name ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -81,7 +100,7 @@ export const AdminDocuments = () => {
               {filteredDocs.length === 0 ? (
                 <tr><td colSpan={6} className="text-center text-slate-600 py-8 font-medium">No documents found.</td></tr>
               ) : (
-                filteredDocs.map((doc: any) => (
+                filteredDocs.map(doc => (
                   <tr key={doc.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -89,14 +108,14 @@ export const AdminDocuments = () => {
                           <File className="w-5 h-5 text-indigo-600" />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800 text-sm">{doc.fileUrl.split('/').pop() || 'Document'}</p>
+                          <p className="font-bold text-slate-800 text-sm">{doc.name || doc.url.split('/').pop() || 'Document'}</p>
                           <p className="text-xs text-slate-600">ID: {doc.id.substring(0, 8)}...</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg">
-                        {doc.documentType}
+                        {doc.type}
                       </span>
                     </td>
                     <td className="p-4 text-sm font-medium text-slate-600">{doc.vendorId.substring(0,8)}...</td>
@@ -111,7 +130,9 @@ export const AdminDocuments = () => {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-semibold border border-transparent hover:border-indigo-100">
+                      <button
+                        onClick={() => handleDownload(doc.url, doc.name)}
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-semibold border border-transparent hover:border-indigo-100">
                         <Download className="w-4 h-4" /> Download
                       </button>
                     </td>

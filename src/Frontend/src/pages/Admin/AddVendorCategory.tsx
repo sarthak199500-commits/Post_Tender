@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Category {
   id: string;
@@ -11,19 +10,13 @@ interface Category {
 export const AddVendorCategory = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [newName, setNewName] = useState('');
-  const { token } = useSelector((state: RootState) => state.auth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('http://localhost:5249/api/vendorcategories', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data);
-      }
+      const res = await axiosInstance.get<Category[]>('/vendorcategories');
+      setCategories(res.data);
     } catch (err) {
       console.error(err);
     }
@@ -38,21 +31,13 @@ export const AddVendorCategory = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:5249/api/vendorcategories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: newName }),
-      });
-
-      if (!res.ok) throw new Error('Failed to add category');
+      await axiosInstance.post('/vendorcategories', { name: newName });
 
       setNewName('');
       fetchCategories();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to add category');
     } finally {
       setLoading(false);
     }
@@ -61,10 +46,7 @@ export const AddVendorCategory = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this category?')) return;
     try {
-      await fetch(`http://localhost:5249/api/vendorcategories/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axiosInstance.delete(`/vendorcategories/${id}`);
       fetchCategories();
     } catch (err) {
       console.error(err);

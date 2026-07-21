@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { RootState } from '../../store';
+import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 
 const PORTALS = ['GeM Portal', 'CPPP', 'eProcurement', 'NIC Tender', 'State Portal', 'Other'];
+
+interface TenderRecord {
+  id: string;
+  tenderNo: string;
+  title: string;
+  description: string;
+  tenderType: string;
+  budget: number;
+  emdAmount: number;
+  portal: string;
+  publishDate?: string;
+  closeDate?: string;
+}
 
 export const AddTender = () => {
   const { id } = useParams();
@@ -20,7 +32,6 @@ export const AddTender = () => {
     closeDate: '',
   });
   const [document, setDocument] = useState<File | null>(null);
-  const { token } = useSelector((state: RootState) => state.auth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -30,9 +41,7 @@ export const AddTender = () => {
   useEffect(() => {
     const fetchTenderTypes = async () => {
       try {
-        const res = await axiosInstance.get('/tendertypes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await axiosInstance.get('/tendertypes');
         setTenderTypes(res.data);
       } catch (err) {
         console.error('Failed to fetch tender types', err);
@@ -43,10 +52,8 @@ export const AddTender = () => {
     if (id) {
       const fetchTender = async () => {
         try {
-          const res = await axiosInstance.get(`/tenders`, {
-             headers: { Authorization: `Bearer ${token}` }
-          });
-          const tender = res.data.find((t: any) => t.id === id);
+          const res = await axiosInstance.get<TenderRecord[]>('/tenders');
+          const tender = res.data.find(t => t.id === id);
           if (tender) {
             setFormData({
               tenderNo: tender.tenderNo,
@@ -66,7 +73,7 @@ export const AddTender = () => {
       };
       fetchTender();
     }
-  }, [id, token]);
+  }, [id]);
 
   const set = (field: string, value: string) =>
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -91,23 +98,21 @@ export const AddTender = () => {
 
     try {
       const url = id ? `/tenders/${id}` : '/tenders';
-      const method = id ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method: method,
-        headers: { Authorization: `Bearer ${token}` },
-        body: data,
-      });
-
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Failed to save tender');
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      if (id) {
+        await axiosInstance.put(url, data, config);
+      } else {
+        await axiosInstance.post(url, data, config);
       }
 
       setSuccess(true);
       setTimeout(() => navigate('/admin/masters/tenders'), 1500);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.data) {
+        setError(typeof err.response.data === 'string' ? err.response.data : 'Failed to save tender');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to save tender');
+      }
     } finally {
       setLoading(false);
     }

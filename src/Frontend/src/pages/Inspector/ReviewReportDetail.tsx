@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axiosInstance from '../../api/axiosInstance';
+import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 
@@ -96,7 +96,7 @@ const ReviewReportDetail: React.FC = () => {
     const formatMediaUrl = (url: string) => {
         if (!url) return '';
         if (url.startsWith('http')) return url;
-        return `http://localhost:5249${url}`;
+        return `${GATEWAY_BASE}${url}`;
     };
 
     if (loading) return <div className="p-10 text-center">Loading report details...</div>;

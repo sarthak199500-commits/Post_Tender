@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { Camera, MapPin, Send, AlertTriangle, CheckCircle } from 'lucide-react';
-import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Props {
   projectId: string;
@@ -16,7 +15,6 @@ export const ProgressSubmissionForm = ({ projectId, projectName, currentProgress
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const { token } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     // Automatically capture geo-location
@@ -45,25 +43,18 @@ export const ProgressSubmissionForm = ({ projectId, projectName, currentProgress
       const mediaUrls = files.map(f => `mock_url_${f.name}`);
 
       // 2. Submit report
-      const res = await fetch('http://localhost:5249/api/progressreports', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({
-          projectId,
-          physicalPercentage: percentage,
-          workDescription: description,
-          latitude: location.lat,
-          longitude: location.lng,
-          mediaUrls
-        })
+      await axiosInstance.post('/progressreports', {
+        projectId,
+        physicalPercentage: percentage,
+        workDescription: description,
+        latitude: location.lat,
+        longitude: location.lng,
+        mediaUrls
       });
-
-      if (res.ok) {
-        onSuccess();
-      }
+      onSuccess();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to submit the progress report.');
     } finally {
       setSubmitting(false);
     }

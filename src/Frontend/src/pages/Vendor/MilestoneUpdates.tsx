@@ -11,6 +11,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 export const MilestoneUpdates = () => {
   const [projects, setProjects] = useState<any[]>([]);
@@ -20,11 +21,9 @@ export const MilestoneUpdates = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:5249/api/projects', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(setProjects);
+    axiosInstance.get('/projects')
+      .then(({ data }) => setProjects(data))
+      .catch(console.error);
   }, [token]);
 
   useEffect(() => {

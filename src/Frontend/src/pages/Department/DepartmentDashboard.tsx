@@ -1,7 +1,8 @@
 import { fetchDepartmentDashboard } from '../../api/dashboardService';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 interface DashKpis {
   totalWorkOrders: number;
@@ -67,26 +68,21 @@ export const DepartmentDashboard = () => {
   const doAction = async (url: string, reason?: string) => {
     setActionLoading(url);
     try {
-      const res = await fetch(`http://localhost:5249${url}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: reason ? JSON.stringify({ reason }) : '{}'
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await axiosInstance.post(url, reason ? { reason } : {});
       fetchData();
     } catch (err) { console.error(err); alert('Action failed. Please try again.'); }
     finally { setActionLoading(null); }
   };
 
-  const handleApproveReport = (id: string) => doAction(`/api/progressreports/${id}/approve`);
+  const handleApproveReport = (id: string) => doAction(`/progressreports/${id}/approve`);
   const handleQueryReport = (id: string) => {
     const reason = prompt('Enter the reason for raising a query:');
-    if (reason) doAction(`/api/progressreports/${id}/query`, reason);
+    if (reason) doAction(`/progressreports/${id}/query`, reason);
   };
-  const handleApproveBill = (id: string) => doAction(`/api/bills/${id}/approve`);
+  const handleApproveBill = (id: string) => doAction(`/bills/${id}/approve`);
   const handleQueryBill = (id: string) => {
     const reason = prompt('Enter the reason for returning this bill:');
-    if (reason) doAction(`/api/bills/${id}/query`, reason);
+    if (reason) doAction(`/bills/${id}/query`, reason);
   };
 
   const badgeClass = (status: string) => {

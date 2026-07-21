@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
-import { Shield, Search, Filter } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Shield, Search } from 'lucide-react';
+import axiosInstance from '../../api/axiosInstance';
 
 interface AuditLog {
   id: string;
@@ -25,13 +24,13 @@ export const AuditLogs = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const { token } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    fetch('http://localhost:5249/api/auditlogs', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(data => { setLogs(data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [token]);
+    axiosInstance.get<AuditLog[]>('/auditlogs')
+      .then(({ data }) => setLogs(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = logs.filter(l =>
     l.entityName.toLowerCase().includes(search.toLowerCase()) ||

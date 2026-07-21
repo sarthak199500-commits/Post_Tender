@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
+import { useEffect, useState } from 'react';
 import { Activity, Target, AlertTriangle, CheckCircle, Clock, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { rupees, rupeesCompact } from '../../utils/currency';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Project {
   id: string;
@@ -26,13 +25,13 @@ export const GlobalProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Project | null>(null);
-  const { token } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    fetch('http://localhost:5249/api/projects', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(data => { setProjects(data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [token]);
+    axiosInstance.get<Project[]>('/projects')
+      .then(({ data }) => setProjects(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) return <div className="p-8 text-slate-600">Loading projects...</div>;
 

@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePlus, FileText, Eye } from 'lucide-react';
 import { TenderDetailsModal } from '../../components/TenderDetailsModal';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Tender {
   id: string;
@@ -18,17 +17,13 @@ interface Tender {
 export const AwardedTenders = () => {
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
-  const { token } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:5249/api/tenders/awarded', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(setTenders)
-    .catch(console.error);
-  }, [token]);
+    axiosInstance.get<Tender[]>('/tenders/awarded')
+      .then(({ data }) => setTenders(data))
+      .catch(console.error);
+  }, []);
 
   return (
     <div className="p-8 space-y-6">

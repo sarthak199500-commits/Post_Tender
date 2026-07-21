@@ -1,7 +1,8 @@
 import { fetchFinancialDashboard } from '../../api/dashboardService';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
+import axiosInstance from '../../api/axiosInstance';
 
 export const FinancialDashboard = () => {
   const { token } = useSelector((state: RootState) => state.auth);
@@ -15,8 +16,8 @@ export const FinancialDashboard = () => {
       setLoading(true);
       const json = await fetchFinancialDashboard();
       setData(json);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load finance data');
     } finally {
       setLoading(false);
     }
@@ -30,14 +31,11 @@ export const FinancialDashboard = () => {
     if (!window.confirm('Are you sure you want to release funds for this bill?')) return;
     setActionLoading(id);
     try {
-      const res = await fetch(`http://localhost:5249/api/bills/${id}/pay`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to release funds');
+      await axiosInstance.post(`/bills/${id}/pay`);
       await fetchDashboardData();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to release funds');
     } finally {
       setActionLoading(null);
     }
@@ -49,18 +47,11 @@ export const FinancialDashboard = () => {
     
     setActionLoading(id);
     try {
-      const res = await fetch(`http://localhost:5249/api/bills/${id}/reject`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
-        },
-        body: JSON.stringify({ reason })
-      });
-      if (!res.ok) throw new Error('Failed to reject bill');
+      await axiosInstance.post(`/bills/${id}/reject`, { reason });
       await fetchDashboardData();
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to reject bill');
     } finally {
       setActionLoading(null);
     }

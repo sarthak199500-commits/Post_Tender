@@ -1,9 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
-import { CheckCircle, AlertTriangle, MessageSquare, AlertCircle, Eye, CornerDownLeft, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle, AlertTriangle, Eye, CornerDownLeft, Clock } from 'lucide-react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { rupees, rupeesCompact } from '../../utils/currency';
+import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 
 interface Report {
     id: string;
@@ -32,7 +30,6 @@ export const AdminMilestoneApprovals = () => {
     const [milestones, setMilestones] = useState<PendingMilestone[]>([]);
     const [loading, setLoading] = useState(true);
     const [acting, setActing] = useState<string | null>(null);
-    const { token } = useSelector((state: RootState) => state.auth);
 
     // Confirm dialog state
     const [confirm, setConfirm] = useState<{
@@ -41,7 +38,7 @@ export const AdminMilestoneApprovals = () => {
         message: string;
         label: string;
         variant: 'danger' | 'warning' | 'info';
-        onConfirm: () => void;
+        onConfirm: (inputValue?: string) => void;
         requireInput?: boolean;
     }>({ open: false, title: '', message: '', label: '', variant: 'warning', onConfirm: () => { } });
 
@@ -51,11 +48,8 @@ export const AdminMilestoneApprovals = () => {
     const fetchPendingMilestones = async () => {
         try {
             setLoading(true);
-            const res = await fetch('http://localhost:5249/api/execution/milestones/pending', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            setMilestones(data);
+            const res = await axiosInstance.get<PendingMilestone[]>('/execution/milestones/pending');
+            setMilestones(res.data);
         } catch (err) {
             console.error('Failed to fetch pending milestones', err);
         } finally {
@@ -65,23 +59,17 @@ export const AdminMilestoneApprovals = () => {
 
     useEffect(() => {
         fetchPendingMilestones();
-    }, [token]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleApprove = async (id: string) => {
         setActing(id);
         try {
-            const res = await fetch(`http://localhost:5249/api/execution/milestones/${id}/approve`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                fetchPendingMilestones();
-            } else {
-                alert('Failed to approve milestone.');
-            }
+            await axiosInstance.post(`/execution/milestones/${id}/approve`);
+            fetchPendingMilestones();
         } catch (err) {
             console.error(err);
-            alert('Error approving milestone.');
+            alert('Failed to approve milestone.');
         } finally {
             setActing(null);
         }
@@ -90,22 +78,11 @@ export const AdminMilestoneApprovals = () => {
     const handleReturn = async (id: string, reason: string) => {
         setActing(id);
         try {
-            const res = await fetch(`http://localhost:5249/api/execution/milestones/${id}/return`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
-                },
-                body: JSON.stringify({ reason })
-            });
-            if (res.ok) {
-                fetchPendingMilestones();
-            } else {
-                alert('Failed to return milestone.');
-            }
+            await axiosInstance.post(`/execution/milestones/${id}/return`, { reason });
+            fetchPendingMilestones();
         } catch (err) {
             console.error(err);
-            alert('Error returning milestone.');
+            alert('Failed to return milestone.');
         } finally {
             setActing(null);
         }
@@ -114,7 +91,8 @@ export const AdminMilestoneApprovals = () => {
     const formatMediaUrl = (url: string) => {
         if (!url) return '';
         if (url.startsWith('http')) return url;
-        return `http://localhost:5249${url}`;
+        // Media files are served by the gateway host, not the Vite dev server.
+        return `${GATEWAY_BASE}${url}`;
     };
 
     if (loading) return <div className="p-10 text-center text-slate-600">Loading pending milestones...</div>;
@@ -134,7 +112,7 @@ export const AdminMilestoneApprovals = () => {
                         alert("Reason is required.");
                         return;
                     }
-                    (confirm.onConfirm as any)(inputValue); 
+                    confirm.onConfirm(inputValue);
                 }}
                 onCancel={closeConfirm}
             />
@@ -260,7 +238,7 @@ export const AdminMilestoneApprovals = () => {
                                         label: 'Return Milestone',
                                         variant: 'danger',
                                         requireInput: true,
-                                        onConfirm: ((reason: string) => handleReturn(m.id, reason)) as any
+                                        onConfirm: (reason) => handleReturn(m.id, reason ?? '')
                                     })}
                                     disabled={acting === m.id}
                                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 hover:text-slate-900 transition-colors disabled:"

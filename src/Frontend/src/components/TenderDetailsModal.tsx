@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { X, FileText, Calendar, Wallet, Users } from 'lucide-react';
 import type { RootState } from '../store';
+import axiosInstance from '../api/axiosInstance';
 
 interface Tender {
   id: string;
@@ -12,6 +13,13 @@ interface Tender {
   createdAt: string;
 }
 
+interface Allotment {
+  tenderId: string;
+  l1VendorName?: string;
+  l2VendorName?: string;
+  l3VendorName?: string;
+}
+
 interface Props {
   tender: Tender | null;
   onClose: () => void;
@@ -19,19 +27,16 @@ interface Props {
 
 export const TenderDetailsModal = ({ tender, onClose }: Props) => {
   const { token } = useSelector((state: RootState) => state.auth);
-  const [allotment, setAllotment] = useState<any>(null);
+  const [allotment, setAllotment] = useState<Allotment | null>(null);
 
   useEffect(() => {
     if (tender && token) {
-      fetch('http://localhost:5249/api/tenderallotments', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const found = data.find((a: any) => a.tenderId === tender.id);
-        if (found) setAllotment(found);
-      })
-      .catch(console.error);
+      axiosInstance.get<Allotment[]>('/tenderallotments')
+        .then(({ data }) => {
+          const found = data.find(a => a.tenderId === tender.id);
+          if (found) setAllotment(found);
+        })
+        .catch(console.error);
     }
   }, [tender, token]);
 

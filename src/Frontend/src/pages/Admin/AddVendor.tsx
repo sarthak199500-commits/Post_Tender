@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import type { RootState } from '../../store';
+import { isAxiosError } from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Category {
   id: string;
@@ -21,7 +21,6 @@ export const AddVendor = () => {
     categoryId: '',
     password: '',
   });
-  const { token } = useSelector((state: RootState) => state.auth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -30,16 +29,14 @@ export const AddVendor = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch('http://localhost:5249/api/vendorcategories', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) setCategories(await res.json());
+        const res = await axiosInstance.get<Category[]>('/vendorcategories');
+        setCategories(res.data);
       } catch (err) {
         console.error(err);
       }
     };
     fetchCategories();
-  }, [token]);
+  }, []);
 
   const set = (field: string, value: string) =>
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -63,24 +60,16 @@ export const AddVendor = () => {
         yearOfIncorporation: formData.yearOfIncorporation ? parseInt(formData.yearOfIncorporation) : null,
       };
 
-      const res = await fetch('http://localhost:5249/api/vendors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Failed to add vendor');
-      }
+      await axiosInstance.post('/vendors', payload);
 
       setSuccess(true);
       setTimeout(() => navigate('/vendors'), 2000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (isAxiosError(err) && typeof err.response?.data === 'string' && err.response.data) {
+        setError(err.response.data);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to add vendor');
+      }
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,20 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FilePlus, ChevronRight, CheckCircle, Clock, Send, AlertCircle, Info } from 'lucide-react';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { rupeesCompact } from '../../utils/currency';
+import axiosInstance from '../../api/axiosInstance';
+
+interface VendorRecord { id: string; name: string; vendorCode?: string; }
+interface MilestoneRecord { workOrderId: string; status: string; }
+interface BillRecord { workOrderId: string; status: string; amount?: number; }
+interface RawWorkOrder {
+  id: string;
+  workOrderNo: string;
+  status: string;
+  totalValue: number;
+  startDate: string;
+  endDate: string;
+  vendorId: string;
+}
 
 interface WorkOrder {
   id: string;
@@ -57,33 +71,32 @@ export const WorkOrderManagement = () => {
   // codebase has no service-to-service calls / aggregation BFF).
   const loadWOs = async () => {
     try {
-      const h = { headers: { Authorization: `Bearer ${token}` } };
       const [woRes, vendorsRes, milestonesRes, billsRes] = await Promise.all([
-        fetch('http://localhost:5249/api/workorders', h),
-        fetch('http://localhost:5249/api/vendors', h).catch(() => null),
-        fetch('http://localhost:5249/api/execution/milestones', h).catch(() => null),
-        fetch('http://localhost:5249/api/bills', h).catch(() => null),
+        axiosInstance.get<RawWorkOrder[]>('/workorders'),
+        axiosInstance.get<VendorRecord[]>('/vendors').catch(() => null),
+        axiosInstance.get<MilestoneRecord[]>('/execution/milestones').catch(() => null),
+        axiosInstance.get<BillRecord[]>('/bills').catch(() => null),
       ]);
 
-      const wos: any[] = woRes.ok ? await woRes.json() : [];
-      const vendors: any[] = vendorsRes && vendorsRes.ok ? await vendorsRes.json() : [];
-      const milestones: any[] = milestonesRes && milestonesRes.ok ? await milestonesRes.json() : [];
-      const bills: any[] = billsRes && billsRes.ok ? await billsRes.json() : [];
+      const wos = woRes.data;
+      const vendors = vendorsRes?.data ?? [];
+      const milestones = milestonesRes?.data ?? [];
+      const bills = billsRes?.data ?? [];
 
-      const vendorById = new Map(vendors.map((v: any) => [v.id, v]));
+      const vendorById = new Map(vendors.map(v => [v.id, v]));
       const paidByWO = new Map<string, number>();
-      bills.filter((b: any) => b.status === 'Paid').forEach((b: any) => {
+      bills.filter(b => b.status === 'Paid').forEach(b => {
         paidByWO.set(b.workOrderId, (paidByWO.get(b.workOrderId) || 0) + (b.amount || 0));
       });
 
-      const enriched: WorkOrder[] = wos.map((w: any) => {
-        const woMilestones = milestones.filter((m: any) => m.workOrderId === w.id);
+      const enriched: WorkOrder[] = wos.map(w => {
+        const woMilestones = milestones.filter(m => m.workOrderId === w.id);
         return {
           ...w,
           vendorName: vendorById.get(w.vendorId)?.name || '—',
           vendorCode: vendorById.get(w.vendorId)?.vendorCode || '',
           milestoneCount: woMilestones.length,
-          completedMilestones: woMilestones.filter((m: any) => m.status === 'Completed').length,
+          completedMilestones: woMilestones.filter(m => m.status === 'Completed').length,
           totalPaidAmount: paidByWO.get(w.id) || 0,
         };
       });
@@ -100,21 +113,18 @@ export const WorkOrderManagement = () => {
 
   const approve = async (id: string) => {
     setActing(id);
-    await fetch(`http://localhost:5249/api/workorders/${id}/approve`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    try {
+      await axiosInstance.put(`/workorders/${id}/approve`);
+    } catch (e) { console.error(e); }
     setActing(null);
     loadWOs();
   };
 
   const transitionStatus = async (id: string, newStatus: string) => {
     setActing(id);
-    await fetch(`http://localhost:5249/api/workorders/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ newStatus })
-    });
+    try {
+      await axiosInstance.put(`/workorders/${id}/status`, { newStatus });
+    } catch (e) { console.error(e); }
     setActing(null);
     loadWOs();
   };

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { RootState } from '../../store';
+import { isAxiosError } from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 
 interface Vendor {
   id: string;
@@ -19,20 +19,18 @@ export const VendorDirectory = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [search, setSearch] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  const { token } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     fetchVendors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const fetchVendors = async (filterStatus: string = '') => {
     try {
-      let url = `http://localhost:5249/api/vendors?search=${encodeURIComponent(search)}`;
-      if (filterStatus) url += `&status=${encodeURIComponent(filterStatus)}`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) setVendors(await res.json());
+      const params: Record<string, string> = { search };
+      if (filterStatus) params.status = filterStatus;
+      const res = await axiosInstance.get<Vendor[]>('/vendors', { params });
+      setVendors(res.data);
     } catch (e) {
       console.error(e);
     }
@@ -40,17 +38,8 @@ export const VendorDirectory = () => {
 
   const handleStatusChange = async (vendorId: string, newStatus: string) => {
     try {
-      const res = await fetch(`http://localhost:5249/api/vendors/${vendorId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (res.ok) {
-        setVendors(prev => prev.map(v => v.id === vendorId ? { ...v, status: newStatus } : v));
-      }
+      await axiosInstance.patch(`/vendors/${vendorId}/status`, { status: newStatus });
+      setVendors(prev => prev.map(v => v.id === vendorId ? { ...v, status: newStatus } : v));
     } catch (e) {
       console.error(e);
     }
@@ -60,18 +49,14 @@ export const VendorDirectory = () => {
     if (!window.confirm(`Are you sure you want to delete vendor "${vendorName}"? This will also remove their login account.`)) return;
     setDeleteError('');
     try {
-      const res = await fetch(`http://localhost:5249/api/vendors/${vendorId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setVendors(prev => prev.filter(v => v.id !== vendorId));
+      await axiosInstance.delete(`/vendors/${vendorId}`);
+      setVendors(prev => prev.filter(v => v.id !== vendorId));
+    } catch (e) {
+      if (isAxiosError(e) && e.response) {
+        setDeleteError(`Delete failed (${e.response.status}): ${typeof e.response.data === 'string' ? e.response.data : ''}`);
       } else {
-        const text = await res.text();
-        setDeleteError(`Delete failed (${res.status}): ${text}`);
+        setDeleteError(`Network error: ${e instanceof Error ? e.message : String(e)}`);
       }
-    } catch (e: any) {
-      setDeleteError(`Network error: ${e.message}`);
     }
   };
 

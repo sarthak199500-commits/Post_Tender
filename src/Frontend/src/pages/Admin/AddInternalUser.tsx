@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Save, ArrowLeft } from 'lucide-react';
-import type { RootState } from '../../store';
+import { UserPlus, Save } from 'lucide-react';
+import { isAxiosError } from 'axios';
+import axiosInstance from '../../api/axiosInstance';
 
 export const AddInternalUser = () => {
   const navigate = useNavigate();
-  const { token } = useSelector((state: RootState) => state.auth);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -21,25 +20,16 @@ export const AddInternalUser = () => {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5249/api/auth/register-internal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        alert('User created successfully!');
-        navigate('/admin/dashboard');
-      } else {
-        const errorText = await res.text();
-        alert(`Failed to create user: ${errorText}`);
-      }
+      await axiosInstance.post('/auth/register-internal', formData);
+      alert('User created successfully!');
+      navigate('/admin/dashboard');
     } catch (err) {
       console.error(err);
-      alert('An error occurred during registration.');
+      if (isAxiosError(err) && err.response) {
+        alert(`Failed to create user: ${JSON.stringify(err.response.data)}`);
+      } else {
+        alert('An error occurred during registration.');
+      }
     } finally {
       setLoading(false);
     }
