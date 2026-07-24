@@ -46,8 +46,12 @@ public class TendersController : ControllerBase
         return Ok(awardedTenders);
     }
 
+    // Read-only projection (no document URLs), so every reviewing role may read it.
+    // Inspector and Finance both need it to resolve tender titles and budgets for their
+    // own dashboards; without it their client-side joins silently degrade to blanks and
+    // Finance's "Total Budget" renders as a confident ₹0.
     [HttpGet]
-    [Authorize(Roles = "Admin,PMU")]
+    [Authorize(Roles = "Admin,PMU,Department,Inspector,Finance")]
     public async Task<IActionResult> GetAllTenders()
     {
         var tenders = await _context.Tenders

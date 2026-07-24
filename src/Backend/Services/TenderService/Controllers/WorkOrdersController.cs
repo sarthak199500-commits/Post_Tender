@@ -41,10 +41,47 @@ public class WorkOrdersController : ControllerBase
         return Ok(workOrders);
     }
 
+    // The detail pages render the tender title off this payload. Tender lives in this
+    // service, so it is flattened into a projection here rather than left to a second
+    // client call — but it must NOT be a plain .Include: Tender.WorkOrders is a back
+    // reference and no ReferenceHandler is configured, so EF fixup would produce a cycle
+    // and the serializer would 500. Vendor, inspector and milestones belong to other
+    // services and stay composed on the client.
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var wo = await _context.WorkOrders.FirstOrDefaultAsync(w => w.Id == id);
+        var wo = await _context.WorkOrders
+            .Where(w => w.Id == id)
+            .Select(w => new
+            {
+                w.Id,
+                w.TenderId,
+                w.VendorId,
+                w.InspectorId,
+                w.WorkOrderNo,
+                w.TotalValue,
+                w.StartDate,
+                w.EndDate,
+                w.ScopeDescription,
+                w.PaymentTerms,
+                w.LiquidatedDamagesTerms,
+                w.AgreementDocumentUrl,
+                w.Status,
+                w.CreatedAt,
+                Tender = w.Tender == null ? null : new
+                {
+                    w.Tender.Id,
+                    w.Tender.TenderNo,
+                    w.Tender.Title,
+                    w.Tender.Budget
+                },
+                // Lets the client pull this work order's progress reports through the
+                // existing GET /progressreports/project/{id} instead of needing a
+                // work-order-keyed endpoint in a service that has no Project table.
+                ProjectIds = w.Projects.Select(p => p.Id).ToList()
+            })
+            .FirstOrDefaultAsync();
+
         if (wo == null) return NotFound();
         return Ok(wo);
     }
