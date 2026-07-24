@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken } from './authStorage';
 
 // YARP API Gateway URL. Override with VITE_API_URL in a .env file if needed.
 // All gateway routes are published under "/api" (see PostTenderSystem.Gateway
@@ -20,7 +21,8 @@ const axiosInstance = axios.create({
 // Add a request interceptor to attach the JWT token to every request
 axiosInstance.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        // Reads both stores — "Remember Me" decides which one holds the session.
+        const token = getToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }

@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { clearSession, getStoredUser, getToken, setSession } from '../api/authStorage';
 
 interface User {
   id: string;
@@ -21,7 +22,7 @@ const normalizeRole = (role: string | number): string => {
 
 const parseStoredUser = (): User | null => {
   try {
-    const raw = localStorage.getItem('user');
+    const raw = getStoredUser();
     if (!raw) return null;
     const u = JSON.parse(raw);
     return { ...u, role: normalizeRole(u.role) };
@@ -37,9 +38,9 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  token: localStorage.getItem('token'),
+  token: getToken(),
   user: parseStoredUser(),
-  isAuthenticated: !!localStorage.getItem('token'),
+  isAuthenticated: !!getToken(),
 };
 
 const authSlice = createSlice({
@@ -48,22 +49,20 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ user: User; token: string; remember?: boolean }>
     ) => {
-      const { user, token } = action.payload;
+      const { user, token, remember = true } = action.payload;
       const normalizedUser = { ...user, role: normalizeRole(user.role) };
       state.user = normalizedUser;
       state.token = token;
       state.isAuthenticated = true;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setSession(token, normalizedUser, remember);
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearSession();
     },
   },
 });

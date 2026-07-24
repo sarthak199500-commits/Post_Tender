@@ -110,9 +110,12 @@ export const FinancialDashboard = () => {
 
       {/* Pending Approvals Table */}
       <div className="tbl-card">
+        {/* No "View All" here: this table already lists every pending release, and the
+            only fuller billing view (/admin/billing) exposes approve/reject actions that
+            Finance is not authorised for. */}
         <div className="tbl-hdr">
           <h2 className="tbl-title">Pending Fund Releases</h2>
-          <div className="tbl-va">View All</div>
+          <span className="text-xs font-bold text-slate-500">{data.pendingApprovals.length} awaiting release</span>
         </div>
         <div className="w-full overflow-x-auto">
           <table className="custom-table min-w-[800px]">

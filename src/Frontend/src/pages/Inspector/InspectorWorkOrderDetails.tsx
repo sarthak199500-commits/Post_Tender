@@ -3,64 +3,36 @@ import { useParams, Link } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
-
-interface Milestone {
-    id: string;
-    title: string;
-    weightage: number;
-    paymentPercentage: number;
-    targetDate: string;
-    status: string;
-}
-
-interface WorkOrder {
-    id: string;
-    workOrderNo: string;
-    tender: { title: string, budget: number };
-    vendor: { name: string, vendorCode: string };
-    totalValue: number;
-    scopeDescription: string;
-    paymentTerms: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-    milestones: Milestone[];
-}
+import { fetchWorkOrderDetail } from '../../api/workOrderDetails';
+import type { WorkOrderDetail } from '../../api/workOrderDetails';
 
 const InspectorWorkOrderDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { token } = useSelector((state: RootState) => state.auth);
-    const [wo, setWo] = useState<WorkOrder | null>(null);
+    const [wo, setWo] = useState<WorkOrderDetail | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchDetails = async () => {
-            try {
-                const res = await axiosInstance.get(`/workorders/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setWo(res.data);
-            } catch (err) {
-                console.error('Failed to fetch WO details', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchDetails();
-    }, [id, token]);
+    const load = React.useCallback(async () => {
+        if (!id) return;
+        try {
+            const detail = await fetchWorkOrderDetail(id);
+            setWo(detail?.workOrder ?? null);
+        } catch (err) {
+            console.error('Failed to fetch WO details', err);
+            setWo(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [id]);
+
+    useEffect(() => { load(); }, [load, token]);
 
     const handleApproveMilestone = async (milestoneId: string) => {
         if (!window.confirm('Are you sure you want to approve and complete this milestone?')) return;
         try {
-            await axiosInstance.post(`/execution/milestones/${milestoneId}/approve`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await axiosInstance.post(`/execution/milestones/${milestoneId}/approve`, {});
             alert('Milestone approved and completed successfully.');
-            // Refresh
-            const res = await axiosInstance.get(`/workorders/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setWo(res.data);
+            await load();
         } catch (err) {
             console.error(err);
             alert('Failed to approve milestone.');
@@ -178,7 +150,9 @@ const InspectorWorkOrderDetails: React.FC = () => {
                             <Link to={`/inspector/visits/schedule?woId=${wo.id}`} className="block w-full bg-blue-700 text-white text-center py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors">
                                 Schedule Inspection
                             </Link>
-                            <Link to={`/inspector/observations/add?woId=${wo.id}`} className="block w-full bg-white text-slate-700 border border-slate-200 text-center py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
+                            {/* There is no /inspector/observations route — recording an
+                                observation is what the Quality Defects page does. */}
+                            <Link to="/inspector/defects" className="block w-full bg-white text-slate-700 border border-slate-200 text-center py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
                                 Record Observation
                             </Link>
                         </div>

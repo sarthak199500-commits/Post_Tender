@@ -18,6 +18,7 @@ export const AdminDocuments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   useEffect(() => {
     axiosInstance.get<ContractDocument[]>('/documents')
@@ -47,9 +48,14 @@ export const AdminDocuments = () => {
   if (loading) return <div className="p-12 text-slate-600 font-bold text-center">Loading documents...</div>;
   if (error) return <div className="p-12 text-red-700 font-bold text-center">Error: {error}</div>;
 
+  // Types come from the documents themselves rather than a fixed list, so the filter
+  // always matches what is actually in the repository.
+  const documentTypes = [...new Set(documents.map(d => d.type).filter(Boolean))].sort() as string[];
+
   const filteredDocs = documents.filter(doc =>
-    (doc.type ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (doc.name ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+    (typeFilter === '' || doc.type === typeFilter) &&
+    ((doc.type ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (doc.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -78,9 +84,18 @@ export const AdminDocuments = () => {
                 className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
-              <Filter className="w-4 h-4" /> Filter
-            </button>
+            <div className="relative">
+              <Filter className="w-4 h-4 absolute left-3 top-2.5 text-slate-600 pointer-events-none" />
+              <select
+                aria-label="Filter by document type"
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                className="pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none transition-colors"
+              >
+                <option value="">All types</option>
+                {documentTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 

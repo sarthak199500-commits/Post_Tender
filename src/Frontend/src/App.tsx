@@ -6,6 +6,7 @@ import { logout } from './store/authSlice';
 import { fetchNotifications, timeAgo } from './api/notificationsService';
 import type { AppNotification, NotificationType } from './api/notificationsService';
 import { Login } from './pages/Login';
+import { NotFound } from './pages/NotFound';
 import logoWhite from './assets/logo-white.png';
 import { VendorDirectory } from './pages/Vendors/VendorDirectory';
 import { CreateWorkOrderForm } from './pages/WorkOrders/CreateWorkOrderForm';
@@ -474,8 +475,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 )}
 
                 <NavItem to="/admin/reports" text="Reports" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>} />
+                <NavItem to="/admin/queries" text="Queries & Clarif." icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>} />
                 <NavItem to="/admin/alerts" text="Alerts" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>} />
                 <NavItem to="/admin/documents" text="Documents" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>} />
+                <NavItem to="/admin/audit-logs" text="Audit Logs" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>} />
                 <NavItem to="/admin/settings" text="Settings" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>} />
 
                 <div className="pt-5 pb-2 px-4 mt-2 border-t border-white/5">
@@ -492,11 +495,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <NavItem to="/inspector/work-orders" text="Work Orders" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>} />
                 <NavItem to="/inspector/progress-review" text="Progress Review" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="5 3 19 12 5 21 5 3" /></svg>} />
                 <NavItem to="/inspector/visits" text="Audit Visits" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} />
+                <NavItem to="/inspector/defects" text="Quality Defects" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
               </>
             ) : user.role === 'Department' ? (
               <>
                 <NavItem to="/department/dashboard" text="Dashboard" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="8" rx="1.5" /><rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" /></svg>} />
                 <NavItem to="/admin/work-orders" text="Work Orders" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>} />
+                <NavItem to="/admin/milestone-approvals" text="Milestone Approvals" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>} />
                 <NavItem to="/admin/reports" text="Reports" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>} />
                 <NavItem to="/admin/audit-logs" text="Audit Logs" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>} />
               </>
@@ -653,7 +658,8 @@ function App() {
       <Route path="/admin/dashboard" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><AdminDashboard /></Layout></PrivateRoute>} />
       <Route path="/admin/tenders/awarded" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><AwardedTenders /></Layout></PrivateRoute>} />
       <Route path="/admin/projects" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><GlobalProjects /></Layout></PrivateRoute>} />
-      <Route path="/admin/milestone-approvals" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><AdminMilestoneApprovals /></Layout></PrivateRoute>} />
+      {/* Department too — POST /execution/milestones/{id}/approve already accepts it. */}
+      <Route path="/admin/milestone-approvals" element={<PrivateRoute roles={['Admin', 'PMU', 'Department']}><Layout><AdminMilestoneApprovals /></Layout></PrivateRoute>} />
       <Route path="/admin/work-orders" element={<PrivateRoute roles={['Admin', 'PMU', 'Department', 'Finance']}><Layout><WorkOrderManagement /></Layout></PrivateRoute>} />
       <Route path="/admin/work-orders/:id" element={<PrivateRoute roles={['Admin', 'PMU', 'Department', 'Finance']}><Layout><WorkOrderDetails /></Layout></PrivateRoute>} />
       <Route path="/admin/audit-logs" element={<PrivateRoute roles={['Admin', 'PMU', 'Department', 'Finance']}><Layout><AuditLogs /></Layout></PrivateRoute>} />
@@ -716,6 +722,9 @@ function App() {
 
       {/* Finance Routes */}
       <Route path="/finance/dashboard" element={<PrivateRoute roles={['Finance']}><Layout><FinancialDashboard /></Layout></PrivateRoute>} />
+
+      {/* Anything unmatched. Without this an unknown URL renders an empty tree. */}
+      <Route path="*" element={<PrivateRoute><Layout><NotFound /></Layout></PrivateRoute>} />
     </Routes>
   );
 }

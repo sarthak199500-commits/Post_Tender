@@ -16,7 +16,17 @@ export const QueriesClarifications = () => {
   const [newMessage, setNewMessage] = useState('');
   const [newQuerySubject, setNewQuerySubject] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [search, setSearch] = useState('');
   const { token } = useSelector((state: RootState) => state.auth);
+
+  // The search box rendered but was never bound to anything, so the list ignored it.
+  const filteredQueries = queries.filter(q => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return true;
+    return (q.subject ?? '').toLowerCase().includes(needle)
+      || (q.status ?? '').toLowerCase().includes(needle)
+      || (q.messages ?? []).some(m => (m.content ?? '').toLowerCase().includes(needle));
+  });
 
   const loadQueries = () => {
     axiosInstance.get('/queries')
@@ -86,14 +96,16 @@ export const QueriesClarifications = () => {
            <div className="w-full md:w-80 space-y-4">
               <div className="relative">
                  <Search className="absolute left-3 top-3 w-4 h-4 text-slate-600" />
-                 <input 
-                   type="text" 
-                   placeholder="Search queries..." 
+                 <input
+                   type="text"
+                   placeholder="Search queries..."
+                   value={search}
+                   onChange={e => setSearch(e.target.value)}
                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                  />
               </div>
               <div className="space-y-2">
-                 {queries.map(q => (
+                 {filteredQueries.map(q => (
                    <div 
                      key={q.id} 
                      onClick={() => setSelectedQuery(q)}
@@ -114,9 +126,9 @@ export const QueriesClarifications = () => {
                       )}
                    </div>
                  ))}
-                 {queries.length === 0 && (
+                 {filteredQueries.length === 0 && (
                      <div className="bg-white p-8 rounded-xl border border-dashed border-slate-200 text-center text-slate-600 text-sm">
-                         No queries raised yet.
+                         {queries.length === 0 ? 'No queries raised yet.' : 'No queries match your search.'}
                      </div>
                  )}
               </div>

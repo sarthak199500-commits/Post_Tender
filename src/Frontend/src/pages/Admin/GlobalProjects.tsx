@@ -2,8 +2,16 @@ import { useEffect, useState } from 'react';
 import { Activity, Target, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { rupees, rupeesCompact } from '../../utils/currency';
 import axiosInstance from '../../api/axiosInstance';
+import type { Bill, Milestone as MilestoneDto, Vendor, WorkOrder } from '../../types/domain';
 
-interface Project {
+/**
+ * The view model this page renders. GET /projects returns only the bare Project entity
+ * (id, workOrderId, name, budget, progress, status, …) — vendor, work-order number,
+ * utilisation, LD and milestones all live in other services and are joined below.
+ * Reading them straight off the raw payload is what used to blank this page: an
+ * undefined `utilized` reached rupees() and threw on undefined.toLocaleString().
+ */
+interface ProjectRow {
   id: string;
   name: string;
   budget: number;
@@ -20,15 +28,102 @@ interface Project {
   milestones: { title: string; status: string; weightage: number; completionDate: string | null; targetDate: string }[];
 }
 
+interface RawProject {
+  id: string;
+  workOrderId?: string;
+  name?: string;
+  budget?: number;
+  progress?: number;
+  status?: string;
+}
+
+/** Resolves to [] rather than rejecting — one failed join must not blank the page. */
+const soft = async <T,>(url: string): Promise<T[]> => {
+  try {
+    const { data } = await axiosInstance.get<T[]>(url);
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+};
+
+// Liquidated damages accrue once a work order runs past its end date without completing.
+// 0.5%/week of contract value, capped at 10% — the ceiling the LD terms describe.
+const LD_WEEKLY_RATE = 0.005;
+const LD_CAP = 0.10;
+
+const computeLd = (budget: number, endDate: string, status: string) => {
+  if (!endDate || status === 'Completed') return { ldAmount: 0, ldStatus: '' };
+  const end = new Date(endDate).getTime();
+  if (Number.isNaN(end) || end >= Date.now()) return { ldAmount: 0, ldStatus: '' };
+  const weeksLate = Math.floor((Date.now() - end) / (7 * 24 * 60 * 60 * 1000));
+  if (weeksLate < 1) return { ldAmount: 0, ldStatus: '' };
+  const ldAmount = Math.min(budget * LD_WEEKLY_RATE * weeksLate, budget * LD_CAP);
+  return { ldAmount, ldStatus: `Overdue by ${weeksLate} week${weeksLate === 1 ? '' : 's'}` };
+};
+
 export const GlobalProjects = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axiosInstance.get<Project[]>('/projects')
-      .then(({ data }) => setProjects(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const load = async () => {
+      try {
+        const raw = await soft<RawProject>('/projects');
+        const [workOrders, vendors, bills] = await Promise.all([
+          soft<WorkOrder>('/workorders'),
+          soft<Vendor>('/vendors'),
+          soft<Bill>('/bills'),
+        ]);
+
+        const woById = new Map(workOrders.map(w => [w.id, w]));
+        const vendorById = new Map(vendors.map(v => [v.id, v]));
+
+        // Milestones are keyed by work order in ExecutionService; fetch once per project.
+        const milestoneLists = await Promise.all(
+          raw.map(p => (p.workOrderId ? soft<MilestoneDto>(`/execution/milestones?workOrderId=${p.workOrderId}`) : Promise.resolve([]))),
+        );
+
+        setProjects(raw.map((p, i) => {
+          const wo = p.workOrderId ? woById.get(p.workOrderId) : undefined;
+          const vendor = wo?.vendorId ? vendorById.get(wo.vendorId) : undefined;
+          const woBills = bills.filter(b => b.workOrderId === p.workOrderId);
+          const budget = p.budget ?? wo?.totalValue ?? 0;
+          const utilized = woBills
+            .filter(b => b.status === 'Paid')
+            .reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+          const endDate = wo?.endDate ?? '';
+          const status = p.status ?? 'Unknown';
+
+          return {
+            id: p.id,
+            name: p.name ?? 'Untitled project',
+            budget,
+            progress: p.progress ?? 0,
+            status,
+            vendorName: vendor?.name ?? 'Unknown vendor',
+            workOrderNo: wo?.workOrderNo ?? '—',
+            endDate,
+            utilized,
+            financialUtilization: budget > 0 ? Math.round((utilized / budget) * 100) : 0,
+            pendingBills: woBills.filter(b => b.status !== 'Paid' && b.status !== 'Rejected').length,
+            ...computeLd(budget, endDate, status),
+            milestones: milestoneLists[i].map(m => ({
+              title: m.title,
+              status: m.status,
+              weightage: m.weightage,
+              completionDate: m.completionDate ?? null,
+              targetDate: m.targetDate,
+            })),
+          };
+        }));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
   if (loading) return <div className="p-8 text-slate-600">Loading projects...</div>;
