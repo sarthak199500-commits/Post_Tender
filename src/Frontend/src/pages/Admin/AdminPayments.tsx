@@ -27,6 +27,11 @@ export const AdminPayments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterVendor, setFilterVendor] = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const filterRef = React.useRef<HTMLDivElement>(null);
 
   // There is no /api/financialdashboard service or gateway route; this page used to
   // 404 on every load. The KPIs and payment history are all derivable from the bills
@@ -77,15 +82,49 @@ export const AdminPayments = () => {
     fetchDashboardData();
   }, [token]);
 
+  // Close the filter popover when clicking outside it.
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilter(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
   if (loading) return <div className="p-12 text-slate-600 font-bold text-center">Loading payment data...</div>;
   if (error) return <div className="p-12 text-red-700 font-bold text-center">{error}</div>;
   if (!data) return null;
 
-  const filteredHistory = data.paymentHistory.filter(p =>
-    p.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.workOrderNo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Vendors actually present in the payout history, for the filter dropdown.
+  const vendorOptions = Array.from(
+    new Set(data.paymentHistory.map(p => p.vendorName).filter(v => v && v !== '—'))
+  ).sort();
+  const activeFilterCount = [filterVendor, filterFrom, filterTo].filter(Boolean).length;
+
+  const clearFilters = () => { setFilterVendor(''); setFilterFrom(''); setFilterTo(''); };
+
+  const filteredHistory = data.paymentHistory.filter(p => {
+    const term = searchTerm.trim().toLowerCase();
+    const matchesSearch = !term ||
+      p.vendorName.toLowerCase().includes(term) ||
+      p.billNo.toLowerCase().includes(term) ||
+      p.workOrderNo.toLowerCase().includes(term) ||
+      (p.paymentVoucherNo ?? '').toLowerCase().includes(term);
+    if (!matchesSearch) return false;
+
+    if (filterVendor && p.vendorName !== filterVendor) return false;
+
+    const paid = p.paidAt ? new Date(p.paidAt) : null;
+    if (filterFrom) {
+      if (!paid || paid < new Date(filterFrom)) return false;
+    }
+    if (filterTo) {
+      const end = new Date(filterTo);
+      end.setHours(23, 59, 59, 999);
+      if (!paid || paid > end) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
@@ -140,9 +179,91 @@ export const AdminPayments = () => {
                 className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
-              <Filter className="w-4 h-4" /> Filter
-            </button>
+            <div className="relative" ref={filterRef}>
+              <button
+                type="button"
+                onClick={() => setShowFilter(v => !v)}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-semibold transition-colors ${
+                  activeFilterCount > 0
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Filter className="w-4 h-4" /> Filter
+                {activeFilterCount > 0 && (
+                  <span className="ml-0.5 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-black">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {showFilter && (
+                <div
+                  className="absolute right-0 mt-2 w-72 bg-white rounded-xl z-50 p-4 space-y-4"
+                  style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', animation: 'scaleIn 0.18s ease both', transformOrigin: 'top right' }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">Filter payouts</span>
+                    {activeFilterCount > 0 && (
+                      <button type="button" onClick={clearFilters} className="text-xs font-bold text-emerald-700 hover:text-emerald-800">
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Vendor</label>
+                    <select
+                      value={filterVendor}
+                      onChange={e => setFilterVendor(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                    >
+                      <option value="">All vendors</option>
+                      {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Disbursement date</label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-9 flex-shrink-0 text-[10px] font-bold text-slate-400 uppercase tracking-wider">From</span>
+                        <input
+                          type="date"
+                          value={filterFrom}
+                          max={filterTo || undefined}
+                          onChange={e => setFilterFrom(e.target.value)}
+                          aria-label="From date"
+                          className="flex-1 min-w-0 px-2.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-9 flex-shrink-0 text-[10px] font-bold text-slate-400 uppercase tracking-wider">To</span>
+                        <input
+                          type="date"
+                          value={filterTo}
+                          min={filterFrom || undefined}
+                          onChange={e => setFilterTo(e.target.value)}
+                          aria-label="To date"
+                          className="flex-1 min-w-0 px-2.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-1 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-medium">{filteredHistory.length} of {data.paymentHistory.length} shown</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilter(false)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -161,7 +282,13 @@ export const AdminPayments = () => {
             </thead>
             <tbody>
               {filteredHistory.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-slate-600 py-8 font-medium">No payment history found.</td></tr>
+                <tr><td colSpan={7} className="text-center text-slate-600 py-8 font-medium">
+                  {data.paymentHistory.length === 0
+                    ? 'No payment history found.'
+                    : (searchTerm || activeFilterCount > 0)
+                      ? 'No disbursements match your search or filters.'
+                      : 'No payment history found.'}
+                </td></tr>
               ) : (
                 filteredHistory.map(p => (
                   <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">

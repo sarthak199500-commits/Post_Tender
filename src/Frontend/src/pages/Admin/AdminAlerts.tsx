@@ -1,20 +1,31 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bell, AlertTriangle, Info, CheckCircle, Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
-const MOCK_ALERTS = [
-  { id: 1, type: 'critical', title: 'Payment Delayed', message: 'Work Order #WO-2024-001 bill payment is overdue by 5 days.', time: '2 hours ago' },
-  { id: 2, type: 'warning', title: 'Milestone Submission Pending', message: 'Vendor TechCorp has not submitted Milestone 2 for approval.', time: '5 hours ago' },
-  { id: 3, type: 'info', title: 'New Tender Published', titleMessage: 'Tender TND-005 has been published and is open for bids.', time: '1 day ago' },
-  { id: 4, type: 'success', title: 'Project Completed', message: 'Work Order #WO-2023-099 has been officially closed.', time: '2 days ago' },
-];
+import { Link, useNavigate } from 'react-router-dom';
+import { fetchNotifications, timeAgo } from '../../api/notificationsService';
+import type { AppNotification } from '../../api/notificationsService';
 
 export const AdminAlerts = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [alerts, setAlerts] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  const filteredAlerts = MOCK_ALERTS.filter(a => 
-    a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (a.message || a.titleMessage || '').toLowerCase().includes(searchTerm.toLowerCase())
+  // Same derived feed the topbar bell uses — real signals from the services,
+  // since there is no Alert entity in the backend.
+  useEffect(() => {
+    let cancelled = false;
+    const raw = localStorage.getItem('user');
+    const u = raw ? JSON.parse(raw) : null;
+    if (!u) { setLoading(false); return; }
+    fetchNotifications(u.role, u.id, { force: true })
+      .then(list => { if (!cancelled) setAlerts(list); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filteredAlerts = alerts.filter(a =>
+    a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.message.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getIcon = (type: string) => {
@@ -69,20 +80,28 @@ export const AdminAlerts = () => {
         </div>
 
         <div className="space-y-4">
-          {filteredAlerts.length === 0 ? (
-            <div className="text-center py-10 text-slate-600 font-medium">No alerts found.</div>
+          {loading ? (
+            <div className="text-center py-10 text-slate-600 font-medium">Loading alerts…</div>
+          ) : filteredAlerts.length === 0 ? (
+            <div className="text-center py-10 text-slate-600 font-medium">
+              {alerts.length === 0 ? 'No active alerts — everything is on track.' : 'No alerts match your search.'}
+            </div>
           ) : (
             filteredAlerts.map(alert => (
-              <div key={alert.id} className={`flex items-start gap-4 p-4 rounded-xl border ${getBg(alert.type)} transition-colors`}>
+              <div
+                key={alert.id}
+                onClick={() => alert.link && navigate(alert.link)}
+                className={`flex items-start gap-4 p-4 rounded-xl border ${getBg(alert.type)} transition-colors ${alert.link ? 'cursor-pointer hover:brightness-95' : ''}`}
+              >
                 <div className="mt-1 p-2 bg-white rounded-full shadow-sm">
                   {getIcon(alert.type)}
                 </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-4">
                     <h2 className="font-bold text-slate-800">{alert.title}</h2>
-                    <span className="text-xs font-bold text-slate-600">{alert.time}</span>
+                    <span className="text-xs font-bold text-slate-600 whitespace-nowrap">{timeAgo(alert.timestamp)}</span>
                   </div>
-                  <p className="text-sm text-slate-600 mt-1 font-medium">{alert.message || alert.titleMessage}</p>
+                  <p className="text-sm text-slate-600 mt-1 font-medium">{alert.message}</p>
                 </div>
               </div>
             ))

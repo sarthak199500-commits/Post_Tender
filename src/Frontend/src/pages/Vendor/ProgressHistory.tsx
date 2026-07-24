@@ -245,7 +245,7 @@ export const ProgressHistory = () => {
 
       {/* Grid List */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto"><table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
               <th className="p-4 pl-6">Report ID</th>
@@ -302,7 +302,7 @@ export const ProgressHistory = () => {
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* ─── Detail Modal (Matching ProgressReporting) ─── */}

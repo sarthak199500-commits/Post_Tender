@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import type { RootState } from '../../store';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip,   XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
 import { rupeesCompact } from '../../utils/currency';
@@ -54,7 +55,40 @@ interface DashboardData {
 
 import { fetchAdminDashboard } from '../../api/dashboardService';
 
+/**
+ * Status colours are semantic, not positional — a status keeps its colour
+ * regardless of where it lands in the list, so "Cancelled" is always red and
+ * "Completed" always green.
+ */
+const STATUS_TONE: Record<string, { solid: string; bar: string }> = {
+  completed: { solid: '#10b981', bar: 'linear-gradient(90deg, #10b981, #34d399)' },
+  accepted: { solid: '#4f6ef7', bar: 'linear-gradient(90deg, #4f6ef7, #6366f1)' },
+  issued: { solid: '#3b82f6', bar: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
+  'in progress': { solid: '#3b82f6', bar: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
+  awarded: { solid: '#10b981', bar: 'linear-gradient(90deg, #10b981, #34d399)' },
+  open: { solid: '#3b82f6', bar: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
+  draft: { solid: '#94a3b8', bar: 'linear-gradient(90deg, #94a3b8, #cbd5e1)' },
+  pending: { solid: '#f59e0b', bar: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
+  overdue: { solid: '#f59e0b', bar: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
+  cancelled: { solid: '#ef4444', bar: 'linear-gradient(90deg, #ef4444, #f87171)' },
+  rejected: { solid: '#ef4444', bar: 'linear-gradient(90deg, #ef4444, #f87171)' },
+  closed: { solid: '#64748b', bar: 'linear-gradient(90deg, #64748b, #94a3b8)' },
+};
+
+const toneFor = (name: string) =>
+  STATUS_TONE[(name || '').toLowerCase()] ?? { solid: '#64748b', bar: 'linear-gradient(90deg, #64748b, #94a3b8)' };
+
+/** Shared empty/insufficient-data placeholder so all three cards read alike. */
+const CardEmpty = ({ line1, line2 }: { line1: string; line2?: string }) => (
+  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', textAlign: 'center', padding: '12px' }}>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.6" strokeLinecap="round"><path d="M3 3v18h18" /><path d="m7 14 4-4 3 3 5-6" /></svg>
+    <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#64748b' }}>{line1}</div>
+    {line2 && <div style={{ fontSize: '11px', color: '#94a3b8', maxWidth: '210px', lineHeight: 1.5 }}>{line2}</div>}
+  </div>
+);
+
 export const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { token } = useSelector((state: RootState) => state.auth);
@@ -120,7 +154,7 @@ export const AdminDashboard = () => {
         <div className="kpi-card">
           <div className="kpi-top">
             <div className="kpi-icon" style={{background: '#dcfce7', color: '#15803d'}}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg>
             </div>
             <div className="kpi-lbl">Total Value (Cr)</div>
           </div>
@@ -243,44 +277,63 @@ export const AdminDashboard = () => {
               </div>
               <div className="c-title" style={{ marginBottom: 0 }}>Tenders by Status</div>
             </div>
-            <div className="c-link" style={{ paddingTop: 0, marginTop: 0, fontSize: '11px' }}>View all →</div>
+            <button type="button" className="c-link" onClick={() => navigate('/admin/masters/tenders')} style={{ paddingTop: 0, marginTop: 0, fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>View all →</button>
           </div>
           <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1 }}>
-              {/* Donut */}
-              <div style={{ position: 'relative', width: '140px', height: '140px', flexShrink: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={data.charts.status} cx="50%" cy="50%" innerRadius={42} outerRadius={62} paddingAngle={3} dataKey="value" stroke="none" cornerRadius={3}>
-                      {data.charts.status.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      itemStyle={{ color: '#0f172a', fontSize: '12px' }} 
-                      labelStyle={{ color: '#0f172a' }} 
-                      contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '8px 14px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="donut-center">
-                  <div className="dc-num">{data.charts.status.reduce((acc, curr) => acc + curr.value, 0)}</div>
-                  <div className="dc-lbl">Total</div>
-                </div>
-              </div>
-              {/* Legend */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center' }}>
-                {data.charts.status.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color, flexShrink: 0 }}></div>
-                      <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{item.name}</span>
+            {(() => {
+              const total = data.charts.status.reduce((acc, curr) => acc + curr.value, 0);
+              if (!total) return <CardEmpty line1="No tenders yet" line2="Status breakdown appears once tenders are created." />;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
+                  {/* Donut */}
+                  <div style={{ position: 'relative', width: '132px', height: '132px', flexShrink: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={data.charts.status} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={3} dataKey="value" stroke="none" cornerRadius={3}>
+                          {data.charts.status.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value, name) => [`${Number(value)} (${Math.round((Number(value) / total) * 100)}%)`, name]}
+                          itemStyle={{ color: '#0f172a', fontSize: '12px' }}
+                          labelStyle={{ color: '#0f172a' }}
+                          contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '8px 14px' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="donut-center">
+                      <div className="dc-num">{total}</div>
+                      <div className="dc-lbl">Total</div>
                     </div>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#0c1222' }}>{item.value}</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  {/* Legend — share of total, not just raw counts */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center', minWidth: 0 }}>
+                    {data.charts.status.map((item, idx) => {
+                      const pct = Math.round((item.value / total) * 100);
+                      return (
+                        <div key={idx}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color, flexShrink: 0 }}></div>
+                              <span style={{ fontSize: '12px', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
+                            </div>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0c1222', flexShrink: 0 }}>
+                              {item.value}
+                              <span style={{ color: '#cbd5e1', fontWeight: 500, margin: '0 5px' }}>·</span>
+                              <span style={{ color: '#94a3b8', fontWeight: 600 }}>{pct}%</span>
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: '4px', background: '#eef1f6', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: item.color, borderRadius: '3px', transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -293,32 +346,92 @@ export const AdminDashboard = () => {
               </div>
               <div className="c-title" style={{ marginBottom: 0 }}>Progress Overview</div>
             </div>
-            <div className="c-link" style={{ paddingTop: 0, marginTop: 0, fontSize: '11px' }}>Full report →</div>
+            <button type="button" className="c-link" onClick={() => navigate('/admin/reports')} style={{ paddingTop: 0, marginTop: 0, fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Full report →</button>
           </div>
           <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '16px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.charts.progress} margin={{ top: 0, right: 8, left: -15, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.04)" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 500}} dy={8} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 500}} dx={-5} />
-                <Tooltip 
-                  itemStyle={{ color: '#0f172a', fontSize: '12px', fontWeight: 500 }} 
-                  labelStyle={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }} 
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 14px' }}
-                />
-                <Legend 
-                  verticalAlign="top"
-                  align="right"
-                  iconType="circle" 
-                  iconSize={7}
-                  wrapperStyle={{fontSize: '11px', paddingBottom: '16px', marginTop: '-10px'}} 
-                  formatter={(value) => <span style={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }}>{value}</span>}
-                />
-                <Line type="monotone" dataKey="completed" name="Completed" stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{r: 5, fill: '#10b981', stroke: '#fff', strokeWidth: 2}} />
-                <Line type="monotone" dataKey="inProgress" name="In Progress" stroke="#4f6ef7" strokeWidth={2.5} dot={false} activeDot={{r: 5, fill: '#4f6ef7', stroke: '#fff', strokeWidth: 2}} />
-                <Line type="monotone" dataKey="overdue" name="Overdue" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={{r: 5, fill: '#ef4444', stroke: '#fff', strokeWidth: 2}} />
-              </LineChart>
-            </ResponsiveContainer>
+            {(() => {
+              const series = [
+                { key: 'completed' as const, label: 'Completed', color: '#10b981' },
+                { key: 'inProgress' as const, label: 'In Progress', color: '#4f6ef7' },
+                { key: 'overdue' as const, label: 'Overdue', color: '#f59e0b' },
+              ];
+              const buckets = data.charts.progress;
+
+              if (buckets.length === 0) {
+                return <CardEmpty line1="No activity yet" line2="Work order progress appears here once orders are issued." />;
+              }
+
+              // A line chart needs at least two points to describe a trend. With a
+              // single month of history, show that month's actual split instead of
+              // rendering an empty plot area.
+              if (buckets.length === 1) {
+                const b = buckets[0];
+                const total = series.reduce((s, x) => s + (b[x.key] || 0), 0);
+                return (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      {b.date} · {total} work order{total === 1 ? '' : 's'}
+                    </div>
+                    {series.map(s => {
+                      const v = b[s.key] || 0;
+                      const pct = total ? Math.round((v / total) * 100) : 0;
+                      return (
+                        <div key={s.key}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color }} />
+                              <span style={{ fontSize: '12px', color: '#475569', fontWeight: 600 }}>{s.label}</span>
+                            </div>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#0c1222' }}>{v}</span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: '#eef1f6', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: '4px', transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div style={{ fontSize: '10.5px', color: '#94a3b8', lineHeight: 1.5 }}>
+                      Trend line appears once there's more than one month of activity.
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={buckets} margin={{ top: 0, right: 8, left: -15, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.04)" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }} dy={8} />
+                    <YAxis axisLine={false} tickLine={false} allowDecimals={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }} dx={-5} />
+                    <Tooltip
+                      itemStyle={{ color: '#0f172a', fontSize: '12px', fontWeight: 500 }}
+                      labelStyle={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }}
+                      contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 14px' }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      align="right"
+                      iconType="circle"
+                      iconSize={7}
+                      wrapperStyle={{ fontSize: '11px', paddingBottom: '16px', marginTop: '-10px' }}
+                      formatter={(value) => <span style={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }}>{value}</span>}
+                    />
+                    {series.map(s => (
+                      <Line
+                        key={s.key}
+                        type="monotone"
+                        dataKey={s.key}
+                        name={s.label}
+                        stroke={s.color}
+                        strokeWidth={2.5}
+                        dot={buckets.length <= 6 ? { r: 3, fill: s.color, stroke: '#fff', strokeWidth: 1.5 } : false}
+                        activeDot={{ r: 5, fill: s.color, stroke: '#fff', strokeWidth: 2 }}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              );
+            })()}
           </div>
         </div>
 
@@ -331,36 +444,52 @@ export const AdminDashboard = () => {
               </div>
               <div className="c-title" style={{ marginBottom: 0 }}>Work Orders by Status</div>
             </div>
-            <div className="c-link" style={{ paddingTop: 0, marginTop: 0, fontSize: '11px' }}>View work orders →</div>
+            <button type="button" className="c-link" onClick={() => navigate('/admin/work-orders')} style={{ paddingTop: 0, marginTop: 0, fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>View work orders →</button>
           </div>
-          <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '16px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '10px' }}>
-            {data.charts.department.map((d, i) => {
-              const barColors = [
-                'linear-gradient(90deg, #4f6ef7, #6366f1)',
-                'linear-gradient(90deg, #3b82f6, #60a5fa)',
-                'linear-gradient(90deg, #8b5cf6, #a78bfa)',
-                'linear-gradient(90deg, #06b6d4, #22d3ee)',
-                'linear-gradient(90deg, #10b981, #34d399)',
-              ];
+          <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '16px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+            {(() => {
+              const rows = data.charts.department;
+              const total = rows.reduce((s, r) => s + r.value, 0);
+              if (!total) return <CardEmpty line1="No work orders yet" line2="Status breakdown appears once work orders are issued." />;
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 12px', borderRadius: '8px', transition: 'background 0.15s ease', cursor: 'default' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(79,110,247,0.04)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <span style={{ width: '20px', height: '20px', borderRadius: '6px', background: barColors[i] || barColors[0], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                    {i + 1}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#0c1222', flexShrink: 0, marginLeft: '8px' }}>{d.value}</span>
-                    </div>
-                    <div style={{ width: '100%', height: '6px', background: '#eef1f6', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${d.pct}%`, background: barColors[i] || barColors[0], borderRadius: '4px', transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}></div>
-                    </div>
+                <>
+                  <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                    {total} work order{total === 1 ? '' : 's'} total
                   </div>
-                </div>
+                  {rows.map((d, i) => {
+                    const tone = toneFor(d.name);
+                    // Share of total reads honestly next to the donut card, which
+                    // uses the same measure.
+                    const pct = Math.round((d.value / total) * 100);
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => navigate('/admin/work-orders')}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', borderRadius: '8px', transition: 'background 0.15s ease', cursor: 'pointer', background: 'transparent', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(79,110,247,0.05)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: tone.solid, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#0c1222', flexShrink: 0 }}>
+                              {d.value}
+                              <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 500, margin: '0 5px' }}>·</span>
+                              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>{pct}%</span>
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: '#eef1f6', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: tone.bar, borderRadius: '4px', transition: 'width 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}></div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </>
               );
-            })}
+            })()}
           </div>
         </div>
       </div>

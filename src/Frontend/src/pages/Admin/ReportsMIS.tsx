@@ -135,7 +135,7 @@ export const ReportsMIS = () => {
           <AlertTriangle className="w-5 h-5 text-amber-700" />
           <span>Penalty / LD Calculator</span>
         </h2>
-        <table className="w-full text-sm text-left">
+        <div className="overflow-x-auto"><table className="w-full text-sm text-left">
           <thead className="text-xs uppercase text-slate-600 border-b border-slate-100">
             <tr>
               <th className="py-2 px-3">Project</th>
@@ -165,7 +165,7 @@ export const ReportsMIS = () => {
               <tr><td colSpan={5} className="py-8 text-center text-slate-600">No project data available.</td></tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

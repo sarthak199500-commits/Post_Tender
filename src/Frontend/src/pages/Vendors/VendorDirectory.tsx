@@ -98,7 +98,7 @@ export const VendorDirectory = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto"><table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-600 uppercase tracking-wider">
               <th className="p-4">Vendor Name</th>
@@ -145,7 +145,7 @@ export const VendorDirectory = () => {
               <tr><td colSpan={6} className="p-8 text-center text-slate-600">No vendors found.</td></tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

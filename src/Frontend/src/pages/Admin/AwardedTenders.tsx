@@ -41,7 +41,7 @@ export const AwardedTenders = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
             <tr>
               <th className="py-4 px-6">Tender Title</th>
@@ -95,7 +95,7 @@ export const AwardedTenders = () => {
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <TenderDetailsModal 

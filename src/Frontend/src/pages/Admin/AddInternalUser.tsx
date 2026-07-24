@@ -20,9 +20,9 @@ export const AddInternalUser = () => {
     setLoading(true);
 
     try {
-      await axiosInstance.post('/auth/register-internal', formData);
+      await axiosInstance.post('/auth/register', formData);
       alert('User created successfully!');
-      navigate('/admin/dashboard');
+      navigate('/admin/masters/users');
     } catch (err) {
       console.error(err);
       if (isAxiosError(err) && err.response) {
@@ -38,11 +38,11 @@ export const AddInternalUser = () => {
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
       <div className="max-w-2xl mx-auto space-y-8">
-        <button 
-          onClick={() => navigate('/admin/dashboard')}
+        <button
+          onClick={() => navigate('/admin/masters/users')}
           className="text-blue-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
         >
-          &larr; Back to Dashboard
+          &larr; Back to Internal Users
         </button>
 
         <div>

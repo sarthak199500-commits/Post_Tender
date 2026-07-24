@@ -289,7 +289,7 @@ export const CreateWorkOrderForm = () => {
             </div>
 
             <div className="w-full border border-slate-200 rounded-xl">
-              <table className="w-full text-sm border-collapse">
+              <div className="overflow-x-auto"><table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider w-[38%]">
@@ -388,7 +388,7 @@ export const CreateWorkOrderForm = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
 
             <button

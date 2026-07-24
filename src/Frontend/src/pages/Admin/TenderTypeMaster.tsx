@@ -87,7 +87,7 @@ const TenderTypeMaster: React.FC = () => {
             {error && <div className="mb-4 text-red-700 text-sm">{error}</div>}
 
             <div className="border border-slate-100 rounded-lg overflow-hidden">
-                <table className="w-full text-left">
+                <div className="overflow-x-auto"><table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-100">
                         <tr>
                             <th className="px-4 py-3 text-sm font-bold text-slate-600 uppercase">Tender Type</th>
@@ -109,7 +109,7 @@ const TenderTypeMaster: React.FC = () => {
                             </tr>
                         ))}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
     );

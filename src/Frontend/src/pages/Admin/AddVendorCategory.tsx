@@ -79,7 +79,7 @@ export const AddVendorCategory = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left">
+        <div className="overflow-x-auto"><table className="w-full text-left">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-6 py-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">Category Name</th>
@@ -110,7 +110,7 @@ export const AddVendorCategory = () => {
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

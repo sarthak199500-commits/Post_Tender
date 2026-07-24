@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using IdentityService.Contracts;
 using IdentityService.Entities;
@@ -88,5 +89,30 @@ public class AuthController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { userId = user.Id, email = user.Email, role = user.Role.ToString() });
+    }
+
+    // Internal staff accounts (everything except Vendor logins, which have their own
+    // directory, and Inspectors, which are managed under Inspection). Password hashes
+    // are never projected out. Admin/PMU only.
+    [HttpGet("users")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> GetInternalUsers()
+    {
+        var internalRoles = new[] { Role.Admin, Role.PMU, Role.Finance, Role.Department };
+
+        var users = await _context.Users
+            .Where(u => internalRoles.Contains(u.Role))
+            .OrderBy(u => u.Name)
+            .Select(u => new
+            {
+                id = u.Id,
+                name = u.Name,
+                email = u.Email,
+                role = u.Role.ToString(),
+                createdAt = u.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(users);
     }
 }

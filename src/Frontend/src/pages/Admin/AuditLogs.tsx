@@ -64,7 +64,7 @@ export const AuditLogs = () => {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium text-xs uppercase tracking-wider">
             <tr>
               <th className="py-3 px-5">Timestamp</th>
@@ -99,7 +99,7 @@ export const AuditLogs = () => {
               <tr><td colSpan={5} className="py-10 text-center text-slate-600">No audit logs found.</td></tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <p className="text-xs text-slate-600 text-right">Total records: {filtered.length}</p>

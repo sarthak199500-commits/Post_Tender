@@ -5,7 +5,7 @@ import {
   Milestone as MilestoneIcon,
   Calendar,
   TrendingUp,
-  DollarSign,
+  IndianRupee,
   FileText,
   Upload,
   Trash2,
@@ -327,7 +327,7 @@ export const MilestoneSubmissionPage = () => {
             <div>
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Payment</p>
               <div className="flex items-center gap-2 text-slate-800 font-bold">
-                <DollarSign className="w-4 h-4 text-emerald-700" />
+                <IndianRupee className="w-4 h-4 text-emerald-700" />
                 {milestone.paymentPercentage}%
               </div>
             </div>

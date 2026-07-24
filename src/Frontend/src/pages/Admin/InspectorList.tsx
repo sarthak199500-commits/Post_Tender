@@ -53,7 +53,7 @@ const InspectorList: React.FC = () => {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <table className="w-full text-left">
+                <div className="overflow-x-auto"><table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
                             <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Inspector Name</th>
@@ -91,7 +91,7 @@ const InspectorList: React.FC = () => {
                             </tr>
                         ))}
                     </tbody>
-                </table>
+                </table></div>
                 {inspectors.length === 0 && (
                     <div className="p-20 text-center text-slate-600 font-medium">
                         No inspectors registered yet.

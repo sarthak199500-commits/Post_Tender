@@ -106,7 +106,7 @@ export const BillingClaims = () => {
             <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600">All Projects</span>
           </div>
         </div>
-        <table className="w-full text-left">
+        <div className="overflow-x-auto"><table className="w-full text-left">
           <thead>
             <tr className="text-[11px] font-bold text-slate-600 uppercase tracking-widest border-b border-slate-100">
               <th className="px-6 py-4">Bill Details</th>
@@ -167,7 +167,7 @@ export const BillingClaims = () => {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

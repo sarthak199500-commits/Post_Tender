@@ -76,7 +76,7 @@ const ProgressReview: React.FC = () => {
             </header>
 
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                <table className="w-full text-left border-collapse">
+                <div className="overflow-x-auto"><table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50/50 border-b border-slate-100">
                         <tr>
                             <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Project / Vendor</th>
@@ -117,7 +117,7 @@ const ProgressReview: React.FC = () => {
                             </tr>
                         ))}
                     </tbody>
-                </table>
+                </table></div>
                 {reports.length === 0 && (
                     <div className="p-20 text-center text-slate-600 font-bold">No reports pending review.</div>
                 )}
