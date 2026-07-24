@@ -107,12 +107,20 @@ export const MilestoneSubmissionPage = () => {
       } catch (err) { console.error(err); }
 
       if (activeProjectId) {
-        // Fetch project (milestones are nested)
+        // The project carries only a workOrderId — TenderService's Project entity has no
+        // milestones navigation and GET /projects/{id} returns workOrder: null, so the
+        // old `proj.workOrder?.milestones` lookup was always undefined and this page
+        // rendered "Milestone not found." every single time. Milestones live in
+        // ExecutionService keyed by work order; resolve through that.
         try {
           const proj = (await axiosInstance.get(`/projects/${activeProjectId}`)).data;
           setProjectName(proj.name);
-          const ms = proj.workOrder?.milestones?.find((m: { id: string }) => m.id.toLowerCase() === milestoneId.toLowerCase());
-          if (ms) setMilestone(ms);
+          if (proj.workOrderId) {
+            const milestones = (await axiosInstance.get(`/execution/milestones?workOrderId=${proj.workOrderId}`)).data;
+            const ms = (Array.isArray(milestones) ? milestones : [])
+              .find((m: { id: string }) => m.id.toLowerCase() === milestoneId.toLowerCase());
+            if (ms) setMilestone(ms);
+          }
         } catch (err) { console.error(err); }
 
         // Fetch progress reports for project

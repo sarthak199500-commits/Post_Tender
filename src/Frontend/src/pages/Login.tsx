@@ -12,6 +12,8 @@ export const Login = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [showResetHelp, setShowResetHelp] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,10 +21,10 @@ export const Login = () => {
     setError('');
     try {
       const res = await axiosInstance.post('/auth/login', { email, password });
-      
+
       const data = res.data;
-      localStorage.setItem('token', data.token);
-      dispatch(setCredentials({ user: data.user, token: data.token }));
+      // setCredentials owns persistence — `remember` picks localStorage vs sessionStorage.
+      dispatch(setCredentials({ user: data.user, token: data.token, remember }));
 
       if (data.user?.role === 'Admin' || data.user?.role === 'PMU') {
         navigate('/admin/dashboard');
@@ -105,11 +107,32 @@ export const Login = () => {
 
             <div className="flex items-center justify-between py-2">
               <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-5 h-5 rounded-lg border-slate-300 text-blue-700 focus:ring-blue-700 transition-all cursor-pointer" />
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={e => setRemember(e.target.checked)}
+                  className="w-5 h-5 rounded-lg border-slate-300 text-blue-700 focus:ring-blue-700 transition-all cursor-pointer"
+                />
                 <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors">Remember Me</span>
               </label>
-              <button type="button" className="text-sm font-bold text-slate-700 hover:text-blue-700 transition-colors">Forgot Password?</button>
+              <button
+                type="button"
+                onClick={() => setShowResetHelp(v => !v)}
+                aria-expanded={showResetHelp}
+                className="text-sm font-bold text-slate-700 hover:text-blue-700 transition-colors"
+              >
+                Forgot Password?
+              </button>
             </div>
+
+            {/* There is no self-service reset endpoint — accounts are provisioned and
+                reset by an administrator, so say that rather than open a dead flow. */}
+            {showResetHelp && (
+              <div className="p-4 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-xl">
+                Password resets are handled by your system administrator. Contact them to have
+                your password reset — this portal has no self-service reset.
+              </div>
+            )}
 
             <button
               type="submit"

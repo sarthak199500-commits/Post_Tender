@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import axiosInstance from '../../api/axiosInstance';
@@ -11,6 +11,7 @@ export const CreateWorkOrderForm = () => {
   const [allotments, setAllotments] = useState<TenderAllotment[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Form State
   const [tenderId, setTenderId] = useState('');
@@ -71,6 +72,18 @@ export const CreateWorkOrderForm = () => {
       setCostError('');
     }
   };
+
+  // "Initiate Work Order" on Awarded Tenders navigates here with ?tenderId=. The param
+  // was previously ignored, so the form opened blank and the tender had to be picked
+  // again. Applied once the allotments and vendors it depends on have arrived.
+  const prefillTenderId = searchParams.get('tenderId');
+  useEffect(() => {
+    if (!prefillTenderId || tenderId) return;
+    if (!allotments.some(a => a.tenderId === prefillTenderId)) return;
+    handleTenderChange(prefillTenderId);
+    // handleTenderChange is redefined each render; the guards above keep this idempotent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillTenderId, allotments, vendors, tenderId]);
 
   const totalWeightage = milestones.reduce((sum, m) => sum + Number(m.weightage), 0);
 

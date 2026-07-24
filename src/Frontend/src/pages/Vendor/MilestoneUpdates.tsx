@@ -21,18 +21,30 @@ export const MilestoneUpdates = () => {
   const { token } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 
+  const [loadingMilestones, setLoadingMilestones] = useState(false);
+
   useEffect(() => {
     axiosInstance.get('/projects')
       .then(({ data }) => setProjects(data))
       .catch(console.error);
   }, [token]);
 
+  // Milestones are owned by ExecutionService and keyed by work order — TenderService's
+  // Project has no milestones navigation, so reading `project.milestones` (as this page
+  // used to) was always undefined and the list was permanently empty. Resolve through
+  // the project's workOrderId instead, the same way ProgressReporting does.
   useEffect(() => {
-    if (selectedProjectId) {
-      // Find project in local state
-      const p = projects.find(proj => proj.id === selectedProjectId);
-      if (p) setMilestones(p.milestones || []);
-    }
+    if (!selectedProjectId) { setMilestones([]); return; }
+    const workOrderId = projects.find(p => p.id === selectedProjectId)?.workOrderId;
+    if (!workOrderId) { setMilestones([]); return; }
+
+    let cancelled = false;
+    setLoadingMilestones(true);
+    axiosInstance.get<MilestoneRow[]>(`/execution/milestones?workOrderId=${workOrderId}`)
+      .then(({ data }) => { if (!cancelled) setMilestones(Array.isArray(data) ? data : []); })
+      .catch(err => { console.error(err); if (!cancelled) setMilestones([]); })
+      .finally(() => { if (!cancelled) setLoadingMilestones(false); });
+    return () => { cancelled = true; };
   }, [selectedProjectId, projects]);
 
   const handlePrepareSubmission = (msId: string) => {
@@ -66,6 +78,15 @@ export const MilestoneUpdates = () => {
           <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
              <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
              <p className="text-slate-600">Please select a project above to view and manage milestones.</p>
+          </div>
+        ) : loadingMilestones ? (
+          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
+             <p className="text-slate-600">Loading milestones…</p>
+          </div>
+        ) : milestones.length === 0 ? (
+          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
+             <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+             <p className="text-slate-600">No milestones are defined on this project's work order yet.</p>
           </div>
         ) : (
           <div className="grid gap-6">

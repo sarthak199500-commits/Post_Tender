@@ -203,6 +203,9 @@ export async function fetchAdminDashboard() {
         const endDate = wo?.endDate || t.closeDate;
         return {
             id: t.tenderNo || String(t.id).substring(0, 8),
+            // The routable id behind this row — `id` above is a display tender number.
+            // Null when the tender has no work order yet, which disables the row action.
+            workOrderId: wo?.id ?? null,
             woNumber: wo?.workOrderNo || 'N/A',
             projectName: t.title || '',
             department: t.tenderType || 'N/A',

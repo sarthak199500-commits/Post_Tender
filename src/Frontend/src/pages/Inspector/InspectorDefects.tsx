@@ -7,6 +7,7 @@ import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 interface ProjectOption {
   id: string;
   name: string;
+  workOrderId?: string;
 }
 
 interface Defect {
@@ -20,7 +21,8 @@ interface Defect {
 interface Inspection {
   id: string;
   projectId: string;
-  projectName: string;
+  /** Composed on the client — Inspection lives in InspectionService, Project does not. */
+  projectName?: string;
   inspectionDate: string;
   remarks: string;
   status: string;
@@ -40,13 +42,19 @@ export const InspectorDefects = () => {
   const { token } = useSelector((state: RootState) => state.auth);
 
   const loadData = async () => {
-      try {
-          const insRes = await axiosInstance.get<Inspection[]>('/inspections/inspector');
-          setInspections(insRes.data);
+      // Fetched independently: a failure on either one must not blank the other, and the
+      // project list is what supplies the names the inspections themselves don't carry.
+      const [insRes, projRes] = await Promise.all([
+          axiosInstance.get<Inspection[]>('/inspections/inspector').catch(err => { console.error(err); return { data: [] as Inspection[] }; }),
+          axiosInstance.get<ProjectOption[]>('/projects').catch(err => { console.error(err); return { data: [] as ProjectOption[] }; }),
+      ]);
 
-          const projRes = await axiosInstance.get<ProjectOption[]>('/projects');
-          setProjects(projRes.data);
-      } catch (err) { console.error(err); }
+      const nameById = new Map(projRes.data.map(p => [p.id, p.name]));
+      setProjects(projRes.data);
+      setInspections(insRes.data.map(i => ({
+          ...i,
+          projectName: i.projectName ?? nameById.get(i.projectId) ?? 'Unknown project',
+      })));
   };
 
   useEffect(() => { loadData(); }, [token]);
@@ -73,18 +81,39 @@ export const InspectorDefects = () => {
           return;
       }
       try {
-          await axiosInstance.post('/inspections', newInspection);
+          // InspectionService stores VendorId denormalized so the vendor's own defect
+          // worklist can be scoped without a cross-service call. The vendor is on the
+          // work order (TenderService), so resolve it here and send it with the payload —
+          // without it the vendor would never see the defect they have to rectify.
+          const project = projects.find(p => p.id === newInspection.projectId);
+          let vendorId = '';
+          if (project?.workOrderId) {
+              const { data: wo } = await axiosInstance.get<{ vendorId?: string }>(`/workorders/${project.workOrderId}`);
+              vendorId = wo?.vendorId ?? '';
+          }
+          if (!vendorId) {
+              alert('Could not determine the vendor for this project. The defect would not reach them, so it was not saved.');
+              return;
+          }
+
+          await axiosInstance.post('/inspections', { ...newInspection, vendorId });
           setIsLogging(false);
           setNewInspection({ projectId: '', remarks: '', defects: [] });
           loadData();
-      } catch (err) { console.error(err); }
+      } catch (err) {
+          console.error(err);
+          alert('Failed to log the inspection.');
+      }
   };
 
   const handleVerifyDefect = async (defectId: string, isVerified: boolean) => {
       try {
           await axiosInstance.put(`/inspections/defect/${defectId}/verify`, { isVerified });
           loadData();
-      } catch (err) { console.error(err); }
+      } catch (err) {
+          console.error(err);
+          alert(isVerified ? 'Failed to accept the rectification.' : 'Failed to return the rework.');
+      }
   };
 
   return (

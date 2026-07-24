@@ -126,14 +126,32 @@ export function timeAgo(iso: string): string {
 
 /* ── per-role feeds ─────────────────────────────────────────────────────── */
 
-async function adminFeed(): Promise<AppNotification[]> {
+/**
+ * The oversight feed, shared by Admin, PMU, Department and Finance.
+ *
+ * `role` is needed for two reasons: GET /execution/milestones/pending excludes Finance
+ * (it is a reviewer endpoint), so calling it for them only produced a 403 on every page;
+ * and several destinations are Admin/PMU-only routes, so linking Department or Finance
+ * at them just bounces them back to their own dashboard.
+ */
+async function adminFeed(role: string): Promise<AppNotification[]> {
+    const isAdminLike = role === 'Admin' || role === 'PMU';
+    const canReviewMilestones = isAdminLike || role === 'Department';
+
     const [workorders, bills, milestones, inspections, queries] = await Promise.all([
         getList<WorkOrderDto>('/workorders'),
         getList<BillDto>('/bills'),
-        getList<PendingMilestoneDto>('/execution/milestones/pending'),
+        canReviewMilestones
+            ? getList<PendingMilestoneDto>('/execution/milestones/pending')
+            : Promise.resolve([] as PendingMilestoneDto[]),
         getList<InspectionDto>('/inspections'),
         getList<QueryDto>('/queries'),
     ]);
+
+    // Where each role is actually allowed to act on the thing being announced.
+    const billLink = role === 'Finance' ? '/finance/dashboard'
+        : role === 'Department' ? '/department/dashboard'
+            : '/admin/billing';
 
     const now = Date.now();
     const out: AppNotification[] = [];
@@ -160,7 +178,7 @@ async function adminFeed(): Promise<AppNotification[]> {
             title: 'Bill Awaiting Approval',
             message: `${b.billNo || 'Bill'} for ${rupees(Number(b.amount))} is ${b.status.toLowerCase()}.`,
             timestamp: b.submittedAt || '',
-            link: '/admin/billing',
+            link: billLink,
         }));
 
     milestones.forEach(m => out.push({
@@ -181,7 +199,7 @@ async function adminFeed(): Promise<AppNotification[]> {
                 title: 'Open Quality Defects',
                 message: `${open.length} unresolved defect${open.length === 1 ? '' : 's'}${i.projectName ? ` on ${i.projectName}` : ''}.`,
                 timestamp: i.inspectionDate || '',
-                link: '/admin/projects',
+                link: isAdminLike ? '/admin/projects' : undefined,
             });
         }
     });
@@ -194,7 +212,7 @@ async function adminFeed(): Promise<AppNotification[]> {
             title: 'Open Vendor Query',
             message: q.subject || 'A vendor query is awaiting a response.',
             timestamp: q.createdAt || '',
-            link: '/admin/queries',
+            link: isAdminLike ? '/admin/queries' : undefined,
         }));
 
     return out;
@@ -323,7 +341,7 @@ export async function fetchNotifications(
 
     let data: AppNotification[] = [];
     if (role === 'Admin' || role === 'PMU' || role === 'Department' || role === 'Finance') {
-        data = await adminFeed();
+        data = await adminFeed(role);
     } else if (role === 'Vendor') {
         data = await vendorFeed(userId);
     } else if (role === 'Inspector') {

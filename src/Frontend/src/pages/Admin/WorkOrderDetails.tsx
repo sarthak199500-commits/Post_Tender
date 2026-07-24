@@ -5,39 +5,15 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { AlertCircle } from 'lucide-react';
-
-interface Milestone {
-    id: string;
-    title: string;
-    weightage: number;
-    paymentPercentage: number;
-    targetDate: string;
-    status: string;
-}
-
-interface WorkOrder {
-    id: string;
-    workOrderNo: string;
-    tender: { title: string, budget: number, tenderNo: string };
-    vendor: { name: string, vendorCode: string, email: string };
-    inspector: { name: string, type: string };
-    totalValue: number;
-    scopeDescription: string;
-    paymentTerms: string;
-    liquidatedDamagesTerms: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-    agreementDocumentUrl: string;
-    milestones: Milestone[];
-}
+import { fetchWorkOrderDetail } from '../../api/workOrderDetails';
+import type { WorkOrderDetail, ProgressReportRow } from '../../api/workOrderDetails';
 
 export const WorkOrderDetails = () => {
     const { id } = useParams<{ id: string }>();
     const { token, user } = useSelector((state: RootState) => state.auth);
-    const [wo, setWo] = useState<WorkOrder | null>(null);
+    const [wo, setWo] = useState<WorkOrderDetail | null>(null);
     const [loading, setLoading] = useState(true);
-    const [reports, setReports] = useState<{ id: string; physicalPercentage: number; workDescription: string; reportedAt: string; status: string; mediaUrls?: string[]; remarks?: string; milestone?: { title: string } }[]>([]);
+    const [reports, setReports] = useState<ProgressReportRow[]>([]);
     const [acting, setActing] = useState(false);
 
     // Confirm dialog state
@@ -54,19 +30,15 @@ export const WorkOrderDetails = () => {
     const closeConfirm = () => setConfirm(c => ({ ...c, open: false }));
 
     const fetchDetails = async () => {
+        if (!id) return;
         try {
             setLoading(true);
-            const res = await axiosInstance.get(`/workorders/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setWo(res.data);
-
-            const reportsRes = await axiosInstance.get(`/progressreports/workorder/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setReports(reportsRes.data);
+            const detail = await fetchWorkOrderDetail(id);
+            setWo(detail?.workOrder ?? null);
+            setReports(detail?.reports ?? []);
         } catch (err) {
             console.error('Failed to fetch WO details', err);
+            setWo(null);
         } finally {
             setLoading(false);
         }

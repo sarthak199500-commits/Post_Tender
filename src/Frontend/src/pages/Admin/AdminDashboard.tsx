@@ -35,6 +35,7 @@ interface DashboardData {
   };
   recentTenders: Array<{
     id: string;
+    workOrderId: string | null;
     woNumber: string;
     projectName: string;
     department: string;
@@ -497,7 +498,7 @@ export const AdminDashboard = () => {
       <div className="tbl-card mt-4">
         <div className="tbl-hdr">
           <div className="tbl-title">Recent Tenders</div>
-          <div className="tbl-va">View All</div>
+          <button type="button" className="tbl-va" onClick={() => navigate('/admin/masters/tenders')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>View All</button>
         </div>
         <div className="w-full overflow-x-auto">
           <table className="custom-table min-w-[800px]">
@@ -545,7 +546,14 @@ export const AdminDashboard = () => {
                 <td className="text-slate-600 text-[11px] whitespace-nowrap">{row.startDate}</td>
                 <td className="text-slate-600 text-[11px] whitespace-nowrap">{row.endDate}</td>
                 <td>
-                  <button type="button" aria-label="View Details" className="p-2 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-700 rounded-md transition-colors">
+                  <button
+                    type="button"
+                    aria-label="View Details"
+                    title={row.workOrderId ? 'View work order' : 'No work order issued yet'}
+                    disabled={!row.workOrderId}
+                    onClick={() => row.workOrderId && navigate(`/admin/work-orders/${row.workOrderId}`)}
+                    className="p-2 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-700 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-600"
+                  >
                     <Eye size={16} strokeWidth={2.5} />
                   </button>
                 </td>

@@ -84,7 +84,12 @@ const InspectorList: React.FC = () => {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button className="text-slate-600 hover:text-slate-600 font-bold text-sm underline">
+                                    {/* No inspector-history endpoint exists; the audit log
+                                        is the system's record of what this user did. */}
+                                    <button
+                                        onClick={() => navigate(`/admin/audit-logs?q=${encodeURIComponent(i.name)}`)}
+                                        className="text-blue-700 hover:text-blue-800 font-bold text-sm underline"
+                                    >
                                         View History
                                     </button>
                                 </td>

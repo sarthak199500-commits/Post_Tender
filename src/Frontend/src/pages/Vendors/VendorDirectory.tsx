@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
@@ -20,21 +20,23 @@ export const VendorDirectory = () => {
   const [search, setSearch] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
-  useEffect(() => {
-    fetchVendors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  // Status lives in state rather than being passed straight from the select's onChange:
+  // the effect below refetches on every keystroke, and it used to call fetchVendors()
+  // with no argument, silently dropping whatever status the user had picked.
+  const [status, setStatus] = useState('');
 
-  async function fetchVendors(filterStatus: string = '') {
+  const fetchVendors = useCallback(async () => {
     try {
       const params: Record<string, string> = { search };
-      if (filterStatus) params.status = filterStatus;
+      if (status) params.status = status;
       const res = await axiosInstance.get<Vendor[]>('/vendors', { params });
       setVendors(res.data);
     } catch (e) {
       console.error(e);
     }
-  }
+  }, [search, status]);
+
+  useEffect(() => { fetchVendors(); }, [fetchVendors]);
 
   const handleStatusChange = async (vendorId: string, newStatus: string) => {
     try {
@@ -81,8 +83,9 @@ export const VendorDirectory = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="border border-slate-300 rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
-          <select aria-label="Select an option" 
-            onChange={(e) => fetchVendors(e.target.value)}
+          <select aria-label="Filter by status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
             className="border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             <option value="">All Statuses</option>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Shield, Search } from 'lucide-react';
 import axiosInstance from '../../api/axiosInstance';
 
@@ -23,7 +24,9 @@ const entityColors: Record<string, string> = {
 export const AuditLogs = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  // Prefilled from ?q= so other pages can deep-link an entity's history into this view.
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get('q') ?? '');
 
   useEffect(() => {
     axiosInstance.get<AuditLog[]>('/auditlogs')
