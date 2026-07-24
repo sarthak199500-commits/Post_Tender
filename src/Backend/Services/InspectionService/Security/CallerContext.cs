@@ -16,4 +16,11 @@ public static class CallerContext
         Guid.TryParse(user.FindFirstValue("vendorId"), out var id) ? id : null;
 
     public static bool IsVendor(ClaimsPrincipal user) => user.IsInRole("Vendor");
+
+    /// <summary>
+    /// The caller's own user id. Inspectors are users rather than tenants, so their work
+    /// is scoped on this rather than on the vendorId claim.
+    /// </summary>
+    public static Guid? UserId(ClaimsPrincipal user) =>
+        Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 }
