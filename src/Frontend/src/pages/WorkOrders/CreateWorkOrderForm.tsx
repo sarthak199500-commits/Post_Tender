@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { AmountInput } from '../../components/AmountInput';
 import axiosInstance from '../../api/axiosInstance';
 import type { Inspector, Vendor, TenderAllotment } from '../../types/domain';
 
@@ -205,25 +206,23 @@ export const CreateWorkOrderForm = () => {
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Project Cost (Total Value)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 font-medium text-sm">₹</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
+                  {/* Grouping stays visible while typing. The previous version cleared
+                      the commas on focus and re-added them on blur, so the number the
+                      user was actually editing was the hardest one to read. */}
+                  <AmountInput
                     placeholder="e.g. 2,00,00,000"
                     value={displayValue}
-                    onChange={e => {
-                      const raw = e.target.value.replace(/[^0-9]/g, '');
-                      const val = Number(raw);
+                    onValueChange={raw => {
+                      const val = Number(raw || 0);
+                      setDisplayValue(raw);
                       setTotalValue(val);
-                      setDisplayValue(raw ? val.toLocaleString('en-IN') : '');
-                      
+
                       if (tenderBudget > 0 && val > tenderBudget) {
                         setCostError(`Cost exceeds Tender Budget (₹${tenderBudget.toLocaleString('en-IN')})`);
                       } else {
                         setCostError('');
                       }
                     }}
-                    onFocus={() => { if (totalValue) setDisplayValue(String(totalValue)); }}
-                    onBlur={() => { if (totalValue) setDisplayValue(totalValue.toLocaleString('en-IN')); }}
                     className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:outline-none transition-all ${
                       costError ? 'border-red-500 focus:ring-red-100 bg-red-50/30' : 'focus:ring-blue-500'
                     }`}
