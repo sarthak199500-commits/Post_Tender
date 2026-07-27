@@ -50,6 +50,15 @@ export const AllottedTenders = () => {
     if (!form.tenderId) { setError('Please select a tender.'); setLoading(false); return; }
     if (!form.l1VendorId) { setError('L1 vendor is required.'); setLoading(false); return; }
 
+    // The dropdowns already exclude one another, but re-check before saving: the vendor
+    // list reloads asynchronously, so a stale selection could still slip through.
+    const ranked = [form.l1VendorId, form.l2VendorId, form.l3VendorId].filter(Boolean);
+    if (new Set(ranked).size !== ranked.length) {
+      setError('L1, L2 and L3 must be three different vendors.');
+      setLoading(false);
+      return;
+    }
+
     try {
       await axiosInstance.post('/tenderallotments', {
         tenderId: form.tenderId,
@@ -72,6 +81,19 @@ export const AllottedTenders = () => {
   };
 
 
+
+  // L1/L2/L3 are a ranking of distinct bidders, so a vendor picked in one slot must not
+  // remain selectable in the others. The slot's own current value stays in its list,
+  // otherwise the select would drop the value it is displaying.
+  const vendorOptionsFor = (slot: 'l1VendorId' | 'l2VendorId' | 'l3VendorId') => {
+    const takenElsewhere = new Set(
+      (['l1VendorId', 'l2VendorId', 'l3VendorId'] as const)
+        .filter(s => s !== slot)
+        .map(s => form[s])
+        .filter(Boolean)
+    );
+    return vendors.filter(v => !takenElsewhere.has(v.id));
+  };
 
   const inputCls = 'w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800';
   const labelCls = 'block text-sm font-semibold text-slate-700 mb-2';
@@ -110,23 +132,23 @@ export const AllottedTenders = () => {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className={labelCls}>L1 (Winner)</label>
-              <select aria-label="Select an option" className={inputCls} value={form.l1VendorId} onChange={e => setForm({ ...form, l1VendorId: e.target.value })} required>
+              <select aria-label="Select L1 vendor" className={inputCls} value={form.l1VendorId} onChange={e => setForm({ ...form, l1VendorId: e.target.value })} required>
                 <option value="">Select L1</option>
-                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                {vendorOptionsFor('l1VendorId').map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>L2</label>
-              <select aria-label="Select an option" className={inputCls} value={form.l2VendorId} onChange={e => setForm({ ...form, l2VendorId: e.target.value })}>
+              <select aria-label="Select L2 vendor" className={inputCls} value={form.l2VendorId} onChange={e => setForm({ ...form, l2VendorId: e.target.value })}>
                 <option value="">Select L2 (optional)</option>
-                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                {vendorOptionsFor('l2VendorId').map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>L3</label>
-              <select aria-label="Select an option" className={inputCls} value={form.l3VendorId} onChange={e => setForm({ ...form, l3VendorId: e.target.value })}>
+              <select aria-label="Select L3 vendor" className={inputCls} value={form.l3VendorId} onChange={e => setForm({ ...form, l3VendorId: e.target.value })}>
                 <option value="">Select L3 (optional)</option>
-                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                {vendorOptionsFor('l3VendorId').map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>
           </div>
