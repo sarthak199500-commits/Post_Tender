@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
+import { describeApiError } from '../../api/apiError';
 
 interface TenderType {
     id: string;
@@ -11,17 +11,25 @@ const TenderTypeMaster: React.FC = () => {
     const [types, setTypes] = useState<TenderType[]>([]);
     const [newName, setNewName] = useState('');
     const [loading, setLoading] = useState(false);
+    const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
+    // The Authorization header is attached by the axiosInstance interceptor, which reads
+    // whichever store holds the session. Passing it per-call from localStorage broke the
+    // moment "Remember Me" was unchecked.
     const fetchTypes = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axiosInstance.get('/tendertypes', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axiosInstance.get<TenderType[]>('/tendertypes');
             setTypes(res.data);
+            setLoadError(null);
         } catch (err) {
+            // Swallowing this is what made a stopped service look like an empty master.
             console.error('Failed to fetch tender types', err);
+            setTypes([]);
+            setLoadError(describeApiError(err, 'Could not load tender types'));
+        } finally {
+            setLoaded(true);
         }
     };
 
@@ -31,19 +39,25 @@ const TenderTypeMaster: React.FC = () => {
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newName.trim()) return;
+        const name = newName.trim();
+        if (!name) return;
+
+        // Master data: reject a duplicate here rather than let the table collect two
+        // rows that render identically and cannot be told apart afterwards.
+        if (types.some(t => t.name.trim().toLowerCase() === name.toLowerCase())) {
+            setError(`"${name}" already exists.`);
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
         try {
-            const token = localStorage.getItem('token');
-            await axiosInstance.post('/tendertypes', { name: newName }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await axiosInstance.post('/tendertypes', { name });
             setNewName('');
-            fetchTypes();
+            await fetchTypes();
         } catch (err) {
-            setError((isAxiosError(err) && typeof err.response?.data === 'string' && err.response.data) || 'Failed to add tender type');
+            setError(describeApiError(err, 'Failed to add tender type'));
         } finally {
             setLoading(false);
         }
@@ -51,14 +65,12 @@ const TenderTypeMaster: React.FC = () => {
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('Are you sure?')) return;
+        setError(null);
         try {
-            const token = localStorage.getItem('token');
-            await axiosInstance.delete(`/tendertypes/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchTypes();
-        } catch {
-            alert('Failed to delete');
+            await axiosInstance.delete(`/tendertypes/${id}`);
+            await fetchTypes();
+        } catch (err) {
+            setError(describeApiError(err, 'Failed to delete tender type'));
         }
     };
 
@@ -84,7 +96,22 @@ const TenderTypeMaster: React.FC = () => {
                 </button>
             </form>
 
-            {error && <div className="mb-4 text-red-700 text-sm">{error}</div>}
+            {/* One banner, not two: when the service is down the add and the reload fail
+                for the same reason and produced the identical sentence twice. */}
+            {(error || loadError) && (
+                <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start justify-between gap-4">
+                    <p className="text-sm text-red-700 font-medium">{error || loadError}</p>
+                    {loadError && (
+                        <button
+                            type="button"
+                            onClick={fetchTypes}
+                            className="text-sm font-bold text-red-700 underline shrink-0 hover:text-red-800"
+                        >
+                            Retry
+                        </button>
+                    )}
+                </div>
+            )}
 
             <div className="border border-slate-100 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto"><table className="w-full text-left">
@@ -110,6 +137,12 @@ const TenderTypeMaster: React.FC = () => {
                         ))}
                     </tbody>
                 </table></div>
+                {/* An unreachable service can take several seconds to fail, so say we are
+                    still loading rather than render a bare table in the meantime. */}
+                {!loaded && <div className="p-8 text-center text-slate-600 text-sm">Loading tender types…</div>}
+                {loaded && !loadError && types.length === 0 && (
+                    <div className="p-8 text-center text-slate-600 text-sm">No tender types defined yet.</div>
+                )}
             </div>
         </div>
     );

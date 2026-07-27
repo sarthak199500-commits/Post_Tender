@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../../api/axiosInstance';
+import { describeApiError } from '../../../api/apiError';
 
 interface Department {
     id: string;
@@ -13,19 +14,22 @@ interface Department {
 const DepartmentMaster: React.FC = () => {
     const [data, setData] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<Department>>({"name":"","code":"","description":""});
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState('');
 
     const fetchData = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axiosInstance.get('/masters/departments', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axiosInstance.get('/masters/departments');
             setData(res.data);
+            setLoadError(null);
         } catch (err) {
+            // Swallowing this made a stopped service look like an empty master.
             console.error(err);
+            setData([]);
+            setLoadError(describeApiError(err, 'Could not load this master'));
         } finally {
             setLoading(false);
         }
@@ -37,23 +41,19 @@ const DepartmentMaster: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaveError(null);
         try {
-            const token = localStorage.getItem('token');
             if (isEditing) {
-                await axiosInstance.put(`/masters/departments/${editId}`, formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axiosInstance.put(`/masters/departments/${editId}`, formData);
             } else {
-                await axiosInstance.post('/masters/departments', formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axiosInstance.post('/masters/departments', formData);
             }
             setFormData({"name":"","code":"","description":""});
             setIsEditing(false);
             setEditId('');
             fetchData();
-        } catch {
-            alert('Failed to save');
+        } catch (err) {
+            setSaveError(describeApiError(err, 'Failed to save'));
         }
     };
 
@@ -66,13 +66,10 @@ const DepartmentMaster: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (!window.confirm('Are you sure?')) return;
         try {
-            const token = localStorage.getItem('token');
-            await axiosInstance.delete(`/masters/departments/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await axiosInstance.delete(`/masters/departments/${id}`);
             fetchData();
-        } catch {
-            alert('Failed to delete');
+        } catch (err) {
+            setSaveError(describeApiError(err, 'Failed to delete'));
         }
     };
 
@@ -106,6 +103,15 @@ const DepartmentMaster: React.FC = () => {
                 </form>
             </div>
 
+            {(loadError || saveError) && (
+                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start justify-between gap-4">
+                    <p className="text-sm text-red-700 font-medium">{saveError || loadError}</p>
+                    {loadError && (
+                        <button type="button" onClick={fetchData} className="text-sm font-bold text-red-700 underline shrink-0 hover:text-red-800">Retry</button>
+                    )}
+                </div>
+            )}
+
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto"><table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200">
@@ -130,7 +136,7 @@ const DepartmentMaster: React.FC = () => {
                         ))}
                     </tbody>
                 </table></div>
-                {!loading && data.length === 0 && <div className="p-10 text-center text-slate-600">No records found.</div>}
+                {!loading && !loadError && data.length === 0 && <div className="p-10 text-center text-slate-600">No records found.</div>}
             </div>
         </div>
     );

@@ -48,5 +48,6 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Runtime file-upload store (CommonService FilesController)
+# Runtime file-upload stores (CommonService FilesController, TenderService tender docs)
 **/UploadedFiles/
+**/Uploads/
