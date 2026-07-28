@@ -15,6 +15,7 @@ import { AdminBilling } from './pages/Admin/AdminBilling';
 import { AdminDashboard } from './pages/Admin/AdminDashboard';
 import { AwardedTenders } from './pages/Admin/AwardedTenders';
 import { GlobalProjects } from './pages/Admin/GlobalProjects';
+import { ProjectDetails } from './pages/Admin/ProjectDetails';
 import { AdminMilestoneApprovals } from './pages/Admin/AdminMilestoneApprovals';
 import { AuditLogs } from './pages/Admin/AuditLogs';
 import { ReportsMIS } from './pages/Admin/ReportsMIS';
@@ -658,6 +659,7 @@ function App() {
       <Route path="/admin/dashboard" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><AdminDashboard /></Layout></PrivateRoute>} />
       <Route path="/admin/tenders/awarded" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><AwardedTenders /></Layout></PrivateRoute>} />
       <Route path="/admin/projects" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><GlobalProjects /></Layout></PrivateRoute>} />
+      <Route path="/admin/projects/:id" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><ProjectDetails /></Layout></PrivateRoute>} />
       {/* Department too — POST /execution/milestones/{id}/approve already accepts it. */}
       <Route path="/admin/milestone-approvals" element={<PrivateRoute roles={['Admin', 'PMU', 'Department']}><Layout><AdminMilestoneApprovals /></Layout></PrivateRoute>} />
       <Route path="/admin/work-orders" element={<PrivateRoute roles={['Admin', 'PMU', 'Department', 'Finance']}><Layout><WorkOrderManagement /></Layout></PrivateRoute>} />

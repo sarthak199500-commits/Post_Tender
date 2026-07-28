@@ -29,7 +29,6 @@ interface ProjectSummary {
   id: string;
   name: string;
   status: string;
-  progress: number;
   budget: number;
   milestonesDone: number;
   milestonesTotal: number;
@@ -127,16 +126,6 @@ export const VendorDashboard = () => {
                     <h2 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors">{proj.name}</h2>
                     <p className="text-xs text-slate-600 mt-0.5">Budget: ₹{(proj.budget/100000).toFixed(2)}L • {proj.status}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-lg font-bold text-slate-800">{proj.progress}%</span>
-                    <p className="text-[10px] text-slate-600 font-bold uppercase tracking-tighter">Physical Done</p>
-                  </div>
-                </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-blue-700 h-full rounded-full transition-all duration-1000" 
-                    style={{ width: `${proj.progress}%` }} 
-                  />
                 </div>
                 <div className="flex items-center justify-between mt-4">
                    <div className="flex items-center space-x-4">

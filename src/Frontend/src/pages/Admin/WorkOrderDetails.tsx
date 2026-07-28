@@ -228,13 +228,6 @@ export const WorkOrderDetails = () => {
                                         )}
 
                                         <div className="flex items-center gap-4 text-sm font-bold mt-4">
-                                            <div className="flex-1 bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-2">
-                                                <span className="text-xl">📈</span>
-                                                <div>
-                                                    <div className="text-[10px] text-slate-600 uppercase tracking-widest">Physical Progress</div>
-                                                    <div className="text-slate-800">{r.physicalPercentage}%</div>
-                                                </div>
-                                            </div>
                                             {r.mediaUrls && r.mediaUrls.length > 0 && (
                                                 <div className="flex-1 bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-2">
                                                     <span className="text-xl">📷</span>

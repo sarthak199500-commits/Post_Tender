@@ -16,7 +16,6 @@ interface InspectorReport {
   id: string;
   projectName: string;
   vendorName: string;
-  physicalPercentage: number;
   workDescription: string;
   reportedAt: string;
   status: string;

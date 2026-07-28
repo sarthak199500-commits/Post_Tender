@@ -26,7 +26,6 @@ interface Submission {
   id: string;
   projectId: string;
   projectName: string;
-  physicalPercentage: number;
   workDescription: string;
   latitude: number;
   longitude: number;

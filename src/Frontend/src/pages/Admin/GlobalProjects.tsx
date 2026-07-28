@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Activity, Target, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Activity, Target, AlertTriangle, CheckCircle, Clock, ArrowRight } from 'lucide-react';
 import { rupees, rupeesCompact } from '../../utils/currency';
 import axiosInstance from '../../api/axiosInstance';
 import type { Bill, Milestone as MilestoneDto, Vendor, WorkOrder } from '../../types/domain';
 
 /**
  * The view model this page renders. GET /projects returns only the bare Project entity
- * (id, workOrderId, name, budget, progress, status, …) — vendor, work-order number,
- * utilisation, LD and milestones all live in other services and are joined below.
- * Reading them straight off the raw payload is what used to blank this page: an
- * undefined `utilized` reached rupees() and threw on undefined.toLocaleString().
+ * (id, workOrderId, name, budget, status, …) — vendor, work-order number, utilisation,
+ * LD and milestones all live in other services and are joined below. Reading them
+ * straight off the raw payload is what used to blank this page: an undefined `utilized`
+ * reached rupees() and threw on undefined.toLocaleString().
  */
 interface ProjectRow {
   id: string;
   name: string;
   budget: number;
-  progress: number;
   status: string;
   vendorName: string;
   workOrderNo: string;
@@ -33,7 +33,6 @@ interface RawProject {
   workOrderId?: string;
   name?: string;
   budget?: number;
-  progress?: number;
   status?: string;
 }
 
@@ -99,7 +98,6 @@ export const GlobalProjects = () => {
             id: p.id,
             name: p.name ?? 'Untitled project',
             budget,
-            progress: p.progress ?? 0,
             status,
             vendorName: vendor?.name ?? 'Unknown vendor',
             workOrderNo: wo?.workOrderNo ?? '—',
@@ -108,13 +106,15 @@ export const GlobalProjects = () => {
             financialUtilization: budget > 0 ? Math.round((utilized / budget) * 100) : 0,
             pendingBills: woBills.filter(b => b.status !== 'Paid' && b.status !== 'Rejected').length,
             ...computeLd(budget, endDate, status),
-            milestones: milestoneLists[i].map(m => ({
-              title: m.title,
-              status: m.status,
-              weightage: m.weightage,
-              completionDate: m.completionDate ?? null,
-              targetDate: m.targetDate,
-            })),
+            milestones: [...milestoneLists[i]]
+              .sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime())
+              .map(m => ({
+                title: m.title,
+                status: m.status,
+                weightage: m.weightage,
+                completionDate: m.completionDate ?? null,
+                targetDate: m.targetDate,
+              })),
           };
         }));
       } catch (err) {
@@ -132,7 +132,7 @@ export const GlobalProjects = () => {
     <div className="p-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-slate-800">Project Monitoring</h1>
-        <p className="text-slate-600 mt-1">Global view of all active projects — physical completion vs financial utilization.</p>
+        <p className="text-slate-600 mt-1">Global view of all active projects — milestones, financial utilization and delays.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
@@ -157,20 +157,7 @@ export const GlobalProjects = () => {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-6">
-                {/* Physical Progress */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center space-x-2 text-sm font-medium text-slate-600">
-                      <Activity className="w-4 h-4" />
-                      <span>Physical Completion</span>
-                    </div>
-                    <span className="font-bold text-slate-800">{proj.progress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-3">
-                    <div className="bg-blue-500 h-3 rounded-full transition-all" style={{ width: `${proj.progress}%` }} />
-                  </div>
-                </div>
+              <div className="mt-6">
                 {/* Financial Utilization */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
@@ -228,6 +215,17 @@ export const GlobalProjects = () => {
                   <span>{proj.pendingBills} bill(s) pending approval</span>
                 </div>
               )}
+
+              {/* Opens the full project record: contract terms, milestone submission
+                  packages, progress reports, documents and bills filed by the vendor. */}
+              <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
+                <Link
+                  to={`/admin/projects/${proj.id}`}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                >
+                  View Details <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
           </div>
         ))}

@@ -335,7 +335,7 @@ export const Settings = () => {
                   <label className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100/70 border border-slate-150 rounded-2xl cursor-pointer transition-colors">
                     <div>
                       <span className="font-bold text-slate-800 block text-sm">SLA & Delayed Alert Reminders</span>
-                      <span className="text-xs font-medium text-slate-600">Enable AlertWorker background scheduler to trigger reminders on delayed physical progress.</span>
+                      <span className="text-xs font-medium text-slate-600">Enable AlertWorker background scheduler to trigger reminders on overdue milestones.</span>
                     </div>
                     <input
                       type="checkbox"
