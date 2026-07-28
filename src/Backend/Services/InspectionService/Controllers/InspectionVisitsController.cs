@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InspectionService.Persistence;
 using InspectionService.Entities;
+using InspectionService.Security;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace InspectionService.Controllers;
@@ -33,14 +35,29 @@ public class InspectionVisitsController : ControllerBase
         public string Purpose { get; set; } = string.Empty;
     }
 
+    // InspectionVisit.InspectorId is a foreign key to Inspectors.Id, so it must carry the
+    // inspector's profile id — not the caller's user id, which is what the token holds and which
+    // no Inspectors row is keyed on. Work orders are assigned on the same profile id, which is
+    // why the client resolves the profile too before listing them.
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateVisitRequest request)
     {
-        var inspectorId = Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : Guid.Empty;
+        if (request is null) return BadRequest("Request body is required.");
+        if (request.WorkOrderId == Guid.Empty) return BadRequest("workOrderId is required.");
+        if (request.ScheduledDate == default) return BadRequest("scheduledDate is required.");
+        if (string.IsNullOrWhiteSpace(request.Purpose)) return BadRequest("purpose is required.");
+
+        var userId = CallerContext.UserId(User);
+        if (userId is null) return Forbid();
+
+        var inspector = await _context.Inspectors.FirstOrDefaultAsync(i => i.UserId == userId);
+        if (inspector is null)
+            return BadRequest("No inspector profile is linked to this login, so a visit cannot be scheduled.");
+
         var visit = new InspectionVisit
         {
             WorkOrderId = request.WorkOrderId,
-            InspectorId = inspectorId,
+            InspectorId = inspector.Id,
             ScheduledDate = request.ScheduledDate,
             Purpose = request.Purpose,
             Status = "Scheduled"
