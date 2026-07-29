@@ -297,6 +297,14 @@ const PROJECTS = [
   },
 ];
 
+/**
+ * Tender, work-order and bill numbers must be unique — the API rejects duplicates — so a
+ * run stamp is appended to the numbers declared above. Without it a second run fails on
+ * "A tender numbered 'DEMO-TEN-2601' already exists."
+ */
+const RUN = Date.now().toString().slice(-6);
+const stamped = (no) => `${no}-${RUN}`;
+
 /** Vendor-repository documents — keyed to the vendor, not to any one project. */
 const VENDOR_DOCUMENTS = [
   { name: 'GST-Registration-Certificate.txt', type: 'Compliance' },
@@ -325,9 +333,14 @@ async function seedProject(spec, inspectorId) {
   const log = (msg) => console.log(`   ${msg}`);
   console.log(`\n▶ ${spec.tender.title}`);
 
+  // Numbers carry the run stamp so a repeat run does not collide with existing records —
+  // the API rejects duplicate tender, work-order and bill numbers.
+  const tenderNo = stamped(spec.tender.no);
+  const workOrderNo = stamped(spec.workOrder.no);
+
   // 1. Tender (multipart — AddTender is [FromForm]).
   const tenderForm = new FormData();
-  tenderForm.append('TenderNo', spec.tender.no);
+  tenderForm.append('TenderNo', tenderNo);
   tenderForm.append('Title', spec.tender.title);
   tenderForm.append('Description', spec.tender.description);
   tenderForm.append('TenderType', spec.tender.type);
@@ -339,8 +352,8 @@ async function seedProject(spec, inspectorId) {
 
   // 2. The signed agreement, so the Documents tab has a contract to open.
   const agreement = await uploadFile(
-    `${spec.workOrder.no}-Signed-Agreement.txt`,
-    fileBody(`Work Order ${spec.workOrder.no} — Signed Agreement`, spec.workOrder.scope),
+    `${workOrderNo}-Signed-Agreement.txt`,
+    fileBody(`Work Order ${workOrderNo} — Signed Agreement`, spec.workOrder.scope),
     'admin',
   );
 
@@ -348,7 +361,7 @@ async function seedProject(spec, inspectorId) {
   const wo = await post('/api/workorders', {
     vendorId: VENDOR_ID,
     tenderId: tender.id,
-    workOrderNo: spec.workOrder.no,
+    workOrderNo,
     totalValue: spec.workOrder.totalValue,
     scopeDescription: spec.workOrder.scope,
     paymentTerms: spec.workOrder.paymentTerms,
@@ -425,13 +438,13 @@ async function seedProject(spec, inspectorId) {
   for (const b of spec.bills) {
     const amount = Math.round(spec.workOrder.totalValue * (b.percentage / 100));
     const invoice = await uploadFile(
-      `${b.no}-Tax-Invoice.txt`,
-      fileBody(`Tax Invoice ${b.no}`, `Work order: ${spec.workOrder.no}\nAmount: ${inr(amount)}\nGST @ 18%: ${inr(Math.round(amount * 0.18))}`),
+      `${stamped(b.no)}-Tax-Invoice.txt`,
+      fileBody(`Tax Invoice ${stamped(b.no)}`, `Work order: ${workOrderNo}\nAmount: ${inr(amount)}\nGST @ 18%: ${inr(Math.round(amount * 0.18))}`),
     );
 
     const bill = await post('/api/bills', {
       workOrderId: wo.id,
-      billNo: b.no,
+      billNo: stamped(b.no),
       type: b.type,
       amount,
       taxAmount: Math.round(amount * 0.18),

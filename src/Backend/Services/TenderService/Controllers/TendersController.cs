@@ -70,8 +70,8 @@ public class TendersController : ControllerBase
     [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> AddTender([FromForm] TenderFormDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.TenderNo))
-            return BadRequest("Tender ID is required.");
+        var validationError = await ValidateTender(dto, null);
+        if (validationError is not null) return BadRequest(validationError);
 
         string documentUrl = string.Empty;
 
@@ -88,8 +88,8 @@ public class TendersController : ControllerBase
 
         var tender = new Tender
         {
-            TenderNo    = dto.TenderNo,
-            Title       = dto.Title,
+            TenderNo    = dto.TenderNo.Trim(),
+            Title       = dto.Title.Trim(),
             Description = dto.Description ?? string.Empty,
             TenderType  = dto.TenderType ?? string.Empty,
             Budget      = dto.Budget,
@@ -113,8 +113,11 @@ public class TendersController : ControllerBase
         var tender = await _context.Tenders.FindAsync(id);
         if (tender == null) return NotFound();
 
-        tender.TenderNo = dto.TenderNo;
-        tender.Title = dto.Title;
+        var validationError = await ValidateTender(dto, id);
+        if (validationError is not null) return BadRequest(validationError);
+
+        tender.TenderNo = dto.TenderNo.Trim();
+        tender.Title = dto.Title.Trim();
         tender.Description = dto.Description ?? string.Empty;
         tender.TenderType = dto.TenderType ?? string.Empty;
         tender.Budget = dto.Budget;
@@ -147,6 +150,33 @@ public class TendersController : ControllerBase
         _context.Tenders.Remove(tender);
         await _context.SaveChangesAsync();
         return Ok();
+    }
+
+    /// <summary>
+    /// Shared by create and update. Only TenderNo used to be checked, so a tender could be
+    /// filed with no title, a zero or negative budget, an EMD larger than the budget, or a
+    /// close date before its publish date. `excludeId` is the tender being edited.
+    /// </summary>
+    private async Task<string?> ValidateTender(TenderFormDto dto, Guid? excludeId)
+    {
+        if (string.IsNullOrWhiteSpace(dto.TenderNo)) return "Tender ID is required.";
+        if (string.IsNullOrWhiteSpace(dto.Title)) return "Title is required.";
+
+        var tenderNo = dto.TenderNo.Trim();
+        if (await _context.Tenders.AnyAsync(t => t.TenderNo == tenderNo && (excludeId == null || t.Id != excludeId)))
+            return $"A tender numbered '{tenderNo}' already exists.";
+
+        if (dto.Budget <= 0) return "Budget must be greater than zero.";
+        if (dto.EMDAmount < 0) return "EMD amount cannot be negative.";
+
+        // EMD is earnest money against the contract; larger than the contract is nonsense.
+        if (dto.EMDAmount > dto.Budget)
+            return "EMD amount cannot exceed the tender budget.";
+
+        if (dto.PublishDate is DateTime publish && dto.CloseDate is DateTime close && close <= publish)
+            return "Close date must be after the publish date.";
+
+        return null;
     }
 
     public class TenderFormDto
