@@ -41,7 +41,14 @@ export const MilestoneUpdates = () => {
     let cancelled = false;
     setLoadingMilestones(true);
     axiosInstance.get<MilestoneRow[]>(`/execution/milestones?workOrderId=${workOrderId}`)
-      .then(({ data }) => { if (!cancelled) setMilestones(Array.isArray(data) ? data : []); })
+      .then(({ data }) => {
+        if (cancelled) return;
+        // ExecutionService returns insertion order, not schedule order; the cards below
+        // are numbered 1..n as they render, so unsorted data mislabels the sequence.
+        const rows = Array.isArray(data) ? [...data] : [];
+        rows.sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
+        setMilestones(rows);
+      })
       .catch(err => { console.error(err); if (!cancelled) setMilestones([]); })
       .finally(() => { if (!cancelled) setLoadingMilestones(false); });
     return () => { cancelled = true; };
