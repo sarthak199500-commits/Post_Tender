@@ -98,10 +98,30 @@ public class WorkOrdersController : ControllerBase
 
         if (dto.Milestones.Count > 0)
         {
+            if (dto.Milestones.Any(m => string.IsNullOrWhiteSpace(m.Title)))
+                return BadRequest("Every milestone needs a title.");
+
+            if (dto.Milestones.Any(m => m.Weightage < 0 || m.PaymentPercentage < 0))
+                return BadRequest("Milestone weightage and payment percentage cannot be negative.");
+
             var totalWeightage = dto.Milestones.Sum(m => m.Weightage);
             if (totalWeightage != 100)
                 return BadRequest("Sum of Milestone Weightages must equal 100%.");
         }
+
+        var workOrderNo = dto.WorkOrderNo?.Trim() ?? string.Empty;
+        if (workOrderNo.Length == 0)
+            return BadRequest("Work Order number is required.");
+
+        // The number is the human key printed on the contract; duplicates make the audit
+        // trail ambiguous and break lookups by number.
+        if (await _context.WorkOrders.AnyAsync(w => w.WorkOrderNo == workOrderNo))
+            return BadRequest($"A work order numbered '{workOrderNo}' already exists.");
+
+        // A negative value used to sail through the budget ceiling below, since any
+        // negative number is comfortably less than the tender budget.
+        if (dto.TotalValue <= 0)
+            return BadRequest("Project cost must be greater than zero.");
 
         var tender = await _context.Tenders.FindAsync(dto.TenderId);
         if (tender == null) return BadRequest("Tender not found.");
@@ -111,11 +131,23 @@ public class WorkOrdersController : ControllerBase
 
         if (dto.VendorId == Guid.Empty) return BadRequest("Vendor is required.");
 
+        if (dto.StartDate == default || dto.EndDate == default)
+            return BadRequest("Start date and completion date are both required.");
+
+        if (dto.EndDate <= dto.StartDate)
+            return BadRequest("Completion date must be after the start date.");
+
+        // Milestones outside the contract window can never be met on time, and the LD
+        // calculation keys off the work-order dates.
+        var strayMilestone = dto.Milestones.FirstOrDefault(m => m.TargetDate < dto.StartDate || m.TargetDate > dto.EndDate);
+        if (strayMilestone is not null)
+            return BadRequest($"Milestone '{strayMilestone.Title}' has a target date outside the work order period.");
+
         var workOrder = new WorkOrder
         {
             VendorId = dto.VendorId,
             TenderId = dto.TenderId,
-            WorkOrderNo = dto.WorkOrderNo,
+            WorkOrderNo = workOrderNo,
             TotalValue = dto.TotalValue,
             ScopeDescription = dto.ScopeDescription,
             PaymentTerms = dto.PaymentTerms,

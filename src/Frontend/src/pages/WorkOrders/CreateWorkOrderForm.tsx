@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { AmountInput } from '../../components/AmountInput';
 import axiosInstance from '../../api/axiosInstance';
 import type { Inspector, Vendor, TenderAllotment } from '../../types/domain';
 
@@ -87,6 +88,12 @@ export const CreateWorkOrderForm = () => {
 
   const totalWeightage = milestones.reduce((sum, m) => sum + Number(m.weightage), 0);
 
+  // The step-1 gate only checked that both dates were present, so an end date before the
+  // start date passed straight through — and the API accepted it too.
+  const dateError = startDate && endDate && new Date(endDate) <= new Date(startDate)
+    ? 'Completion date must be after the start date.'
+    : '';
+
   const addMilestone = () => setMilestones([...milestones, { title: '', weightage: 0, paymentPercentage: 0, targetDate: '' }]);
 
   const handleMilestoneChange = (index: number, field: string, value: string | number) => {
@@ -96,9 +103,22 @@ export const CreateWorkOrderForm = () => {
   };
 
   const submitWorkOrder = async () => {
+    // The step gates cover presence of the header fields; these are the rules that only
+    // become checkable once the milestone table is filled in, plus a re-check of the
+    // header in case a value was cleared after passing step 1.
+    if (!workOrderNo.trim()) return alert('Work Order number is required.');
+    if (totalValue <= 0) return alert('Project cost must be greater than zero.');
+    if (dateError) return alert(dateError);
+
+    if (milestones.some(m => !m.title.trim())) return alert('Every milestone needs a title.');
+    if (milestones.some(m => !m.targetDate)) return alert('Every milestone needs a target date.');
+
+    const outOfRange = milestones.find(m => m.targetDate < startDate || m.targetDate > endDate);
+    if (outOfRange) return alert(`Milestone "${outOfRange.title}" falls outside the work order period.`);
+
     if (totalWeightage !== 100) return alert('Total Weightage must equal exactly 100%.');
     if (!file) return alert('Please upload the digital agreement.');
-    
+
     try {
       setUploading(true);
       const formData = new FormData();
@@ -205,25 +225,23 @@ export const CreateWorkOrderForm = () => {
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Project Cost (Total Value)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 font-medium text-sm">₹</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
+                  {/* Grouping stays visible while typing. The previous version cleared
+                      the commas on focus and re-added them on blur, so the number the
+                      user was actually editing was the hardest one to read. */}
+                  <AmountInput
                     placeholder="e.g. 2,00,00,000"
                     value={displayValue}
-                    onChange={e => {
-                      const raw = e.target.value.replace(/[^0-9]/g, '');
-                      const val = Number(raw);
+                    onValueChange={raw => {
+                      const val = Number(raw || 0);
+                      setDisplayValue(raw);
                       setTotalValue(val);
-                      setDisplayValue(raw ? val.toLocaleString('en-IN') : '');
-                      
+
                       if (tenderBudget > 0 && val > tenderBudget) {
                         setCostError(`Cost exceeds Tender Budget (₹${tenderBudget.toLocaleString('en-IN')})`);
                       } else {
                         setCostError('');
                       }
                     }}
-                    onFocus={() => { if (totalValue) setDisplayValue(String(totalValue)); }}
-                    onBlur={() => { if (totalValue) setDisplayValue(totalValue.toLocaleString('en-IN')); }}
                     className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:outline-none transition-all ${
                       costError ? 'border-red-500 focus:ring-red-100 bg-red-50/30' : 'focus:ring-blue-500'
                     }`}
@@ -246,7 +264,16 @@ export const CreateWorkOrderForm = () => {
               </div>
               <div>
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">End Date</label>
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full p-3 border rounded-lg" />
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate || undefined}
+                  onChange={e => setEndDate(e.target.value)}
+                  className={`w-full p-3 border rounded-lg outline-none ${dateError ? 'border-red-500 bg-red-50/30' : ''}`}
+                />
+                {dateError && (
+                  <p className="text-[10px] text-red-700 font-bold ml-1 mt-1 uppercase tracking-tight">{dateError}</p>
+                )}
               </div>
             </div>
 
@@ -269,7 +296,7 @@ export const CreateWorkOrderForm = () => {
               </button>
               <button
                 onClick={() => setStep(2)}
-                disabled={!tenderId || !vendorId || !totalValue || !workOrderNo || !inspectorId || !startDate || !endDate || !!costError}
+                disabled={!tenderId || !vendorId || totalValue <= 0 || !workOrderNo.trim() || !inspectorId || !startDate || !endDate || !!costError || !!dateError}
                 className="bg-blue-700 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Next Step

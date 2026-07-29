@@ -209,10 +209,11 @@ export const ProgressReporting = () => {
       return;
     }
 
+    // physicalPercentage is deliberately not sent: there is no such measure in this
+    // system. The field still exists on the ExecutionService DTO, where it defaults to 0.
     const report = {
       projectId: selectedProject.id,
       milestoneId: selectedMilestoneId || null,
-      physicalPercentage: 0,
       workDescription,
       latitude: location.lat,
       longitude: location.lng,

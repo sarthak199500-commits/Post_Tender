@@ -55,7 +55,6 @@ export interface Project {
     workOrderId?: string;
     name: string;
     status?: string;
-    progress?: number;
     budget?: number;
     utilized?: number;
     ldAmount?: number;
@@ -88,7 +87,6 @@ export interface ProgressReport {
     projectId: string;
     vendorId?: string;
     milestoneId?: string | null;
-    physicalPercentage: number;
     workDescription: string;
     latitude?: number;
     longitude?: number;

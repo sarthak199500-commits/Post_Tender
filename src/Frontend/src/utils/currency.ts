@@ -23,3 +23,37 @@ export const rupeesCompact = (value: number): string => {
 export const rupeesWithHint = (value: number): string =>
   `≈ ${rupeesCompact(value)}`;
 
+/**
+ * Groups a raw digit string the Indian way: last three digits, then pairs.
+ * 12000000 -> 1,20,00,000
+ *
+ * String-based rather than toLocaleString because this runs on partially typed
+ * input: "12." and "" are valid intermediate states that Number() would mangle
+ * into "NaN" or "0" while the user is still typing.
+ */
+export const groupIndianDigits = (raw: string): string => {
+  const [intPart = '', ...decParts] = raw.split('.');
+  const digits = intPart.replace(/\D/g, '');
+
+  let grouped = digits;
+  if (digits.length > 3) {
+    const last3 = digits.slice(-3);
+    const rest = digits.slice(0, -3);
+    grouped = `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${last3}`;
+  }
+
+  // A trailing "." must survive so the user can carry on typing the paise.
+  return decParts.length > 0 ? `${grouped}.${decParts.join('').replace(/\D/g, '')}` : grouped;
+};
+
+/**
+ * Strips grouping back to a plain numeric string suitable for an API payload.
+ * Keeps at most one decimal point and drops everything else.
+ */
+export const stripGrouping = (display: string): string => {
+  const cleaned = display.replace(/[^\d.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot === -1) return cleaned;
+  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+};
+

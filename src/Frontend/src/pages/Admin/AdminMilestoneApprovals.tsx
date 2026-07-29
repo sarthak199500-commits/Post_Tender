@@ -5,7 +5,6 @@ import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 
 interface Report {
     id: string;
-    physicalPercentage: number;
     workDescription: string;
     remarks?: string;
     mediaUrls: string[];
@@ -203,11 +202,6 @@ export const AdminMilestoneApprovals = () => {
                                                 </div>
 
                                                 <div className="flex flex-wrap items-center gap-4">
-                                                    <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100 text-sm font-bold">
-                                                        <span>Physical Progress:</span>
-                                                        <span className="text-lg">{r.physicalPercentage}%</span>
-                                                    </div>
-                                                    
                                                     {r.mediaUrls && r.mediaUrls.length > 0 && (
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Evidence:</span>

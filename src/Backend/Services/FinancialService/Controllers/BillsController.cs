@@ -64,12 +64,37 @@ public class BillsController : ControllerBase
         if (dto.WorkOrderId == Guid.Empty) return BadRequest("WorkOrderId is required.");
         if (dto.Amount <= 0) return BadRequest("Amount must be greater than zero.");
         if (dto.Type != "RA" && dto.Type != "Final") return BadRequest("Type must be 'RA' or 'Final'.");
+        if (dto.TaxAmount < 0) return BadRequest("Tax amount cannot be negative.");
+
+        var billNo = dto.BillNo?.Trim() ?? string.Empty;
+        if (billNo.Length == 0) return BadRequest("Bill number is required.");
+
+        // The bill number is the vendor's invoice reference and is what payment vouchers
+        // are reconciled against, so it must be unique for this vendor.
+        if (await _context.Bills.AnyAsync(b => b.VendorId == vendorId.Value && b.BillNo == billNo))
+            return BadRequest($"You have already submitted a bill numbered '{billNo}'.");
+
+        // A milestone may only be claimed once. FinancialService has no WorkOrder table, so
+        // the contract value is not reachable here without a cross-service call (which this
+        // codebase deliberately avoids) — but double-claiming the same milestone is
+        // checkable locally, and it is the way an over-claim actually happens in practice.
+        if (dto.MilestoneIds.Count > 0)
+        {
+            var alreadyClaimed = await _context.Bills
+                .Where(b => b.WorkOrderId == dto.WorkOrderId && b.Status != "Rejected")
+                .Select(b => b.MilestoneIds)
+                .ToListAsync();
+
+            var duplicate = dto.MilestoneIds.FirstOrDefault(id => alreadyClaimed.Any(list => list.Contains(id)));
+            if (duplicate != Guid.Empty)
+                return BadRequest($"Milestone {duplicate} has already been claimed on another bill for this work order.");
+        }
 
         var bill = new Bill
         {
             WorkOrderId = dto.WorkOrderId,
             VendorId = vendorId.Value,
-            BillNo = dto.BillNo,
+            BillNo = billNo,
             Type = dto.Type,
             Amount = dto.Amount,
             TaxAmount = dto.TaxAmount,

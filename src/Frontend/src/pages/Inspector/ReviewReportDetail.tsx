@@ -10,7 +10,6 @@ interface ProgressReport {
     id: string;
     projectId: string;
     vendorId?: string;
-    physicalPercentage: number;
     workDescription: string;
     latitude: number;
     longitude: number;

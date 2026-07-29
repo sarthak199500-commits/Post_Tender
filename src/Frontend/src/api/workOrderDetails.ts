@@ -25,14 +25,13 @@ export interface WorkOrderDetail {
     startDate: string;
     endDate: string;
     tender: { title: string; budget: number; tenderNo: string };
-    vendor: { name: string; vendorCode: string; email: string };
+    vendor: { id: string; name: string; vendorCode: string; email: string };
     inspector: { name: string; type: string } | null;
     milestones: Milestone[];
 }
 
 export interface ProgressReportRow {
     id: string;
-    physicalPercentage: number;
     workDescription: string;
     reportedAt: string;
     status: string;
@@ -105,6 +104,11 @@ export const fetchWorkOrderDetail = async (
         }))
         .sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
 
+    // ExecutionService returns milestones in insertion order, which is not schedule order
+    // once any are added later. The detail pages number them 1..n as they render, so an
+    // unsorted list labels the final milestone "2".
+    milestones.sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
+
     const vendor = vendors.find(v => v.id === raw.vendorId);
     const inspector = raw.inspectorId
         ? inspectors.find(i => i.id === raw.inspectorId || i.userId === raw.inspectorId)
@@ -128,6 +132,7 @@ export const fetchWorkOrderDetail = async (
                 tenderNo: raw.tender?.tenderNo ?? '—',
             },
             vendor: {
+                id: vendor?.id ?? raw.vendorId ?? '',
                 name: vendor?.name ?? 'Unknown vendor',
                 vendorCode: vendor?.vendorCode ?? '—',
                 email: vendor?.contactEmail ?? vendor?.email ?? '—',

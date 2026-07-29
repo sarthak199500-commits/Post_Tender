@@ -68,7 +68,6 @@ interface ProjectDto {
     workOrderId?: string;
     name?: string;
     status?: string;
-    progress?: number | string;
     budget?: number | string;
 }
 
@@ -85,7 +84,6 @@ interface ProgressReportDto {
     projectId?: string;
     vendorId?: string;
     milestoneId?: string | null;
-    physicalPercentage?: number;
     workDescription?: string;
     reportedAt?: string;
     status: string;
@@ -250,7 +248,7 @@ export async function fetchVendorDashboard() {
         stats: { assignedWorkOrders: 0, activeProjects: 0, completedMilestones: 0, totalMilestones: 0, defectsToRectify: 0, totalReworkCount: 0 },
         bills: {} as Record<string, number>,
         recentProjects: [] as {
-            id: string; name: string; status: string; progress: number; budget: number;
+            id: string; name: string; status: string; budget: number;
             milestonesDone: number; milestonesTotal: number;
         }[]
     };
@@ -288,7 +286,6 @@ export async function fetchVendorDashboard() {
             id: p.id,
             name: p.name ?? '',
             status: p.status ?? '',
-            progress: Number(p.progress) || 0,
             budget: Number(p.budget) || 0,
             milestonesDone: projMilestones.filter(m => m.status === 'Completed').length,
             milestonesTotal: projMilestones.length
@@ -385,7 +382,6 @@ export async function fetchDepartmentDashboard() {
         id: r.id,
         projectName: (r.projectId && projectById.get(r.projectId)?.name) || 'Unknown Project',
         vendorName: (r.vendorId && vendorById.get(r.vendorId)?.name) || 'Unknown',
-        physicalPercentage: r.physicalPercentage ?? 0,
         workDescription: r.workDescription ?? '',
         reportedAt: r.reportedAt ?? '',
         status: r.status,

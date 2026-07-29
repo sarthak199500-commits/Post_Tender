@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
+import { AmountInput } from '../../components/AmountInput';
 
 const PORTALS = ['GeM Portal', 'CPPP', 'eProcurement', 'NIC Tender', 'State Portal', 'Other'];
 
@@ -172,13 +173,13 @@ export const AddTender = () => {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className={labelCls}>Budget (₹)</label>
-              <input type="number" className={inputCls} placeholder="0.00" min="0" step="0.01"
-                value={formData.budget} onChange={e => set('budget', e.target.value)} required />
+              <AmountInput className={inputCls} placeholder="e.g. 1,20,00,000"
+                value={formData.budget} onValueChange={v => set('budget', v)} required />
             </div>
             <div>
               <label className={labelCls}>EMD Amount (₹)</label>
-              <input type="number" className={inputCls} placeholder="0.00" min="0" step="0.01"
-                value={formData.emdAmount} onChange={e => set('emdAmount', e.target.value)} required />
+              <AmountInput className={inputCls} placeholder="e.g. 2,00,000"
+                value={formData.emdAmount} onValueChange={v => set('emdAmount', v)} required />
             </div>
           </div>
 
