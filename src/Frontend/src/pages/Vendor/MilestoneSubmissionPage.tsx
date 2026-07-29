@@ -416,7 +416,9 @@ export const MilestoneSubmissionPage = () => {
                             <TrendingUp className="w-3 h-3" />
                             {r.milestone?.title || 'N/A'}
                           </span>
-                          {r.latitude && (
+                          {/* `r.latitude && …` renders a bare "0" when no GPS was captured,
+                              because JSX prints the falsy number. Coerce to a boolean. */}
+                          {!!r.latitude && (
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
                               {r.latitude.toFixed(2)}, {(r.longitude ?? 0).toFixed(2)}
