@@ -65,6 +65,16 @@ export interface Project {
     workOrder?: WorkOrder;
 }
 
+export interface BillDeduction {
+    id: string;
+    billId: string;
+    type: string; // LiquidatedDamages, TDS, LabourCess, SecurityDeposit, Other
+    description: string;
+    amount: number;
+    isSystemGenerated?: boolean;
+    createdAt?: string;
+}
+
 export interface Bill {
     id: string;
     billNo: string;
@@ -74,12 +84,31 @@ export interface Bill {
     status: string;
     amount: number;
     taxAmount?: number;
+    totalAmount?: number;
     attachmentUrl?: string;
     submittedAt?: string;
     paidAt?: string;
     paymentVoucherNo?: string | null;
-    reasonReturned?: string | null;
+    // Was "reasonReturned" — the API field is rejectionReason (C# RejectionReason); the
+    // mismatch meant b.reasonReturned was always undefined and no return reason ever
+    // rendered wherever this shared type was used.
+    rejectionReason?: string | null;
     milestoneIds?: string[];
+    retentionPercentage?: number;
+    retainedAmount?: number;
+    retentionReleased?: boolean;
+    retentionReleasedAt?: string | null;
+    advanceRecovered?: number;
+    deductions?: BillDeduction[];
+    netPayableAmount?: number;
+}
+
+export interface BillingPolicy {
+    id: string;
+    retentionPercentage: number;
+    advanceRecoveryPercentage: number;
+    maxAdvancePercentage: number;
+    updatedAt?: string;
 }
 
 export interface ProgressReport {

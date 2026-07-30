@@ -17,6 +17,11 @@ builder.Services.AddHttpContextAccessor();
 var commonServiceUrl = builder.Configuration["Services:CommonServiceUrl"] ?? "http://localhost:5007";
 builder.Services.AddHttpClient<AuditLogger>(c => c.BaseAddress = new Uri(commonServiceUrl));
 
+// Work order ownership and milestone completion live in other services. Routed through the
+// gateway rather than each service directly, so this only needs one address to be correct.
+var gatewayUrl = builder.Configuration["Services:GatewayUrl"] ?? "http://localhost:5249";
+builder.Services.AddHttpClient<WorkOrderVerifier>(c => c.BaseAddress = new Uri(gatewayUrl));
+
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
     throw new InvalidOperationException(

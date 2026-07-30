@@ -5,6 +5,7 @@ using InspectionService.Persistence;
 using InspectionService.Entities;
 using InspectionService.Security;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -33,8 +34,9 @@ public class InspectionVisitsController : ControllerBase
         return await _context.Inspectors.FirstOrDefaultAsync(i => i.UserId == userId);
     }
 
-    // Admin/PMU oversee every inspector's schedule; an inspector sees only their own. A login with
-    // no inspector profile owns no visits, so it gets an empty list rather than everyone else's.
+    // Oversight roles only — a vendor's own visits come from ForVendor below. Admin/PMU oversee
+    // every inspector's schedule; an inspector sees only their own. A login with no inspector
+    // profile owns no visits, so it gets an empty list rather than everyone else's.
     [HttpGet]
     [Authorize(Roles = "Inspector,Admin,PMU")]
     public async Task<IActionResult> Get()
@@ -51,9 +53,69 @@ public class InspectionVisitsController : ControllerBase
         return Ok(await query.OrderByDescending(v => v.ScheduledDate).ToListAsync());
     }
 
+    // The visits booked against this vendor's own work orders, so the vendor can see who is
+    // coming and when. Scoped to the caller's vendor claim, fail closed.
+    [HttpGet("vendor")]
+    [Authorize(Roles = "Vendor")]
+    public async Task<IActionResult> ForVendor()
+    {
+        var me = CallerContext.VendorId(User);
+        if (me is null) return Forbid();
+
+        return Ok(await _context.InspectionVisits
+            .Where(v => v.VendorId == me)
+            .OrderBy(v => v.ScheduledDate)
+            .ToListAsync());
+    }
+
+    public class VisitVendorMapping
+    {
+        public Guid WorkOrderId { get; set; }
+        public Guid VendorId { get; set; }
+    }
+
+    // One-off repair for visits scheduled before InspectionVisit carried a VendorId: those
+    // rows were backfilled with Guid.Empty and so belong to nobody, leaving them invisible on
+    // the vendor's schedule. Work orders live in TenderService, so the caller supplies the
+    // workOrderId -> vendorId mapping (the same cross-service join the clients already do).
+    // Only ever fills a blank VendorId — an already-attributed visit is never reassigned.
+    [HttpPost("backfill-vendor")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> BackfillVendor([FromBody] List<VisitVendorMapping> mappings)
+    {
+        if (mappings is null || mappings.Count == 0)
+            return BadRequest("At least one workOrderId/vendorId mapping is required.");
+
+        var byWorkOrder = mappings
+            .Where(m => m.WorkOrderId != Guid.Empty && m.VendorId != Guid.Empty)
+            .GroupBy(m => m.WorkOrderId)
+            .ToDictionary(g => g.Key, g => g.First().VendorId);
+
+        if (byWorkOrder.Count == 0)
+            return BadRequest("Every mapping must carry a non-empty workOrderId and vendorId.");
+
+        var orphans = await _context.InspectionVisits
+            .Where(v => v.VendorId == Guid.Empty)
+            .ToListAsync();
+
+        var updated = 0;
+        foreach (var visit in orphans)
+        {
+            if (!byWorkOrder.TryGetValue(visit.WorkOrderId, out var vendorId)) continue;
+            visit.VendorId = vendorId;
+            updated++;
+        }
+
+        if (updated > 0) await _context.SaveChangesAsync();
+
+        return Ok(new { matched = updated, unresolved = orphans.Count - updated });
+    }
+
     public class CreateVisitRequest
     {
         public Guid WorkOrderId { get; set; }
+        // Denormalized by the caller from the selected work order — see InspectionVisit.VendorId.
+        public Guid VendorId { get; set; }
         public DateTime ScheduledDate { get; set; }
         public string Purpose { get; set; } = string.Empty;
     }
@@ -68,6 +130,7 @@ public class InspectionVisitsController : ControllerBase
     {
         if (request is null) return BadRequest("Request body is required.");
         if (request.WorkOrderId == Guid.Empty) return BadRequest("workOrderId is required.");
+        if (request.VendorId == Guid.Empty) return BadRequest("vendorId is required.");
         if (request.ScheduledDate == default) return BadRequest("scheduledDate is required.");
         if (string.IsNullOrWhiteSpace(request.Purpose)) return BadRequest("purpose is required.");
 
@@ -78,6 +141,7 @@ public class InspectionVisitsController : ControllerBase
         var visit = new InspectionVisit
         {
             WorkOrderId = request.WorkOrderId,
+            VendorId = request.VendorId,
             InspectorId = inspector.Id,
             ScheduledDate = request.ScheduledDate,
             Purpose = request.Purpose,
@@ -94,12 +158,21 @@ public class InspectionVisitsController : ControllerBase
         public string? Remarks { get; set; }
     }
 
-    // Scoped the same way as the list: an inspector may only close out or cancel their own visit,
-    // and a visit belonging to someone else reads as not-found rather than advertising that it exists.
+    private static readonly string[] AllowedVisitStatuses = { "Scheduled", "Completed", "Cancelled" };
+
+    // Closing out a visit is the inspector's call, never the vendor's — a vendor who knows a
+    // visit id (their own now come back from ForVendor) could otherwise cancel the inspection
+    // booked against them, or mark it Completed without anyone attending. Scoped the same way
+    // as the list: an inspector may only close out or cancel their own visit, and a visit
+    // belonging to someone else reads as not-found rather than advertising that it exists.
     [HttpPut("{id}/status")]
     [Authorize(Roles = "Inspector,Admin,PMU")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
     {
+        if (request is null) return BadRequest("Request body is required.");
+        if (!AllowedVisitStatuses.Contains(request.Status))
+            return BadRequest($"'{request.Status}' is not a valid visit status. Use one of: {string.Join(", ", AllowedVisitStatuses)}.");
+
         var query = _context.InspectionVisits.AsQueryable();
 
         if (User.IsInRole("Inspector"))

@@ -500,9 +500,9 @@ export const ProjectDetails = () => {
                           <Receipt className="w-4 h-4 text-slate-500" /> {b.billNo}
                         </div>
                         {b.type && <div className="text-xs text-slate-600 mt-0.5">{b.type}</div>}
-                        {b.reasonReturned && (
+                        {b.rejectionReason && (
                           <div className="text-xs text-red-700 mt-1 inline-flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> {b.reasonReturned}
+                            <AlertTriangle className="w-3 h-3" /> {b.rejectionReason}
                           </div>
                         )}
                       </td>

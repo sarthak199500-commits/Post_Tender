@@ -166,15 +166,9 @@ export const VendorDashboard = () => {
                   <p className="text-xs text-slate-600">{data.bills["Submitted"] || 0} bills under initial review</p>
                 </div>
               </div>
-              <div className="relative flex items-center space-x-4">
-                <div className={`z-10 w-9 h-9 rounded-full flex items-center justify-center border-4 border-white shadow-sm ${data.bills["Under Review"] ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">Verification</p>
-                  <p className="text-xs text-slate-600">{data.bills["Under Review"] || 0} bills being verified by PMU</p>
-                </div>
-              </div>
+              {/* A separate "Verification" step used to sit here counting bills in an
+                  "Under Review" state that nothing ever assigns, so it always read 0.
+                  Submitted covers the same stage and is a status bills really reach. */}
               <div className="relative flex items-center space-x-4">
                 <div className={`z-10 w-9 h-9 rounded-full flex items-center justify-center border-4 border-white shadow-sm ${data.bills["Approved"] ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
                   <History className="w-4 h-4" />

@@ -6,6 +6,7 @@ import axiosInstance from '../../api/axiosInstance';
 interface BillItem {
     id: string;
     billNo: string;
+    type?: string;
     workOrderNo: string;
     vendorName: string;
     amount: number;
@@ -14,6 +15,10 @@ interface BillItem {
     submittedAt: string;
     status: string;
     paymentVoucherNo: string | null;
+    retainedAmount?: number;
+    advanceRecovered?: number;
+    deductions?: { amount: number }[];
+    netPayableAmount?: number;
 }
 
 export const AdminBilling = () => {
@@ -92,7 +97,6 @@ export const AdminBilling = () => {
     const badgeClass = (status: string) => {
         const map: Record<string, string> = {
             'Submitted': 'bg-blue-100 text-blue-700',
-            'Under Review': 'bg-purple-100 text-purple-700',
             'Approved': 'bg-emerald-100 text-emerald-700',
             'Paid': 'bg-emerald-100 text-emerald-700',
             'Returned': 'bg-red-100 text-red-700'
@@ -146,6 +150,7 @@ export const AdminBilling = () => {
                                     <th className="p-4 border-b border-slate-200">Vendor</th>
                                     <th className="p-4 border-b border-slate-200">Amount (₹)</th>
                                     <th className="p-4 border-b border-slate-200">Tax (₹)</th>
+                                    <th className="p-4 border-b border-slate-200">Net Payable (₹)</th>
                                     <th className="p-4 border-b border-slate-200">Date</th>
                                     <th className="p-4 border-b border-slate-200">Status</th>
                                     <th className="p-4 border-b border-slate-200 text-right">Actions</th>
@@ -154,16 +159,22 @@ export const AdminBilling = () => {
                             <tbody>
                                 {filteredBills.length === 0 ? (
                                     <tr>
-                                        <td colSpan={8} className="p-8 text-center text-slate-600 font-medium">No bills found.</td>
+                                        <td colSpan={9} className="p-8 text-center text-slate-600 font-medium">No bills found.</td>
                                     </tr>
                                 ) : (
                                     filteredBills.map(b => (
                                         <tr key={b.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
-                                            <td className="p-4 font-bold text-slate-800">{b.billNo}</td>
+                                            <td className="p-4 font-bold text-slate-800">
+                                                {b.billNo}
+                                                {b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-black text-indigo-600 uppercase">Advance</span>}
+                                            </td>
                                             <td className="p-4 text-sm text-slate-600 font-medium">{b.workOrderNo}</td>
                                             <td className="p-4 text-sm text-slate-600">{b.vendorName}</td>
                                             <td className="p-4 text-sm font-bold text-slate-900">₹{b.amount.toLocaleString('en-IN')}</td>
                                             <td className="p-4 text-sm font-medium text-slate-600">₹{b.taxAmount.toLocaleString('en-IN')}</td>
+                                            <td className="p-4 text-sm font-bold text-blue-700">
+                                                ₹{(b.netPayableAmount ?? b.totalAmount).toLocaleString('en-IN')}
+                                            </td>
                                             <td className="p-4 text-sm text-slate-600">{new Date(b.submittedAt).toLocaleDateString('en-IN')}</td>
                                             <td className="p-4">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${badgeClass(b.status)}`}>
@@ -172,7 +183,7 @@ export const AdminBilling = () => {
                                             </td>
                                             <td className="p-4 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    {(b.status === 'Submitted' || b.status === 'Under Review') && (
+                                                    {b.status === 'Submitted' && (
                                                         <>
                                                             <button 
                                                                 onClick={() => handleApprove(b.id)}

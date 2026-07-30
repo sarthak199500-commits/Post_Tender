@@ -171,7 +171,7 @@ async function adminFeed(role: string): Promise<AppNotification[]> {
         });
 
     bills
-        .filter(b => b.status === 'Submitted' || b.status === 'Under Review')
+        .filter(b => b.status === 'Submitted')
         .forEach(b => out.push({
             id: `bill-pending-${b.id}`,
             type: 'warning',

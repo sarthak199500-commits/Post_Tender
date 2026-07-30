@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axiosInstance from '../../api/axiosInstance';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { fetchWorkOrderDetail } from '../../api/workOrderDetails';
@@ -26,18 +25,6 @@ const InspectorWorkOrderDetails: React.FC = () => {
     }, [id]);
 
     useEffect(() => { load(); }, [load, token]);
-
-    const handleApproveMilestone = async (milestoneId: string) => {
-        if (!window.confirm('Are you sure you want to approve and complete this milestone?')) return;
-        try {
-            await axiosInstance.post(`/execution/milestones/${milestoneId}/approve`, {});
-            alert('Milestone approved and completed successfully.');
-            await load();
-        } catch (err) {
-            console.error(err);
-            alert('Failed to approve milestone.');
-        }
-    };
 
     if (loading) return <div className="p-10 text-center">Loading details...</div>;
     if (!wo) return <div className="p-10 text-center text-red-700 font-bold">Work Order not found.</div>;
@@ -91,20 +78,15 @@ const InspectorWorkOrderDetails: React.FC = () => {
                                         <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Weight</div>
                                     </div>
                                     {m.status === 'Inspection Requested' && (
-                                        <>
-                                            <Link
-                                                to={`/inspector/milestones/${m.id}/submission`}
-                                                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ml-4 shadow-sm inline-block"
-                                            >
-                                                View Submission
-                                            </Link>
-                                            <button
-                                                onClick={() => handleApproveMilestone(m.id)}
-                                                className="bg-emerald-700 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ml-4 shadow-sm"
-                                            >
-                                                Approve Milestone
-                                            </button>
-                                        </>
+                                        // Approval itself is Admin/PMU/Department only
+                                        // (ExecutionController.ApproveMilestone), so the inspector
+                                        // reviews the submission and the decision happens there.
+                                        <Link
+                                            to={`/inspector/milestones/${m.id}/submission`}
+                                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ml-4 shadow-sm inline-block"
+                                        >
+                                            View Submission
+                                        </Link>
                                     )}
                                     {m.status === 'Completed' && (
                                         <Link

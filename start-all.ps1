@@ -22,7 +22,7 @@ $services = @(
 
 foreach ($service in $services) {
     Write-Host "Starting $($service.Name) on Port $($service.Port)..."
-    Start-Process -FilePath "dotnet" -ArgumentList "run","--no-launch-profile","--urls","http://localhost:$($service.Port)" -WorkingDirectory (Join-Path $PWD $service.Path) -WindowStyle Hidden
+    Start-Process -FilePath "dotnet" -ArgumentList "run","--environment","Development","--no-launch-profile","--urls","http://localhost:$($service.Port)" -WorkingDirectory (Join-Path $PWD $service.Path) -WindowStyle Hidden
 }
 
 Write-Host "Starting Frontend (Vite) on Port 5174..."

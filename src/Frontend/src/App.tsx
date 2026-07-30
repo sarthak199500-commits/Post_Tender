@@ -210,7 +210,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   '/vendor/dashboard': { title: 'Dashboard', subtitle: 'Your work orders and progress at a glance' },
   '/vendor/work-orders': { title: 'Work Orders', subtitle: 'Work orders assigned to you' },
   '/vendor/bills': { title: 'Bill Submission', subtitle: 'Submit and track your bills' },
-  '/vendor/defects': { title: 'Quality Defects', subtitle: 'Reported defects and resolutions' },
+  '/vendor/defects': { title: 'Inspections & Defects', subtitle: 'Upcoming visits, findings and resolutions' },
   '/vendor/progress': { title: 'Progress Reporting', subtitle: 'Report progress on your projects' },
   '/vendor/progress/history': { title: 'Progress History', subtitle: 'Your submitted progress reports' },
   '/vendor/milestones': { title: 'Milestone Updates', subtitle: 'Update and submit your milestones' },
@@ -530,7 +530,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <NavItem to="/vendor/milestones" text="Milestone Updates" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} />
                 <NavItem to="/vendor/documents" text="Document Uploads" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>} />
                 <NavItem to="/vendor/bills" text="Bill Submission" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>} />
-                <NavItem to="/vendor/defects" text="Quality Defects" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
+                <NavItem to="/vendor/defects" text="Inspections & Defects" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
                 <NavItem to="/vendor/queries" text="Queries & Clarif." icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>} />
               </>
             )}

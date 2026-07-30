@@ -20,6 +20,7 @@ interface AssignedWorkOrder {
     id: string;
     workOrderNo: string;
     tenderTitle: string;
+    vendorId?: string;
     vendorName: string;
 }
 
@@ -121,10 +122,19 @@ const InspectorVisits: React.FC = () => {
             alert('Please fill out all fields.');
             return;
         }
+        // The visit is scoped to the vendor for their own schedule view, and the work order is
+        // the only place the vendor id is available on this screen.
+        const vendorId = workOrders.find(w => w.id === selectedWorkOrderId)?.vendorId;
+        if (!vendorId) {
+            alert('This work order has no vendor assigned, so a visit cannot be scheduled against it.');
+            return;
+        }
+
         setSubmitting(true);
         try {
             await axiosInstance.post('/InspectionVisits', {
                 workOrderId: selectedWorkOrderId,
+                vendorId,
                 scheduledDate: new Date(scheduledDate).toISOString(),
                 purpose: purpose
             }, {
@@ -261,7 +271,7 @@ const InspectorVisits: React.FC = () => {
 
             {/* ─── Schedule Visit Modal ─── */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <div>
