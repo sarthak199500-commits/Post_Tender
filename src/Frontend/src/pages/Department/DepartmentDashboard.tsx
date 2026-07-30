@@ -21,9 +21,17 @@ interface InspectorReport {
   status: string;
   milestoneTitle?: string;
 }
+interface BillDeductionItem {
+  id: string;
+  type: string;
+  description: string;
+  amount: number;
+  isSystemGenerated?: boolean;
+}
 interface BillItem {
   id: string;
   billNo: string;
+  type?: string;
   workOrderNo: string;
   vendorName: string;
   amount: number;
@@ -31,6 +39,7 @@ interface BillItem {
   submittedAt: string;
   status: string;
   paymentVoucherNo: string | null;
+  deductions: BillDeductionItem[];
 }
 interface ActivityItem {
   action: string;
@@ -84,10 +93,37 @@ export const DepartmentDashboard = () => {
     if (reason) doAction(`/bills/${id}/query`, reason);
   };
 
+  const DEDUCTION_TYPES = ['LiquidatedDamages', 'TDS', 'LabourCess', 'SecurityDeposit', 'Other'];
+  const handleAddDeduction = async (id: string) => {
+    const type = prompt(`Deduction type (${DEDUCTION_TYPES.join(' / ')}):`, 'Other');
+    if (!type) return;
+    const description = prompt('Description:');
+    if (!description) return;
+    const amountStr = prompt('Amount (₹):');
+    const amount = Number(amountStr);
+    if (!amountStr || !Number.isFinite(amount) || amount <= 0) { alert('Enter a valid amount greater than zero.'); return; }
+
+    setActionLoading(`deduct-${id}`);
+    try {
+      await axiosInstance.post(`/bills/${id}/deductions`, { type, description, amount });
+      fetchData();
+    } catch (err) { console.error(err); alert('Failed to add deduction. Please try again.'); }
+    finally { setActionLoading(null); }
+  };
+  const handleRemoveDeduction = async (billId: string, deductionId: string) => {
+    if (!window.confirm('Remove this deduction?')) return;
+    setActionLoading(`deduct-${billId}`);
+    try {
+      await axiosInstance.delete(`/bills/${billId}/deductions/${deductionId}`);
+      fetchData();
+    } catch (err) { console.error(err); alert('Failed to remove deduction. Please try again.'); }
+    finally { setActionLoading(null); }
+  };
+
   const badgeClass = (status: string) => {
     const map: Record<string, string> = {
       'Submitted': 'b-ip', 'Reviewed': 'b-hi', 'Approved': 'b-cp', 'QueryRaised': 'b-od',
-      'Under Review': 'b-hi', 'Paid': 'b-cp', 'Returned': 'b-od', 'Completed': 'b-cp',
+      'Paid': 'b-cp', 'Returned': 'b-od', 'Completed': 'b-cp',
       'Pending': 'b-dr', 'Open': 'b-open', 'In Progress': 'b-ip'
     };
     return map[status] || 'b-dr';
@@ -254,7 +290,7 @@ export const DepartmentDashboard = () => {
         <div className="tbl-hdr">
           <div className="tbl-title">Bills & Fund Requests</div>
           <div className="filter-bar">
-            {['All', 'Submitted', 'Under Review', 'Approved', 'Paid', 'Returned'].map(f => (
+            {['All', 'Submitted', 'Approved', 'Paid', 'Returned'].map(f => (
               <div key={f} className={`filter-tab ${billFilter === f ? 'active' : ''}`} onClick={() => setBillFilter(f)}>
                 {f}
               </div>
@@ -262,7 +298,7 @@ export const DepartmentDashboard = () => {
           </div>
         </div>
         <div className="w-full overflow-x-auto">
-          <table className="custom-table min-w-[800px]">
+          <table className="custom-table min-w-[1000px]">
             <thead>
             <tr>
               <th>Bill No</th>
@@ -270,6 +306,7 @@ export const DepartmentDashboard = () => {
               <th>Vendor</th>
               <th>Amount (₹)</th>
               <th>Tax (₹)</th>
+              <th>Deductions</th>
               <th>Submitted</th>
               <th>Status</th>
               <th>Voucher</th>
@@ -278,20 +315,41 @@ export const DepartmentDashboard = () => {
           </thead>
           <tbody>
             {filteredBills.length === 0 ? (
-              <tr><td colSpan={9} className="text-center py-8 text-slate-600">No bills found</td></tr>
+              <tr><td colSpan={10} className="text-center py-8 text-slate-600">No bills found</td></tr>
             ) : filteredBills.map(b => (
               <tr key={b.id}>
-                <td className="td-id">{b.billNo}</td>
+                <td className="td-id">{b.billNo}{b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-bold text-indigo-600 uppercase">Advance</span>}</td>
                 <td className="td-wo">{b.workOrderNo}</td>
                 <td>{b.vendorName}</td>
                 <td className="td-val">₹{b.amount.toLocaleString('en-IN')}</td>
                 <td className="td-date">₹{b.taxAmount.toLocaleString('en-IN')}</td>
+                <td>
+                  <div className="space-y-1">
+                    {b.deductions.map(d => (
+                      <div key={d.id} className="flex items-center gap-1.5 text-[11px]">
+                        <span className={`font-bold ${d.isSystemGenerated ? 'text-amber-700' : 'text-slate-600'}`}>
+                          {d.type}: ₹{d.amount.toLocaleString('en-IN')}
+                        </span>
+                        {b.status !== 'Paid' && (
+                          <button onClick={() => handleRemoveDeduction(b.id, d.id)} disabled={actionLoading !== null}
+                            className="text-red-600 hover:text-red-800" title={d.description}>✕</button>
+                        )}
+                      </div>
+                    ))}
+                    {b.status !== 'Paid' && (
+                      <button onClick={() => handleAddDeduction(b.id)} disabled={actionLoading !== null}
+                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800">
+                        + Deduction
+                      </button>
+                    )}
+                  </div>
+                </td>
                 <td className="td-date">{new Date(b.submittedAt).toLocaleDateString('en-IN')}</td>
                 <td><span className={`badge ${badgeClass(b.status)}`}>{b.status}</span></td>
                 <td className="td-wo">{b.paymentVoucherNo || '—'}</td>
                 <td>
                   <div style={{ display: 'flex', gap: 5 }}>
-                    {(b.status === 'Submitted' || b.status === 'Under Review') && (
+                    {b.status === 'Submitted' && (
                       <>
                         <button onClick={() => handleApproveBill(b.id)} disabled={actionLoading !== null}
                           className="save-btn" style={{ padding: '4px 10px', fontSize: '10.5px', background: '#15803d' }}>

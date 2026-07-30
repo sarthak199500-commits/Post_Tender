@@ -23,7 +23,10 @@ public class InspectionsController : ControllerBase
         _context = context;
     }
 
+    // Oversight roles only — this returns every vendor's inspections and their defects.
+    // A vendor's own inspections come from ForVendor below.
     [HttpGet]
+    [Authorize(Roles = "Admin,PMU,Department,Finance,Inspector")]
     public async Task<IActionResult> Get()
     {
         return Ok(await _context.Inspections.Include(i => i.Defects).ToListAsync());
@@ -74,6 +77,8 @@ public class InspectionsController : ControllerBase
         // it the vendor's own defect worklist (ForVendor) would never surface the defect.
         public Guid VendorId { get; set; }
         public string Remarks { get; set; } = string.Empty;
+        // Photo/video the inspector captured on site. Optional — not every inspection has one.
+        public string? EvidenceUrl { get; set; }
         public List<CreateDefectDto> Defects { get; set; } = new();
     }
 
@@ -82,6 +87,11 @@ public class InspectionsController : ControllerBase
         public string Description { get; set; } = string.Empty;
         public string Severity { get; set; } = "Low";
     }
+
+    // Severity was an unvalidated free string, so any value at all could be stored and the
+    // clients would then style it as if it were Low. Keep in step with the DEFECT_SEVERITIES
+    // list the frontend renders its dropdown from.
+    private static readonly string[] AllowedSeverities = { "Low", "Medium", "High", "Critical" };
 
     // Inspector logs an inspection and the defects found. InspectorId comes from the token,
     // never the body.
@@ -96,6 +106,10 @@ public class InspectionsController : ControllerBase
         if (dto.Defects.Any(d => string.IsNullOrWhiteSpace(d.Description)))
             return BadRequest("Every defect needs a description.");
 
+        var badSeverity = dto.Defects.FirstOrDefault(d => !AllowedSeverities.Contains(d.Severity));
+        if (badSeverity is not null)
+            return BadRequest($"'{badSeverity.Severity}' is not a valid severity. Use one of: {string.Join(", ", AllowedSeverities)}.");
+
         var me = CallerContext.UserId(User);
         if (me is null) return Forbid();
 
@@ -106,6 +120,7 @@ public class InspectionsController : ControllerBase
             InspectorId = me.Value,
             InspectionDate = DateTime.UtcNow,
             Remarks = dto.Remarks,
+            EvidenceUrl = dto.EvidenceUrl ?? string.Empty,
             Status = "Follow-up Required",
             Defects = dto.Defects.Select(d => new InspectionDefect
             {
@@ -158,6 +173,7 @@ public class InspectionsController : ControllerBase
             // Reopen for rework: drop the rejected evidence so the vendor must resubmit.
             defect.Status = "Open";
             defect.ReworkReportUrl = null;
+            defect.RectificationNotes = null;
             defect.RectifiedAt = null;
         }
 
@@ -174,6 +190,7 @@ public class InspectionsController : ControllerBase
     public class RectifyRequest
     {
         public string ReworkReportUrl { get; set; } = string.Empty;
+        public string? RectificationNotes { get; set; }
     }
 
     // Vendor submits evidence that a defect has been fixed. Moves the defect Open -> Rectified;
@@ -197,6 +214,9 @@ public class InspectionsController : ControllerBase
         var defect = inspection.Defects.First(d => d.Id == defectId);
         defect.Status = "Rectified";
         defect.ReworkReportUrl = request.ReworkReportUrl;
+        defect.RectificationNotes = string.IsNullOrWhiteSpace(request.RectificationNotes)
+            ? null
+            : request.RectificationNotes.Trim();
         defect.RectifiedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

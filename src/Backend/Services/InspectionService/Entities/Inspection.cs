@@ -32,6 +32,7 @@ public class InspectionDefect
     public string Severity { get; set; } = "Low"; // Low, Medium, High, Critical
     public string Status { get; set; } = "Open"; // Open, Rectified, Verified
     public string? ReworkReportUrl { get; set; } // Evidence of rectification submitted by vendor
+    public string? RectificationNotes { get; set; } // What the vendor did to correct it
     public DateTime? RectifiedAt { get; set; }
 }
 

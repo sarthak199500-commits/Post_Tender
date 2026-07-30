@@ -46,12 +46,19 @@ interface BillDto {
     id: string;
     billNo?: string;
     workOrderId?: string;
+    type?: string;
     status: string;
     amount?: number | string;
     taxAmount?: number | string;
     submittedAt?: string;
     paidAt?: string;
     paymentVoucherNo?: string | null;
+    retentionPercentage?: number;
+    retainedAmount?: number;
+    retentionReleased?: boolean;
+    advanceRecovered?: number;
+    deductions?: { id: string; billId?: string; type: string; description: string; amount: number; isSystemGenerated?: boolean }[];
+    netPayableAmount?: number;
 }
 
 interface VendorDto {
@@ -259,7 +266,7 @@ export async function fetchVendorDashboard() {
         getList<ProjectDto>('/projects'),
         getList<MilestoneDto>('/execution/milestones'),
         getList<BillDto>('/bills'),
-        getList<InspectionDto>('/inspections')
+        getList<InspectionDto>('/inspections/vendor')
     ]);
 
     const myWorkOrderIds = new Set(myWorkOrders.map(w => w.id));
@@ -273,9 +280,9 @@ export async function fetchVendorDashboard() {
 
     const myBills = bills.filter(b => b.workOrderId && myWorkOrderIds.has(b.workOrderId));
 
-    const myInspections = inspections.filter(i => i.projectId && myProjectIds.has(i.projectId));
-    const openDefects = myInspections.reduce((sum, i) => sum + (i.defects?.filter(d => d.status === 'Open').length || 0), 0);
-    const totalDefects = myInspections.reduce((sum, i) => sum + (i.defects?.length || 0), 0);
+    // Already scoped to this vendor by the server, so no client-side filter is needed.
+    const openDefects = inspections.reduce((sum, i) => sum + (i.defects?.filter(d => d.status === 'Open').length || 0), 0);
+    const totalDefects = inspections.reduce((sum, i) => sum + (i.defects?.length || 0), 0);
 
     const billsByStatus: Record<string, number> = {};
     myBills.forEach(b => { billsByStatus[b.status] = (billsByStatus[b.status] || 0) + 1; });
@@ -393,13 +400,15 @@ export async function fetchDepartmentDashboard() {
         return {
             id: b.id,
             billNo: b.billNo ?? '',
+            type: b.type ?? 'RA',
             workOrderNo: wo?.workOrderNo || 'N/A',
             vendorName: (wo?.vendorId && vendorById.get(wo.vendorId)?.name) || 'N/A',
             amount: Number(b.amount) || 0,
             taxAmount: Number(b.taxAmount) || 0,
             submittedAt: b.submittedAt ?? '',
             status: b.status,
-            paymentVoucherNo: b.paymentVoucherNo ?? null
+            paymentVoucherNo: b.paymentVoucherNo ?? null,
+            deductions: b.deductions ?? []
         };
     });
 
@@ -407,7 +416,7 @@ export async function fetchDepartmentDashboard() {
         kpis: {
             totalWorkOrders: workorders.length,
             pendingReports: reports.filter(r => r.status === 'Submitted' || r.status === 'Reviewed').length,
-            billsPendingApproval: bills.filter(b => b.status === 'Submitted' || b.status === 'Under Review').length,
+            billsPendingApproval: bills.filter(b => b.status === 'Submitted').length,
             totalFundRequests: bills.filter(b => b.status === 'Approved').length,
             approvedThisMonth,
             openQueries: queries.filter(q => q.status === 'Open' || q.status === 'In Progress').length
@@ -441,18 +450,31 @@ export async function fetchFinancialDashboard() {
 
     const enrich = (b: BillDto) => {
         const wo = b.workOrderId ? workOrderById.get(b.workOrderId) : undefined;
+        const amount = Number(b.amount) || 0;
+        const taxAmount = Number(b.taxAmount) || 0;
+        const deductions = b.deductions ?? [];
+        const totalDeductions = deductions.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+        const retainedAmount = Number(b.retainedAmount) || 0;
+        const advanceRecovered = Number(b.advanceRecovered) || 0;
         return {
             id: b.id,
             billNo: b.billNo ?? '',
+            type: b.type ?? 'RA',
             workOrderNo: wo?.workOrderNo || 'N/A',
             vendorName: (wo?.vendorId && vendorById.get(wo.vendorId)?.name) || 'N/A',
-            amount: Number(b.amount) || 0,
-            taxAmount: Number(b.taxAmount) || 0,
-            totalAmount: (Number(b.amount) || 0) + (Number(b.taxAmount) || 0),
+            amount,
+            taxAmount,
+            totalAmount: amount + taxAmount,
             submittedAt: b.submittedAt ?? '',
             status: b.status,
             paidAt: b.paidAt ?? '',
-            paymentVoucherNo: b.paymentVoucherNo ?? null
+            paymentVoucherNo: b.paymentVoucherNo ?? null,
+            retentionPercentage: Number(b.retentionPercentage) || 0,
+            retainedAmount,
+            retentionReleased: !!b.retentionReleased,
+            advanceRecovered,
+            deductions,
+            netPayableAmount: b.netPayableAmount ?? (amount + taxAmount - retainedAmount - advanceRecovered - totalDeductions)
         };
     };
 

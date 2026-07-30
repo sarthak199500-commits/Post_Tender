@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import {  CheckCircle2, ShieldAlert, Plus, Camera, X } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
+import { DEFECT_SEVERITIES, severityChipClass } from '../../utils/defectSeverity';
 
 interface ProjectOption {
   id: string;
@@ -16,6 +17,7 @@ interface Defect {
   severity: string;
   status: string;
   reworkReportUrl?: string;
+  rectificationNotes?: string;
 }
 
 interface Inspection {
@@ -36,9 +38,11 @@ export const InspectorDefects = () => {
   const [newInspection, setNewInspection] = useState({
       projectId: '',
       remarks: '',
+      evidenceUrl: '',
       defects: [] as { description: string, severity: string }[]
   });
   const [newDefect, setNewDefect] = useState({ description: '', severity: 'Medium' });
+  const [isUploading, setIsUploading] = useState(false);
   const { token } = useSelector((state: RootState) => state.auth);
 
   const loadData = async () => {
@@ -98,12 +102,31 @@ export const InspectorDefects = () => {
 
           await axiosInstance.post('/inspections', { ...newInspection, vendorId });
           setIsLogging(false);
-          setNewInspection({ projectId: '', remarks: '', defects: [] });
+          setNewInspection({ projectId: '', remarks: '', evidenceUrl: '', defects: [] });
           loadData();
       } catch (err) {
           console.error(err);
           alert('Failed to log the inspection.');
       }
+  };
+
+  const handleEvidenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+          const { data } = await axiosInstance.post('/files/upload', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          setNewInspection(prev => ({ ...prev, evidenceUrl: data.url }));
+      } catch (err) {
+          console.error(err);
+          alert('Failed to upload the evidence file.');
+      } finally { setIsUploading(false); }
   };
 
   const handleVerifyDefect = async (defectId: string, isVerified: boolean) => {
@@ -162,10 +185,7 @@ export const InspectorDefects = () => {
                             <div key={defect.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${
-                                            defect.severity === 'High' ? 'bg-rose-100 text-rose-700' : 
-                                            defect.severity === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                                        }`}>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${severityChipClass(defect.severity)}`}>
                                             {defect.severity} Severity
                                         </span>
                                         <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
@@ -176,7 +196,14 @@ export const InspectorDefects = () => {
                                         </span>
                                     </div>
                                     <p className="text-slate-800 font-medium">{defect.description}</p>
-                                    
+
+                                    {defect.rectificationNotes && (
+                                        <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Vendor's Rectification Notes</p>
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{defect.rectificationNotes}</p>
+                                        </div>
+                                    )}
+
                                     {defect.reworkReportUrl && (
                                         <div className="mt-3">
                                             <a href={`${GATEWAY_BASE}${defect.reworkReportUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors">
@@ -211,7 +238,7 @@ export const InspectorDefects = () => {
       </div>
 
       {isLogging && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                   <h2 className="text-xl font-bold text-slate-800">Log Quality Defects</h2>
@@ -243,6 +270,35 @@ export const InspectorDefects = () => {
                       </div>
                   </div>
 
+                  <div>
+                      <label className="block text-xs font-black text-slate-600 uppercase tracking-wider mb-2">Inspection Evidence (optional)</label>
+                      <label className={`block border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
+                          newInspection.evidenceUrl ? 'bg-emerald-50 border-emerald-500' : 'border-slate-200 hover:bg-slate-50'
+                      }`}>
+                          {newInspection.evidenceUrl ? (
+                              <div className="flex flex-col items-center">
+                                  <CheckCircle2 className="w-7 h-7 text-emerald-700 mb-2" />
+                                  <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Evidence Attached</p>
+                              </div>
+                          ) : (
+                              <>
+                                  <Camera className="w-7 h-7 text-slate-600 mx-auto mb-2" />
+                                  <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                                      {isUploading ? 'Uploading Evidence...' : 'Upload Site Photo or Video'}
+                                  </p>
+                                  <p className="text-[10px] text-slate-500 mt-1">Shared with the vendor on their inspection record</p>
+                              </>
+                          )}
+                          <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*,video/*,.pdf"
+                              onChange={handleEvidenceUpload}
+                              disabled={isUploading}
+                          />
+                      </label>
+                  </div>
+
                   <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50">
                       <h3 className="font-bold text-slate-800 mb-4">Add Defect Item</h3>
                       <div className="flex gap-4">
@@ -260,9 +316,7 @@ export const InspectorDefects = () => {
                               onChange={e => setNewDefect({...newDefect, severity: e.target.value})}
                               className="w-32 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none text-sm font-medium"
                           >
-                              <option value="Low">Low</option>
-                              <option value="Medium">Medium</option>
-                              <option value="High">High</option>
+                              {DEFECT_SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                           <button 
                               onClick={handleAddDefect}

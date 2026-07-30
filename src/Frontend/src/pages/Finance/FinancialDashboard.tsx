@@ -44,7 +44,7 @@ export const FinancialDashboard = () => {
   const handleRejectBill = async (id: string) => {
     const reason = window.prompt('Enter reason for returning the bill:');
     if (!reason) return;
-    
+
     setActionLoading(id);
     try {
       await axiosInstance.post(`/bills/${id}/reject`, { reason });
@@ -52,6 +52,20 @@ export const FinancialDashboard = () => {
     } catch (err) {
       console.error(err);
       alert('Failed to reject bill');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReleaseRetention = async (id: string, amount: number) => {
+    if (!window.confirm(`Release the ${amount.toLocaleString('en-IN')} retention withheld on this bill?`)) return;
+    setActionLoading(id);
+    try {
+      await axiosInstance.post(`/bills/${id}/release-retention`);
+      await fetchDashboardData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to release retention');
     } finally {
       setActionLoading(null);
     }
@@ -125,9 +139,9 @@ export const FinancialDashboard = () => {
                 <th>Work Order</th>
                 <th>Vendor</th>
                 <th>Submitted On</th>
-                <th>Amount</th>
-                <th>Tax</th>
-                <th>Total Value</th>
+                <th>Claimed</th>
+                <th>Withheld</th>
+                <th>Net Payable</th>
                 <th className="text-right">Action</th>
               </tr>
             </thead>
@@ -135,15 +149,17 @@ export const FinancialDashboard = () => {
               {data.pendingApprovals.length === 0 ? (
                 <tr><td colSpan={8} className="text-center text-slate-600 py-6">No bills pending approval</td></tr>
               ) : (
-                data.pendingApprovals.map(b => (
+                data.pendingApprovals.map(b => {
+                  const withheld = b.retainedAmount + b.advanceRecovered + b.deductions.reduce((s, d) => s + d.amount, 0);
+                  return (
                   <tr key={b.id}>
-                    <td className="td-id">{b.billNo}</td>
+                    <td className="td-id">{b.billNo}{b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-bold text-indigo-600 uppercase">Advance</span>}</td>
                     <td className="td-wo">{b.workOrderNo}</td>
                     <td className="td-proj">{b.vendorName}</td>
                     <td className="td-date">{new Date(b.submittedAt).toLocaleDateString()}</td>
-                    <td className="font-medium text-slate-600">₹{b.amount.toLocaleString('en-IN')}</td>
-                    <td className="font-medium text-slate-600">₹{b.taxAmount.toLocaleString('en-IN')}</td>
-                    <td className="td-val text-blue-700">₹{b.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="font-medium text-slate-600">₹{b.totalAmount.toLocaleString('en-IN')}</td>
+                    <td className="font-medium text-amber-700">{withheld > 0 ? `- ₹${withheld.toLocaleString('en-IN')}` : '—'}</td>
+                    <td className="td-val text-blue-700">₹{b.netPayableAmount.toLocaleString('en-IN')}</td>
                     <td className="text-right">
                       {actionLoading === b.id ? (
                         <span className="text-xs font-bold text-slate-600">Processing...</span>
@@ -159,7 +175,8 @@ export const FinancialDashboard = () => {
                       )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -180,8 +197,8 @@ export const FinancialDashboard = () => {
                 <th>Bill No</th>
                 <th>Work Order</th>
                 <th>Vendor</th>
-                <th>Amount Paid</th>
-                <th>Status</th>
+                <th>Net Paid</th>
+                <th>Retention</th>
               </tr>
             </thead>
             <tbody>
@@ -195,8 +212,23 @@ export const FinancialDashboard = () => {
                     <td className="font-bold text-slate-600">{p.billNo}</td>
                     <td className="td-wo">{p.workOrderNo}</td>
                     <td className="td-proj">{p.vendorName}</td>
-                    <td className="td-val">₹{p.totalAmount.toLocaleString('en-IN')}</td>
-                    <td><span className="badge b-cp">Paid</span></td>
+                    <td className="td-val">₹{p.netPayableAmount.toLocaleString('en-IN')}</td>
+                    <td>
+                      {p.retainedAmount <= 0 ? (
+                        <span className="text-slate-400 text-xs">—</span>
+                      ) : p.retentionReleased ? (
+                        <span className="badge b-cp">Released</span>
+                      ) : actionLoading === p.id ? (
+                        <span className="text-xs font-bold text-slate-600">Processing...</span>
+                      ) : (
+                        <button
+                          onClick={() => handleReleaseRetention(p.id, p.retainedAmount)}
+                          className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded font-bold text-xs hover:bg-amber-100 transition-colors"
+                        >
+                          Release ₹{p.retainedAmount.toLocaleString('en-IN')}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

@@ -155,13 +155,13 @@ export const QueriesClarifications = () => {
 
                     <div className="flex-1 p-8 space-y-6 overflow-y-auto max-h-[500px]">
                         {selectedQuery.messages?.map((msg: QueryMessage) => (
-                            <div key={msg.id} className={`flex gap-4 max-w-lg ${msg.senderRole === 'Vendor' ? '' : 'ml-auto flex-row-reverse'}`}>
-                                <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${msg.senderRole === 'Vendor' ? 'bg-slate-200 text-slate-600' : 'bg-indigo-600 text-white'}`}>
+                            <div key={msg.id} className={`flex gap-4 max-w-lg ${msg.senderRole === 'Vendor' ? 'ml-auto flex-row-reverse' : ''}`}>
+                                <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${msg.senderRole === 'Vendor' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
                                     {msg.senderName.substring(0, 2).toUpperCase()}
                                 </div>
-                                <div className={`p-4 rounded-2xl ${msg.senderRole === 'Vendor' ? 'bg-slate-100 rounded-tl-none text-slate-800' : 'bg-indigo-600 rounded-tr-none text-white shadow-lg shadow-indigo-100'}`}>
+                                <div className={`p-4 rounded-2xl ${msg.senderRole === 'Vendor' ? 'bg-indigo-600 rounded-tr-none text-white shadow-lg shadow-indigo-100' : 'bg-slate-100 rounded-tl-none text-slate-800'}`}>
                                     <p className="text-sm">{msg.content}</p>
-                                    <p className={`text-[10px] mt-2 font-bold uppercase tracking-wider ${msg.senderRole === 'Vendor' ? 'text-slate-600' : 'text-indigo-700'}`}>
+                                    <p className={`text-[10px] mt-2 font-bold uppercase tracking-wider ${msg.senderRole === 'Vendor' ? 'text-indigo-200' : 'text-slate-500'}`}>
                                         {msg.senderName} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                 </div>
@@ -202,7 +202,7 @@ export const QueriesClarifications = () => {
 
       {/* New Query Modal */}
       {isCreating && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                   <h2 className="text-lg font-bold text-slate-800">Raise New Query</h2>
