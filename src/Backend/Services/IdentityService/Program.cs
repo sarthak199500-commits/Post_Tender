@@ -11,7 +11,7 @@ builder.Services.AddControllers();
 
 // Configure Entity Framework Core with SQLite
 builder.Services.AddDbContext<IdentityDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
