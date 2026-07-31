@@ -91,8 +91,8 @@ export const AdminPayments = () => {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
 
-  if (loading) return <div className="p-12 text-slate-600 font-bold text-center">Loading payment data...</div>;
-  if (error) return <div className="p-12 text-red-700 font-bold text-center">{error}</div>;
+  if (loading) return <div className="text-slate-600 font-bold text-center">Loading payment data...</div>;
+  if (error) return <div className="text-red-700 font-bold text-center">{error}</div>;
   if (!data) return null;
 
   // Vendors actually present in the payout history, for the filter dropdown.
@@ -127,7 +127,7 @@ export const AdminPayments = () => {
   });
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+    <div className="space-y-8">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
@@ -140,22 +140,22 @@ export const AdminPayments = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm flex flex-col justify-between">
           <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Total Released</p>
           <p className="text-3xl font-black text-slate-800 mt-2">₹{(data.kpis.totalFundsReleased / 10000000).toFixed(2)} Cr</p>
           <p className="text-xs font-bold text-emerald-700 mt-2">All successful payouts</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm flex flex-col justify-between">
           <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Pending Release</p>
           <p className="text-3xl font-black text-slate-800 mt-2">₹{(data.kpis.pendingApprovalValue / 100000).toFixed(2)} L</p>
           <p className="text-xs font-bold text-amber-700 mt-2">Currently with Finance</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm flex flex-col justify-between">
           <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Returned Bills</p>
           <p className="text-3xl font-black text-slate-800 mt-2">{data.kpis.rejectedBillsCount}</p>
           <p className="text-xs font-bold text-red-700 mt-2">Requires vendor action</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between bg-emerald-700 text-white">
+        <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm flex flex-col justify-between bg-emerald-700 text-white">
           <p className="text-sm font-bold text-emerald-700 uppercase tracking-widest">Disbursement Rate</p>
           <p className="text-3xl font-black mt-2">
             {((data.kpis.totalFundsReleased / (data.kpis.totalBudgetAllocated || 1)) * 100).toFixed(1)}%
@@ -165,8 +165,8 @@ export const AdminPayments = () => {
       </div>
 
       {/* Payment History */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <h2 className="text-lg font-bold text-slate-800">Recent Disbursements</h2>
           <div className="flex gap-3">
             <div className="relative">
@@ -176,14 +176,14 @@ export const AdminPayments = () => {
                 placeholder="Search vendor, WO, bill no..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64"
+                className="pl-9 pr-4 py-2 border border-slate-200 rounded-control text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64"
               />
             </div>
             <div className="relative" ref={filterRef}>
               <button
                 type="button"
                 onClick={() => setShowFilter(v => !v)}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-semibold transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 border rounded-control text-sm font-semibold transition-colors ${
                   activeFilterCount > 0
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -199,7 +199,7 @@ export const AdminPayments = () => {
 
               {showFilter && (
                 <div
-                  className="absolute right-0 mt-2 w-72 bg-white rounded-xl z-50 p-4 space-y-4"
+                  className="absolute right-0 mt-2 w-72 bg-white rounded-card z-50 p-4 space-y-4"
                   style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', animation: 'scaleIn 0.18s ease both', transformOrigin: 'top right' }}
                 >
                   <div className="flex items-center justify-between">
@@ -216,7 +216,7 @@ export const AdminPayments = () => {
                     <select
                       value={filterVendor}
                       onChange={e => setFilterVendor(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-control text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
                     >
                       <option value="">All vendors</option>
                       {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
@@ -234,7 +234,7 @@ export const AdminPayments = () => {
                           max={filterTo || undefined}
                           onChange={e => setFilterFrom(e.target.value)}
                           aria-label="From date"
-                          className="flex-1 min-w-0 px-2.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                          className="flex-1 min-w-0 px-2.5 py-2 border border-slate-200 rounded-control text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
                         />
                       </div>
                       <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export const AdminPayments = () => {
                           min={filterFrom || undefined}
                           onChange={e => setFilterTo(e.target.value)}
                           aria-label="To date"
-                          className="flex-1 min-w-0 px-2.5 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
+                          className="flex-1 min-w-0 px-2.5 py-2 border border-slate-200 rounded-control text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none"
                         />
                       </div>
                     </div>
@@ -256,7 +256,7 @@ export const AdminPayments = () => {
                     <button
                       type="button"
                       onClick={() => setShowFilter(false)}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors"
+                      className="px-3 py-1.5 rounded-control bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors"
                     >
                       Done
                     </button>

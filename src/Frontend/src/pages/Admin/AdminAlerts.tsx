@@ -33,7 +33,7 @@ export const AdminAlerts = () => {
       case 'critical': return <AlertTriangle className="w-5 h-5 text-red-700" />;
       case 'warning': return <AlertTriangle className="w-5 h-5 text-amber-600" />;
       case 'success': return <CheckCircle className="w-5 h-5 text-emerald-700" />;
-      default: return <Info className="w-5 h-5 text-blue-700" />;
+      default: return <Info className="w-5 h-5 text-brand-700" />;
     }
   };
 
@@ -42,12 +42,12 @@ export const AdminAlerts = () => {
       case 'critical': return 'bg-red-50 border-red-100';
       case 'warning': return 'bg-amber-50 border-amber-100';
       case 'success': return 'bg-emerald-50 border-emerald-100';
-      default: return 'bg-blue-50 border-blue-100';
+      default: return 'bg-brand-50 border-brand-100';
     }
   };
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+    <div className="space-y-8">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
@@ -58,13 +58,13 @@ export const AdminAlerts = () => {
         </div>
         <Link 
           to="/admin/alerts/raise"
-          className="bg-amber-700 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-amber-100 transition-colors"
+          className="bg-amber-700 hover:bg-amber-800 text-white px-6 py-2.5 rounded-card font-bold flex items-center gap-2 shadow-lg shadow-amber-100 transition-colors"
         >
           <Bell className="w-4 h-4" /> Raise Alert
         </Link>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-card shadow-sm border border-slate-200 p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-slate-800">Recent Alerts</h2>
           <div className="relative">
@@ -74,7 +74,7 @@ export const AdminAlerts = () => {
               placeholder="Search alerts..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none w-64 bg-slate-50"
+              className="pl-9 pr-4 py-2 border border-slate-200 rounded-control text-sm focus:ring-2 focus:ring-amber-500 outline-none w-64 bg-slate-50"
             />
           </div>
         </div>
@@ -91,7 +91,7 @@ export const AdminAlerts = () => {
               <div
                 key={alert.id}
                 onClick={() => alert.link && navigate(alert.link)}
-                className={`flex items-start gap-4 p-4 rounded-xl border ${getBg(alert.type)} transition-colors ${alert.link ? 'cursor-pointer hover:brightness-95' : ''}`}
+                className={`flex items-start gap-4 p-4 rounded-card border ${getBg(alert.type)} transition-colors ${alert.link ? 'cursor-pointer hover:brightness-95' : ''}`}
               >
                 <div className="mt-1 p-2 bg-white rounded-full shadow-sm">
                   {getIcon(alert.type)}

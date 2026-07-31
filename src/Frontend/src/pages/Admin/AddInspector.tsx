@@ -39,18 +39,18 @@ const AddInspector: React.FC = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-8 bg-white rounded-xl shadow-lg border border-slate-200 mt-10">
+        <div className="max-w-2xl mx-auto p-8 bg-white rounded-card shadow-lg border border-slate-200 mt-10">
             <button
                 type="button"
                 onClick={() => navigate('/admin/masters/inspectors')}
-                className="text-blue-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
+                className="text-brand-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
             >
                 &larr; Back to Directory
             </button>
             <h1 className="text-xl font-semibold text-slate-800 mb-6">Add New Inspector</h1>
             
             {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium">
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-control text-sm font-medium">
                     {error}
                 </div>
             )}
@@ -64,7 +64,7 @@ const AddInspector: React.FC = () => {
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                        className="w-full p-3 border border-slate-200 rounded-control focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
                         placeholder="Enter inspector name"
                     />
                 </div>
@@ -78,7 +78,7 @@ const AddInspector: React.FC = () => {
                             value={formData.email}
                             onChange={handleChange}
                             required
-                            className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                            className="w-full p-3 border border-slate-200 rounded-control focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
                             placeholder="email@example.com"
                         />
                     </div>
@@ -90,7 +90,7 @@ const AddInspector: React.FC = () => {
                             value={formData.mobile}
                             onChange={handleChange}
                             required
-                            className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                            className="w-full p-3 border border-slate-200 rounded-control focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
                             placeholder="+91 XXXXX XXXXX"
                         />
                     </div>
@@ -102,7 +102,7 @@ const AddInspector: React.FC = () => {
                         name="type"
                         value={formData.type}
                         onChange={handleChange}
-                        className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all bg-white"
+                        className="w-full p-3 border border-slate-200 rounded-control focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all bg-white"
                     >
                         <option value="Department">Department</option>
                         <option value="3rd Party">3rd Party</option>
@@ -118,7 +118,7 @@ const AddInspector: React.FC = () => {
                             value={formData.companyName}
                             onChange={handleChange}
                             required={formData.type === '3rd Party'}
-                            className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                            className="w-full p-3 border border-slate-200 rounded-control focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
                             placeholder="Enter 3rd party company name"
                         />
                     </div>
@@ -132,7 +132,7 @@ const AddInspector: React.FC = () => {
                         value={formData.password}
                         onChange={handleChange}
                         required
-                        className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                        className="w-full p-3 border border-slate-200 rounded-control focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all"
                         placeholder="••••••••"
                     />
                     <p className="text-xs text-slate-500 mt-2 ml-1">This will be used for their individual dashboard login.</p>
@@ -142,7 +142,7 @@ const AddInspector: React.FC = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-blue-800 hover:shadow-lg transition-all active:scale-[0.99] disabled:opacity-70 flex justify-center items-center"
+                        className="w-full bg-brand-600 text-white font-bold py-3 px-6 rounded-control shadow-md hover:bg-brand-700 hover:shadow-lg transition-all active:scale-[0.99] disabled:opacity-70 flex justify-center items-center"
                     >
                         {loading ? 'Processing...' : 'Register Inspector'}
                     </button>

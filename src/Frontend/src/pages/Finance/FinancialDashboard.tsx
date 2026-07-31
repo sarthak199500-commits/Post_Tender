@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
+import { statusChipClass } from '../../utils/statusTone';
 
 export const FinancialDashboard = () => {
   const { token } = useSelector((state: RootState) => state.auth);
@@ -27,11 +28,30 @@ export const FinancialDashboard = () => {
     fetchDashboardData();
   }, [token]);
 
-  const handlePayBill = async (id: string) => {
-    if (!window.confirm('Are you sure you want to release funds for this bill?')) return;
+  // Full settlement by default; an explicit amount releases an instalment and leaves the
+  // bill open at "Partially Paid" until the balance clears.
+  const handlePayBill = async (id: string, balance: number, partial: boolean) => {
+    let amount: number | undefined;
+
+    if (partial) {
+      const entered = window.prompt(
+        `Outstanding balance is ₹${balance.toLocaleString('en-IN')}.
+How much do you want to release now?`,
+        String(balance)
+      );
+      if (entered === null) return;
+      amount = Number(entered);
+      if (!Number.isFinite(amount) || amount <= 0) { alert('Enter an amount greater than zero.'); return; }
+      if (amount > balance) { alert(`That exceeds the outstanding balance of ₹${balance.toLocaleString('en-IN')}.`); return; }
+    } else if (!window.confirm(`Release the full outstanding ₹${balance.toLocaleString('en-IN')} for this bill?`)) {
+      return;
+    }
+
+    const reference = window.prompt('Payment reference (cheque no. / UTR) — optional:') ?? undefined;
+
     setActionLoading(id);
     try {
-      await axiosInstance.post(`/bills/${id}/pay`);
+      await axiosInstance.post(`/bills/${id}/pay`, { amount, reference });
       await fetchDashboardData();
     } catch (err) {
       console.error(err);
@@ -71,8 +91,8 @@ export const FinancialDashboard = () => {
     }
   };
 
-  if (loading) return <div className="p-4 text-slate-600 font-medium">Loading finance data...</div>;
-  if (error) return <div className="p-4 text-red-700 font-medium">{error}</div>;
+  if (loading) return <div className="text-slate-600 font-medium">Loading finance data...</div>;
+  if (error) return <div className="text-red-700 font-medium">{error}</div>;
   if (!data) return null;
 
   return (
@@ -82,7 +102,7 @@ export const FinancialDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon bg-blue-50 text-blue-700">
+            <div className="kpi-icon bg-brand-50 text-brand-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg>
             </div>
             <div className="kpi-lbl">Total Budget</div>
@@ -142,31 +162,47 @@ export const FinancialDashboard = () => {
                 <th>Claimed</th>
                 <th>Withheld</th>
                 <th>Net Payable</th>
+                <th>Paid / Balance</th>
                 <th className="text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {data.pendingApprovals.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-slate-600 py-6">No bills pending approval</td></tr>
+                <tr><td colSpan={9} className="text-center text-slate-600 py-6">No bills pending approval</td></tr>
               ) : (
                 data.pendingApprovals.map(b => {
                   const withheld = b.retainedAmount + b.advanceRecovered + b.deductions.reduce((s, d) => s + d.amount, 0);
                   return (
                   <tr key={b.id}>
-                    <td className="td-id">{b.billNo}{b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-bold text-indigo-600 uppercase">Advance</span>}</td>
+                    <td className="td-id">{b.billNo}{b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-bold text-brand-600 uppercase">Advance</span>}</td>
                     <td className="td-wo">{b.workOrderNo}</td>
                     <td className="td-proj">{b.vendorName}</td>
                     <td className="td-date">{new Date(b.submittedAt).toLocaleDateString()}</td>
                     <td className="font-medium text-slate-600">₹{b.totalAmount.toLocaleString('en-IN')}</td>
                     <td className="font-medium text-amber-700">{withheld > 0 ? `- ₹${withheld.toLocaleString('en-IN')}` : '—'}</td>
-                    <td className="td-val text-blue-700">₹{b.netPayableAmount.toLocaleString('en-IN')}</td>
+                    <td className="td-val text-brand-700">₹{b.netPayableAmount.toLocaleString('en-IN')}</td>
+                    <td className="text-xs font-medium">
+                      {b.amountPaid > 0 ? (
+                        <>
+                          <span className="text-emerald-700 font-bold">₹{b.amountPaid.toLocaleString('en-IN')}</span>
+                          <span className="text-slate-400"> paid · </span>
+                          <span className="text-amber-700 font-bold">₹{b.balanceAmount.toLocaleString('en-IN')}</span>
+                          <span className="text-slate-400"> due</span>
+                        </>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="text-right">
                       {actionLoading === b.id ? (
                         <span className="text-xs font-bold text-slate-600">Processing...</span>
                       ) : (
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => handlePayBill(b.id)} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded font-bold text-xs hover:bg-emerald-200 transition-colors">
-                            ✓ Release Funds
+                          <button onClick={() => handlePayBill(b.id, b.balanceAmount, false)} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded font-bold text-xs hover:bg-emerald-200 transition-colors">
+                            ✓ Release Full
+                          </button>
+                          <button onClick={() => handlePayBill(b.id, b.balanceAmount, true)} className="px-3 py-1 bg-brand-50 text-brand-700 rounded font-bold text-xs hover:bg-brand-100 transition-colors">
+                            Part Pay
                           </button>
                           <button onClick={() => handleRejectBill(b.id)} className="px-3 py-1 bg-red-50 text-red-700 rounded font-bold text-xs hover:bg-red-100 transition-colors">
                             ✗ Return
@@ -217,7 +253,7 @@ export const FinancialDashboard = () => {
                       {p.retainedAmount <= 0 ? (
                         <span className="text-slate-400 text-xs">—</span>
                       ) : p.retentionReleased ? (
-                        <span className="badge b-cp">Released</span>
+                        <span className={`badge ${statusChipClass('Released')}`}>Released</span>
                       ) : actionLoading === p.id ? (
                         <span className="text-xs font-bold text-slate-600">Processing...</span>
                       ) : (

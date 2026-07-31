@@ -65,19 +65,19 @@ export const VendorWorkOrderView = () => {
       <h1 className="text-3xl font-bold text-slate-800 mb-6">My Assigned Work Orders</h1>
 
       {workOrders.length === 0 ? (
-        <div className="bg-white p-12 text-center rounded-xl border border-slate-200">
+        <div className="bg-white p-12 text-center rounded-card border border-slate-200">
           <p className="text-slate-600">You currently have no assigned Work Orders.</p>
         </div>
       ) : (
         <div className="grid gap-6">
           {workOrders.map((wo) => (
-            <div key={wo.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between md:items-center">
+            <div key={wo.id} className="bg-white p-6 rounded-card shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between md:items-center">
               <div>
                 <div className="flex items-center gap-4 mb-2">
                   <h2 className="text-xl font-bold text-slate-800">{wo.workOrderNo}</h2>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                     wo.status === 'Accepted' || wo.status === 'Project Activated'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-emerald-100 text-emerald-700'
                     : wo.status === 'Draft'
                     ? 'bg-slate-100 text-slate-700'
                     : 'bg-yellow-100 text-yellow-700'
@@ -98,19 +98,19 @@ export const VendorWorkOrderView = () => {
                     href={wo.agreementDocumentUrl.startsWith('http') ? wo.agreementDocumentUrl : `${GATEWAY_BASE}${wo.agreementDocumentUrl}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full border border-blue-700 text-blue-700 hover:bg-blue-50 py-2 rounded-lg font-medium transition-colors flex justify-center items-center"
+                    className="w-full border border-brand-700 text-brand-700 hover:bg-brand-50 py-2 rounded-control font-medium transition-colors flex justify-center items-center"
                   >
                     View Agreement PDF
                   </a>
                 ) : (
-                  <button disabled title="No document attached" className="w-full border border-slate-300 text-slate-600 bg-slate-50 py-2 rounded-lg font-medium cursor-not-allowed">
+                  <button disabled title="No document attached" className="w-full border border-slate-300 text-slate-600 bg-slate-50 py-2 rounded-control font-medium cursor-not-allowed">
                     No PDF Available
                   </button>
                 )}
                 {wo.status !== 'Accepted' && wo.status !== 'Project Activated' && (
                   <button
                     onClick={() => setAcceptId(wo.id)}
-                    className="w-full bg-green-700 hover:bg-green-700 text-white font-bold py-2 rounded-lg shadow transition-colors"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-control shadow transition-colors"
                   >
                     Accept Agreement
                   </button>

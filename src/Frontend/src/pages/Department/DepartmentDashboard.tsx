@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
+import { statusChipClass } from '../../utils/statusTone';
 
 interface DashKpis {
   totalWorkOrders: number;
@@ -87,6 +88,7 @@ export const DepartmentDashboard = () => {
     const reason = prompt('Enter the reason for raising a query:');
     if (reason) doAction(`/progressreports/${id}/query`, reason);
   };
+  const handleStartReview = (id: string) => doAction(`/bills/${id}/start-review`);
   const handleApproveBill = (id: string) => doAction(`/bills/${id}/approve`);
   const handleQueryBill = (id: string) => {
     const reason = prompt('Enter the reason for returning this bill:');
@@ -120,21 +122,18 @@ export const DepartmentDashboard = () => {
     finally { setActionLoading(null); }
   };
 
-  const badgeClass = (status: string) => {
-    const map: Record<string, string> = {
-      'Submitted': 'b-ip', 'Reviewed': 'b-hi', 'Approved': 'b-cp', 'QueryRaised': 'b-od',
-      'Paid': 'b-cp', 'Returned': 'b-od', 'Completed': 'b-cp',
-      'Pending': 'b-dr', 'Open': 'b-open', 'In Progress': 'b-ip'
-    };
-    return map[status] || 'b-dr';
-  };
+  /* This page used to reach for the `b-*` CSS chips, which were a second, parallel
+     status palette — and it borrowed `b-hi` ("high priority", amber) to mean
+     "Under Review", so a routine review looked like a warning. `.badge` still
+     supplies the pill shape; the colour now comes from the shared tone map. */
+  const badgeClass = (status: string) => statusChipClass(status);
 
   const filteredReports = reportFilter === 'All' ? reports : reports.filter(r => r.status === reportFilter);
   const filteredBills = billFilter === 'All' ? bills : bills.filter(b => b.status === billFilter);
 
   if (error) return (
-    <div className="p-12 flex flex-col items-center justify-center space-y-4">
-      <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 flex items-center gap-3">
+    <div className="flex flex-col items-center justify-center space-y-4 min-h-[60vh]">
+      <div className="bg-red-50 text-red-700 rounded-card border border-red-100 flex items-center gap-3">
         <span className="font-medium">{error}</span>
       </div>
       <button onClick={fetchData} className="save-btn">Retry</button>
@@ -142,8 +141,8 @@ export const DepartmentDashboard = () => {
   );
 
   if (!kpis) return (
-    <div className="p-12 flex flex-col items-center justify-center space-y-4">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <div className="flex flex-col items-center justify-center space-y-4 min-h-[60vh]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
       <p className="text-slate-600 font-medium italic">Loading department dashboard...</p>
     </div>
   );
@@ -155,7 +154,7 @@ export const DepartmentDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+            <div className="kpi-icon bg-brand-50 text-brand-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>
             </div>
             <div className="kpi-lbl">Total Work Orders</div>
@@ -166,7 +165,7 @@ export const DepartmentDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{ background: '#ffedd5', color: '#c2410c' }}>
+            <div className="kpi-icon bg-amber-50 text-amber-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
             </div>
             <div className="kpi-lbl">Pending Reports</div>
@@ -177,7 +176,7 @@ export const DepartmentDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{ background: '#fef3c7', color: '#92400e' }}>
+            <div className="kpi-icon bg-amber-50 text-amber-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
             </div>
             <div className="kpi-lbl">Bills Pending</div>
@@ -188,7 +187,7 @@ export const DepartmentDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
+            <div className="kpi-icon bg-brand-50 text-brand-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12" /><path d="M6 8h12" /><path d="m6 13 8.5 8" /><path d="M6 13h3" /><path d="M9 13c6.667 0 6.667-10 0-10" /></svg>
             </div>
             <div className="kpi-lbl">Fund Requests</div>
@@ -199,7 +198,7 @@ export const DepartmentDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{ background: '#dcfce7', color: '#15803d' }}>
+            <div className="kpi-icon bg-emerald-50 text-emerald-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
             </div>
             <div className="kpi-lbl">Approved (Month)</div>
@@ -210,7 +209,7 @@ export const DepartmentDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{ background: '#fee2e2', color: '#b91c1c' }}>
+            <div className="kpi-icon bg-red-50 text-red-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
             </div>
             <div className="kpi-lbl">Open Queries</div>
@@ -265,7 +264,7 @@ export const DepartmentDashboard = () => {
                     {(r.status === 'Submitted' || r.status === 'Reviewed') && (
                       <>
                         <button onClick={() => handleApproveReport(r.id)} disabled={actionLoading !== null}
-                          className="save-btn" style={{ padding: '4px 10px', fontSize: '10.5px', background: '#15803d' }}>
+                          className="save-btn" style={{ padding: '4px 10px', fontSize: '10.5px', background: '#047857' }}>
                           ✓ Approve
                         </button>
                         <button onClick={() => handleQueryReport(r.id)} disabled={actionLoading !== null}
@@ -274,7 +273,7 @@ export const DepartmentDashboard = () => {
                         </button>
                       </>
                     )}
-                    {r.status === 'Approved' && <span className="text-xs text-green-700 font-bold">✓ Done</span>}
+                    {r.status === 'Approved' && <span className="text-xs text-emerald-700 font-bold">✓ Done</span>}
                     {r.status === 'QueryRaised' && <span className="text-xs text-red-700 font-bold">⚠ Queried</span>}
                   </div>
                 </td>
@@ -290,7 +289,7 @@ export const DepartmentDashboard = () => {
         <div className="tbl-hdr">
           <div className="tbl-title">Bills & Fund Requests</div>
           <div className="filter-bar">
-            {['All', 'Submitted', 'Approved', 'Paid', 'Returned'].map(f => (
+            {['All', 'Submitted', 'Under Review', 'Approved', 'Paid', 'Returned'].map(f => (
               <div key={f} className={`filter-tab ${billFilter === f ? 'active' : ''}`} onClick={() => setBillFilter(f)}>
                 {f}
               </div>
@@ -318,7 +317,7 @@ export const DepartmentDashboard = () => {
               <tr><td colSpan={10} className="text-center py-8 text-slate-600">No bills found</td></tr>
             ) : filteredBills.map(b => (
               <tr key={b.id}>
-                <td className="td-id">{b.billNo}{b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-bold text-indigo-600 uppercase">Advance</span>}</td>
+                <td className="td-id">{b.billNo}{b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-bold text-brand-600 uppercase">Advance</span>}</td>
                 <td className="td-wo">{b.workOrderNo}</td>
                 <td>{b.vendorName}</td>
                 <td className="td-val">₹{b.amount.toLocaleString('en-IN')}</td>
@@ -338,7 +337,7 @@ export const DepartmentDashboard = () => {
                     ))}
                     {b.status !== 'Paid' && (
                       <button onClick={() => handleAddDeduction(b.id)} disabled={actionLoading !== null}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800">
+                        className="text-[11px] font-bold text-brand-600 hover:text-brand-800">
                         + Deduction
                       </button>
                     )}
@@ -350,9 +349,15 @@ export const DepartmentDashboard = () => {
                 <td>
                   <div style={{ display: 'flex', gap: 5 }}>
                     {b.status === 'Submitted' && (
+                      <button onClick={() => handleStartReview(b.id)} disabled={actionLoading !== null}
+                        className="save-btn" style={{ padding: '4px 10px', fontSize: '10.5px', background: '#3b54d4' }}>
+                        ▸ Start Review
+                      </button>
+                    )}
+                    {b.status === 'Under Review' && (
                       <>
                         <button onClick={() => handleApproveBill(b.id)} disabled={actionLoading !== null}
-                          className="save-btn" style={{ padding: '4px 10px', fontSize: '10.5px', background: '#15803d' }}>
+                          className="save-btn" style={{ padding: '4px 10px', fontSize: '10.5px', background: '#047857' }}>
                           ✓ Approve
                         </button>
                         <button onClick={() => handleQueryBill(b.id)} disabled={actionLoading !== null}
@@ -361,8 +366,8 @@ export const DepartmentDashboard = () => {
                         </button>
                       </>
                     )}
-                    {b.status === 'Approved' && <span className="text-xs text-green-700 font-bold">✓ For Payment</span>}
-                    {b.status === 'Paid' && <span className="text-xs text-green-700 font-bold">💰 Paid</span>}
+                    {b.status === 'Approved' && <span className="text-xs text-emerald-700 font-bold">✓ For Payment</span>}
+                    {b.status === 'Paid' && <span className="text-xs text-emerald-700 font-bold">💰 Paid</span>}
                     {b.status === 'Returned' && <span className="text-xs text-red-700 font-bold">⚠ Returned</span>}
                   </div>
                 </td>
@@ -393,7 +398,9 @@ export const DepartmentDashboard = () => {
               <tr><td colSpan={4} className="text-center py-8 text-slate-600">No activity recorded</td></tr>
             ) : activity.map((a, i) => (
               <tr key={i}>
-                <td><span className="badge b-md">{a.entityName}</span></td>
+                {/* An entity name is a label, not a state — `b-md` ("medium priority")
+                    was borrowing a status colour for it. */}
+                <td><span className="badge bg-slate-100 text-slate-600">{a.entityName}</span></td>
                 <td className="td-proj font-semibold">{a.action}</td>
                 <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.changesInfo}>{a.changesInfo}</td>
                 <td className="td-date">{new Date(a.timestamp).toLocaleString('en-IN')}</td>

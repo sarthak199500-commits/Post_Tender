@@ -189,10 +189,10 @@ const InspectorVisits: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="p-10 text-center text-slate-600">Loading scheduled visits...</div>;
+    if (loading) return <div className="text-center text-slate-600">Loading scheduled visits...</div>;
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen">
+        <div>
             <header className="flex justify-between items-center mb-10">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Audit & Site Visits</h1>
@@ -200,7 +200,7 @@ const InspectorVisits: React.FC = () => {
                 </div>
                 <button 
                     onClick={() => { setSelectedWorkOrderId(''); setIsModalOpen(true); }}
-                    className="bg-blue-700 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-blue-200 transition-all active:scale-95"
+                    className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-control font-black shadow-lg shadow-brand-200 transition-all active:scale-95"
                 >
                     + Schedule New Visit
                 </button>
@@ -208,11 +208,11 @@ const InspectorVisits: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {visits.map((v) => (
-                    <div key={v.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col justify-between">
+                    <div key={v.id} className="bg-white p-6 rounded-card shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col justify-between">
                         <div>
                             <div className="flex justify-between items-start mb-4">
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${
-                                    v.status === 'Scheduled' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                    v.status === 'Scheduled' ? 'bg-brand-50 text-brand-700 border border-brand-100' :
                                     v.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
                                     'bg-red-50 text-red-700 border border-red-100'
                                 }`}>
@@ -234,7 +234,7 @@ const InspectorVisits: React.FC = () => {
                                     <span>{v.purpose}</span>
                                 </div>
                                 {v.remarks && (
-                                    <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs text-slate-600 italic">
+                                    <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-card text-xs text-slate-600 italic">
                                         <strong>Findings:</strong> {v.remarks}
                                     </div>
                                 )}
@@ -245,13 +245,13 @@ const InspectorVisits: React.FC = () => {
                             <div className="flex gap-2 border-t border-slate-50 pt-4 mt-auto">
                                 <button 
                                     onClick={() => handleCompleteVisit(v.id)}
-                                    className="flex-1 bg-slate-900 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors"
+                                    className="flex-1 bg-slate-900 text-white py-2.5 rounded-card text-xs font-bold hover:bg-slate-800 transition-colors"
                                 >
                                     ✓ Complete Visit
                                 </button>
                                 <button 
                                     onClick={() => handleCancelVisit(v.id)}
-                                    className="flex-1 bg-white text-red-700 border border-red-200 py-2.5 rounded-xl text-xs font-bold hover:bg-red-50 transition-colors text-center"
+                                    className="flex-1 bg-white text-red-700 border border-red-200 py-2.5 rounded-card text-xs font-bold hover:bg-red-50 transition-colors text-center"
                                 >
                                     Cancel Visit
                                 </button>
@@ -261,7 +261,7 @@ const InspectorVisits: React.FC = () => {
                 ))}
 
                 {visits.length === 0 && (
-                    <div className="bg-white p-20 rounded-3xl border-2 border-dashed border-slate-200 text-center col-span-full">
+                    <div className="bg-white p-20 rounded-card border-2 border-dashed border-slate-200 text-center col-span-full">
                         <div className="text-4xl mb-4">📋</div>
                         <h2 className="text-xl font-bold text-slate-700">No Scheduled Visits</h2>
                         <p className="text-slate-600 mt-2">Plan your site inspections by scheduling visits.</p>
@@ -272,7 +272,7 @@ const InspectorVisits: React.FC = () => {
             {/* ─── Schedule Visit Modal ─── */}
             {isModalOpen && (
                 <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-card shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800">Schedule Inspection Visit</h2>
@@ -294,7 +294,7 @@ const InspectorVisits: React.FC = () => {
                                         value={selectedWorkOrderId}
                                         onChange={(e) => setSelectedWorkOrderId(e.target.value)}
                                         required
-                                        className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium text-slate-800"
+                                        className="w-full p-3 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 outline-none bg-white font-medium text-slate-800"
                                     >
                                         <option value="">-- Choose Assigned Project --</option>
                                         {workOrders.map((wo) => (
@@ -312,7 +312,7 @@ const InspectorVisits: React.FC = () => {
                                         value={scheduledDate}
                                         onChange={(e) => setScheduledDate(e.target.value)}
                                         required
-                                        className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-800"
+                                        className="w-full p-3 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 outline-none font-medium text-slate-800"
                                     />
                                 </div>
 
@@ -324,7 +324,7 @@ const InspectorVisits: React.FC = () => {
                                         value={purpose}
                                         onChange={(e) => setPurpose(e.target.value)}
                                         required
-                                        className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-800"
+                                        className="w-full p-3 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 outline-none font-medium text-slate-800"
                                     />
                                 </div>
                             </div>
@@ -333,14 +333,14 @@ const InspectorVisits: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-6 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                                    className="px-6 py-2.5 rounded-card font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="bg-blue-700 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl font-bold transition-all disabled:"
+                                    className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-2.5 rounded-card font-bold transition-all disabled:"
                                 >
                                     {submitting ? 'Scheduling...' : 'Schedule Visit'}
                                 </button>

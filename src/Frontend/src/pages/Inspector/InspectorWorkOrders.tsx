@@ -52,10 +52,10 @@ const InspectorWorkOrders: React.FC = () => {
         fetchWorkOrders();
     }, [token, user?.id]);
 
-    if (loading) return <div className="p-10 text-center text-slate-600">Loading your assignments...</div>;
+    if (loading) return <div className="text-center text-slate-600">Loading your assignments...</div>;
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen">
+        <div>
             <header className="mb-10">
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Assigned Work Orders</h1>
                 <p className="text-slate-600 mt-2 font-medium">Detailed view of projects currently under your oversight.</p>
@@ -63,17 +63,17 @@ const InspectorWorkOrders: React.FC = () => {
 
             <div className="grid grid-cols-1 gap-6">
                 {workOrders.map((wo) => (
-                    <div key={wo.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:shadow-md transition-shadow">
+                    <div key={wo.id} className="bg-white p-6 rounded-card shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:shadow-md transition-shadow">
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                                <span className="bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded">{wo.workOrderNo}</span>
+                                <span className="bg-brand-50 text-brand-700 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded">{wo.workOrderNo}</span>
                                 <span className="text-slate-600 text-xs">•</span>
                                 <span className="text-slate-600 text-xs font-bold">{new Date(wo.startDate).toLocaleDateString()} to {new Date(wo.endDate).toLocaleDateString()}</span>
                             </div>
                             <h2 className="text-xl font-bold text-slate-800 mb-1">{wo.tenderTitle}</h2>
                             <div className="flex items-center gap-2 text-sm text-slate-600">
                                 <span className="font-semibold">Vendor:</span>
-                                <span className="text-blue-700 font-bold">{wo.vendorName}</span>
+                                <span className="text-brand-700 font-bold">{wo.vendorName}</span>
                             </div>
                         </div>
 
@@ -83,10 +83,10 @@ const InspectorWorkOrders: React.FC = () => {
                                 <div className="text-lg font-black text-slate-900">₹{wo.totalValue.toLocaleString('en-IN')}</div>
                             </div>
                             <div className="flex gap-2">
-                                <Link to={`/inspector/work-orders/${wo.id}`} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors">
+                                <Link to={`/inspector/work-orders/${wo.id}`} className="bg-slate-900 text-white px-4 py-2 rounded-card text-xs font-bold hover:bg-slate-800 transition-colors">
                                     Full Details
                                 </Link>
-                                <Link to={`/inspector/visits/schedule?woId=${wo.id}`} className="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors">
+                                <Link to={`/inspector/visits/schedule?woId=${wo.id}`} className="bg-white text-slate-700 border border-slate-200 px-4 py-2 rounded-card text-xs font-bold hover:bg-slate-50 transition-colors">
                                     Schedule Visit
                                 </Link>
                             </div>
@@ -95,7 +95,7 @@ const InspectorWorkOrders: React.FC = () => {
                 ))}
 
                 {workOrders.length === 0 && (
-                    <div className="bg-white p-20 rounded-3xl border-2 border-dashed border-slate-200 text-center">
+                    <div className="bg-white p-20 rounded-card border-2 border-dashed border-slate-200 text-center">
                         <div className="text-4xl mb-4">📋</div>
                         <h2 className="text-xl font-bold text-slate-700">No Assigned Work Orders</h2>
                         <p className="text-slate-600 mt-2">You haven't been assigned to any active projects yet.</p>

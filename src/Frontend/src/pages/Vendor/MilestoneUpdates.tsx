@@ -59,7 +59,7 @@ export const MilestoneUpdates = () => {
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div>
       <div className="max-w-5xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
@@ -72,7 +72,7 @@ export const MilestoneUpdates = () => {
         <div className="flex gap-4 items-center">
            <label className="text-sm font-bold text-slate-600 uppercase tracking-widest">Selected Project:</label>
            <select aria-label="Select an option" 
-             className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm"
+             className="bg-white border border-slate-200 rounded-card px-4 py-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm"
              value={selectedProjectId}
              onChange={(e) => setSelectedProjectId(e.target.value)}
            >
@@ -82,23 +82,23 @@ export const MilestoneUpdates = () => {
         </div>
 
         {!selectedProjectId ? (
-          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
+          <div className="bg-white p-12 text-center rounded-card border border-slate-200">
              <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
              <p className="text-slate-600">Please select a project above to view and manage milestones.</p>
           </div>
         ) : loadingMilestones ? (
-          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
+          <div className="bg-white p-12 text-center rounded-card border border-slate-200">
              <p className="text-slate-600">Loading milestones…</p>
           </div>
         ) : milestones.length === 0 ? (
-          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
+          <div className="bg-white p-12 text-center rounded-card border border-slate-200">
              <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
              <p className="text-slate-600">No milestones are defined on this project's work order yet.</p>
           </div>
         ) : (
           <div className="grid gap-6">
             {milestones.map((ms, idx) => (
-              <div key={ms.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex">
+              <div key={ms.id} className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden flex">
                  <div className={`w-2 ${ms.status === 'Completed' ? 'bg-emerald-500' : 'bg-amber-400'}`} />
                  <div className="p-6 flex-1 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex gap-4 items-start">
@@ -134,7 +134,7 @@ export const MilestoneUpdates = () => {
                        {ms.status !== 'Completed' && ms.status !== 'Inspection Requested' ? (
                            <button 
                              onClick={() => handlePrepareSubmission(ms.id)}
-                             className="bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                             className="bg-brand-600 text-white px-5 py-2 rounded-control text-sm font-bold hover:bg-brand-700 transition-all flex items-center gap-2 shadow-lg shadow-brand-100"
                            >
                               Prepare Submission
                               <ChevronRight className="w-4 h-4" />

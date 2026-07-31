@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
+import { statusChipClass } from '../../utils/statusTone';
 
 interface BillItem {
     id: string;
@@ -94,41 +95,33 @@ export const AdminBilling = () => {
         }
     };
 
-    const badgeClass = (status: string) => {
-        const map: Record<string, string> = {
-            'Submitted': 'bg-blue-100 text-blue-700',
-            'Approved': 'bg-emerald-100 text-emerald-700',
-            'Paid': 'bg-emerald-100 text-emerald-700',
-            'Returned': 'bg-red-100 text-red-700'
-        };
-        return map[status] || 'bg-slate-100 text-slate-700';
-    };
+    const badgeClass = (status: string) => statusChipClass(status);
 
     const filteredBills = filter === 'All' ? bills : bills.filter(b => b.status === filter);
 
     if (error) return (
-        <div className="p-10 text-center">
+        <div className="text-center">
             <div className="text-red-700 font-bold mb-4">{error}</div>
-            <button onClick={fetchBills} className="bg-blue-700 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">Retry</button>
+            <button onClick={fetchBills} className="bg-brand-600 text-white px-4 py-2 rounded font-bold hover:bg-brand-700">Retry</button>
         </div>
     );
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen">
+        <div>
             <header className="mb-10">
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Billing & Payments</h1>
                 <p className="text-slate-600 mt-2 font-medium">Review vendor bills and forward approved claims to Finance for payment release.</p>
             </header>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-card shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                     <h2 className="text-lg font-bold text-slate-800">Vendor Claims Pending Review</h2>
                     <div className="flex gap-2">
-                        {['All', 'Submitted', 'Approved', 'Paid', 'Returned'].map(f => (
+                        {['All', 'Submitted', 'Under Review', 'Approved', 'Paid', 'Returned'].map(f => (
                             <button 
                                 key={f}
                                 onClick={() => setFilter(f)}
-                                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                                className={`px-4 py-2 text-xs font-bold rounded-card transition-all ${
                                     filter === f ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                                 }`}
                             >
@@ -166,13 +159,13 @@ export const AdminBilling = () => {
                                         <tr key={b.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
                                             <td className="p-4 font-bold text-slate-800">
                                                 {b.billNo}
-                                                {b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-black text-indigo-600 uppercase">Advance</span>}
+                                                {b.type === 'Advance' && <span className="ml-1.5 text-[10px] font-black text-brand-600 uppercase">Advance</span>}
                                             </td>
                                             <td className="p-4 text-sm text-slate-600 font-medium">{b.workOrderNo}</td>
                                             <td className="p-4 text-sm text-slate-600">{b.vendorName}</td>
                                             <td className="p-4 text-sm font-bold text-slate-900">₹{b.amount.toLocaleString('en-IN')}</td>
                                             <td className="p-4 text-sm font-medium text-slate-600">₹{b.taxAmount.toLocaleString('en-IN')}</td>
-                                            <td className="p-4 text-sm font-bold text-blue-700">
+                                            <td className="p-4 text-sm font-bold text-brand-700">
                                                 ₹{(b.netPayableAmount ?? b.totalAmount).toLocaleString('en-IN')}
                                             </td>
                                             <td className="p-4 text-sm text-slate-600">{new Date(b.submittedAt).toLocaleDateString('en-IN')}</td>
@@ -183,19 +176,19 @@ export const AdminBilling = () => {
                                             </td>
                                             <td className="p-4 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    {b.status === 'Submitted' && (
+                                                    {(b.status === 'Submitted' || b.status === 'Under Review') && (
                                                         <>
                                                             <button 
                                                                 onClick={() => handleApprove(b.id)}
                                                                 disabled={actionLoading !== null}
-                                                                className="px-3 py-1.5 bg-emerald-700 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 shadow-sm transition-colors disabled:"
+                                                                className="px-3 py-1.5 bg-emerald-700 text-white text-xs font-bold rounded-control hover:bg-emerald-800 shadow-sm transition-colors disabled:"
                                                             >
                                                                 Approve
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleReject(b.id)}
                                                                 disabled={actionLoading !== null}
-                                                                className="px-3 py-1.5 bg-white text-red-700 border border-red-200 text-xs font-bold rounded-lg hover:bg-red-50 transition-colors disabled:"
+                                                                className="px-3 py-1.5 bg-white text-red-700 border border-red-200 text-xs font-bold rounded-control hover:bg-red-50 transition-colors disabled:"
                                                             >
                                                                 Return
                                                             </button>

@@ -10,6 +10,9 @@ interface User {
   // Present only for Vendor logins. Minted into the JWT as the vendorId claim and
   // returned nested under `user` by /api/auth/login, so it arrives via the spread below.
   vendorId?: string | null;
+  // True after an admin reset the password to a temporary one; cleared once the user
+  // sets their own. Login routes to /change-password while it is set.
+  mustChangePassword?: boolean;
 }
 
 // Maps numeric role enum values (from old cached sessions) to string names

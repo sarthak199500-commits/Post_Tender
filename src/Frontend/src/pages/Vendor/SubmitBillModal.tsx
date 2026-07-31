@@ -244,8 +244,8 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
 
   return (
     <div className="fixed inset-0 !mt-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
+      <div className="bg-white rounded-card w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+        <div className="border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
           <h2 className="text-xl font-bold text-slate-800">Raise New Claim</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600">
             <X className="w-5 h-5" />
@@ -253,12 +253,12 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
         </div>
 
         <div className="px-6 pt-4">
-          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-card">
             <button
               type="button"
               onClick={() => { setMode('claim'); setError(''); }}
-              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
-                mode === 'claim' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+              className={`flex-1 py-2 rounded-control text-sm font-bold transition-colors ${
+                mode === 'claim' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               Progress Claim
@@ -266,8 +266,8 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
             <button
               type="button"
               onClick={() => { setMode('advance'); setError(''); }}
-              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
-                mode === 'advance' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+              className={`flex-1 py-2 rounded-control text-sm font-bold transition-colors ${
+                mode === 'advance' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               Mobilisation Advance
@@ -275,9 +275,9 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto">
+        <div className="overflow-y-auto">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex gap-3 text-sm font-medium">
+            <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-card flex gap-3 text-sm font-medium">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               {error}
             </div>
@@ -289,7 +289,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
               <select aria-label="Select an option"
                 value={selectedWO}
                 onChange={e => setSelectedWO(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none bg-slate-50 font-medium"
+                className="w-full border border-slate-200 rounded-card p-3 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none bg-slate-50 font-medium"
               >
                 <option value="">-- Select Work Order --</option>
                 {workOrders.map(wo => (
@@ -305,13 +305,13 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
                     <label className="block text-sm font-bold text-slate-700 mb-2">Select Completed Milestones</label>
                     <div className="space-y-3">
                       {milestones.filter(m => m.status === 'Completed').map(m => (
-                        <label key={m.id} className="flex items-start gap-3 p-4 border border-slate-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer transition-colors group">
+                        <label key={m.id} className="flex items-start gap-3 p-4 border border-slate-200 rounded-card hover:border-brand-300 hover:bg-brand-50/30 cursor-pointer transition-colors group">
                           <div className="mt-0.5">
                             <input
                               type="checkbox"
                               checked={selectedMilestones.includes(m.id)}
                               onChange={() => toggleMilestone(m.id)}
-                              className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-600"
+                              className="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500"
                             />
                           </div>
                           <div className="flex-1">
@@ -324,7 +324,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
                         </label>
                       ))}
                       {milestones.filter(m => m.status === 'Completed').length === 0 && (
-                        <div className="p-4 bg-slate-50 text-slate-600 rounded-xl text-center text-sm border border-slate-100">
+                        <div className="p-4 bg-slate-50 text-slate-600 rounded-card text-center text-sm border border-slate-100">
                           No completed milestones available to bill for this Work Order.
                         </div>
                       )}
@@ -333,7 +333,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
                 )}
 
                 {selectedMilestones.length > 0 && (
-                  <div className="p-5 bg-emerald-50 border border-emerald-100 rounded-xl space-y-2">
+                  <div className="p-5 bg-emerald-50 border border-emerald-100 rounded-card space-y-2">
                     <p className="text-emerald-800 font-bold">Calculated Claim Amount</p>
                     <div className="flex justify-between items-end">
                       <p className="text-3xl font-black text-emerald-700">{rupeesCompact(claimAmount)}</p>
@@ -366,9 +366,9 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
             ) : (
               <>
                 {woDetails && policy && (
-                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3">
-                    <Landmark className="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" />
-                    <div className="text-sm text-indigo-900">
+                  <div className="p-4 bg-brand-50 border border-brand-100 rounded-card flex items-start gap-3">
+                    <Landmark className="w-5 h-5 text-brand-600 mt-0.5 shrink-0" />
+                    <div className="text-sm text-brand-900">
                       <p className="font-bold">Mobilisation advance eligibility</p>
                       <p className="mt-1">
                         Up to {policy.maxAdvancePercentage}% of the contract value ({rupeesCompact(woDetails.totalValue)}) —
@@ -379,7 +379,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
                 )}
 
                 {selectedWO && (hasPendingAdvance || outstandingAdvance > 0) && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 font-medium">
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-card text-sm text-amber-800 font-medium">
                     {hasPendingAdvance
                       ? 'An advance request is already pending on this work order.'
                       : `An advance of ${rupeesCompact(outstandingAdvance)} is still outstanding on this work order and must be recovered before another can be requested.`}
@@ -397,7 +397,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
                       value={advanceAmount}
                       onChange={e => setAdvanceAmount(e.target.value)}
                       placeholder="Enter amount"
-                      className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+                      className="w-full p-3 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 outline-none font-medium"
                     />
                     {advanceCap > 0 && advanceAmountNum > advanceCap && (
                       <p className="text-xs text-red-700 mt-1 font-medium">Exceeds the {rupeesCompact(advanceCap)} cap for this work order.</p>
@@ -423,7 +423,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
                 value={billNo}
                 onChange={e => setBillNo(e.target.value)}
                 placeholder="Your reference"
-                className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+                className="w-full p-3 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 outline-none font-medium"
               />
               <p className="text-xs text-slate-600 mt-1">Must be unique across your bills — payment vouchers are reconciled against it.</p>
             </div>
@@ -432,12 +432,12 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 {mode === 'claim' ? 'Invoice Document (PDF)' : 'Supporting Document (PDF)'}
               </label>
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:bg-slate-50 hover:border-indigo-300 transition-colors cursor-pointer">
+              <div className="border-2 border-dashed border-slate-200 rounded-card p-6 text-center hover:bg-slate-50 hover:border-brand-300 transition-colors cursor-pointer">
                 <input type="file" id="invoiceFile" className="hidden" accept=".pdf" onChange={e => setFile(e.target.files?.[0] || null)} />
                 <label htmlFor="invoiceFile" className="cursor-pointer">
                   {file ? (
                     <div className="flex flex-col items-center gap-2">
-                      <FileText className="w-8 h-8 text-indigo-500" />
+                      <FileText className="w-8 h-8 text-brand-500" />
                       <p className="font-semibold text-slate-800">{file.name}</p>
                       <p className="text-xs text-slate-600">Click to change</p>
                     </div>
@@ -454,15 +454,15 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
           </form>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
-          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-200 transition-colors">
+        <div className="border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
+          <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-card font-semibold text-slate-600 hover:bg-slate-200 transition-colors">
             Cancel
           </button>
           <button
             type="submit"
             form="billForm"
             disabled={mode === 'claim' ? !canSubmitClaim : !canSubmitAdvance}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-100"
+            className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-card font-semibold flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-brand-100"
           >
             {loading ? 'Submitting...' : <><CheckCircle className="w-4 h-4" /> {mode === 'claim' ? 'Submit Claim' : 'Request Advance'}</>}
           </button>

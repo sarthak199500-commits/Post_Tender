@@ -3,10 +3,11 @@ import { Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-r
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from './store';
 import { logout } from './store/authSlice';
-import { fetchNotifications, timeAgo } from './api/notificationsService';
+import { fetchNotifications, timeAgo, markAlertRead, markAllAlertsRead } from './api/notificationsService';
 import type { AppNotification, NotificationType } from './api/notificationsService';
 import { Login } from './pages/Login';
 import { NotFound } from './pages/NotFound';
+import { ChangePassword } from './pages/ChangePassword';
 import logoWhite from './assets/logo-white.png';
 import { VendorDirectory } from './pages/Vendors/VendorDirectory';
 import { CreateWorkOrderForm } from './pages/WorkOrders/CreateWorkOrderForm';
@@ -95,7 +96,7 @@ const DashboardHome = () => {
 
   return (
     <div className="p-12 h-full bg-slate-50 flex flex-col items-center justify-center">
-      <h1 className="text-4xl font-extrabold text-blue-600 mb-4 tracking-tight">Welcome, {user?.name}</h1>
+      <h1 className="text-4xl font-extrabold text-brand-600 mb-4 tracking-tight">Welcome, {user?.name}</h1>
       <p className="text-xl text-slate-500 max-w-2xl text-center leading-relaxed">
         You are logged in as <strong className="text-slate-800">{user?.role}</strong>.
       </p>
@@ -166,11 +167,13 @@ const NavItem = ({ to, icon, text, hasChevron = false, indent = false, onChevron
   );
 };
 
+/* Inline styles, so these read the CSS variables rather than repeating the hexes —
+   `info` in particular was blue-500, a shade that exists nowhere else in the palette. */
 const NOTIF_DOT: Record<NotificationType, string> = {
-  critical: '#ef4444',
-  warning: '#f59e0b',
-  info: '#3b82f6',
-  success: '#10b981',
+  critical: 'var(--danger)',
+  warning: 'var(--warning)',
+  info: 'var(--info)',
+  success: 'var(--success)',
 };
 
 // Header title/subtitle per route so the topbar reflects the current page
@@ -257,8 +260,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const pageMeta = getPageMeta(location.pathname);
   const isAdminLike = user?.role === 'Admin' || user?.role === 'PMU';
 
-  // Derived from live service data — see api/notificationsService.ts. Cached for
-  // 60s there, so the remount on every route change doesn't refetch.
+  // Half derived from live service data, half persisted alerts — see
+  // api/notificationsService.ts. Cached for 60s there, so the remount on every route
+  // change doesn't refetch.
+  const reloadNotifications = React.useCallback(async () => {
+    if (!user) return;
+    const list = await fetchNotifications(user.role, user.id, { force: true });
+    setNotifications(list);
+  }, [user]);
+
   React.useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -268,6 +278,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       .finally(() => { if (!cancelled) setNotifLoading(false); });
     return () => { cancelled = true; };
   }, [user]);
+
+  // A persisted alert stops counting once read; a derived state condition has no read
+  // concept, so it counts until the underlying situation is resolved.
+  const unreadCount = notifications.filter(n => !n.persisted || !n.isRead).length;
 
   // Close either dropdown when clicking outside it.
   React.useEffect(() => {
@@ -556,7 +570,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="notif-wrap relative" ref={notifRef}>
               <div className="notif-btn cursor-pointer" onClick={() => setShowNotifications(v => !v)} role="button" aria-label="Notifications">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                {notifications.length > 0 && (
+                {unreadCount > 0 && (
                   <>
                     <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white" style={{ animation: 'pulseRing 2s ease-out infinite' }}></div>
                     <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
@@ -564,10 +578,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 )}
               </div>
               {showNotifications && (
-                <div className="topbar-dropdown absolute right-0 mt-2 w-80 bg-white rounded-2xl z-50 overflow-hidden" style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', animation: 'scaleIn 0.2s ease both', transformOrigin: 'top right' }}>
+                <div className="topbar-dropdown absolute right-0 mt-2 w-80 bg-white rounded-card z-50 overflow-hidden" style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', animation: 'scaleIn 0.2s ease both', transformOrigin: 'top right' }}>
                   <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: 'rgba(0,0,0,0.04)', background: 'linear-gradient(to bottom, #f8f9fc, #fff)' }}>
                     <h3 className="font-bold text-slate-800 text-sm">Notifications</h3>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{notifications.length} active</span>
+                    {notifications.some(n => n.persisted && !n.isRead) ? (
+                      <button
+                        onClick={async (e) => { e.stopPropagation(); await markAllAlertsRead(); await reloadNotifications(); }}
+                        className="text-[10px] font-bold uppercase tracking-wider text-brand-600 hover:text-brand-800"
+                      >
+                        Mark all read
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{notifications.length} active</span>
+                    )}
                   </div>
                   <div className="max-h-72 overflow-y-auto">
                     {notifLoading && (
@@ -579,8 +602,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     {!notifLoading && notifications.slice(0, 12).map(n => (
                       <div
                         key={n.id}
-                        onClick={() => { setShowNotifications(false); if (n.link) navigate(n.link); }}
-                        className="p-4 hover:bg-blue-50/40 cursor-pointer transition-colors flex gap-3"
+                        onClick={async () => {
+                          setShowNotifications(false);
+                          if (n.persisted && !n.isRead) { await markAlertRead(n.id); await reloadNotifications(); }
+                          if (n.link) navigate(n.link);
+                        }}
+                        className={`p-4 hover:bg-brand-50/40 cursor-pointer transition-colors flex gap-3 ${n.persisted && !n.isRead ? 'bg-brand-50/40' : ''}`}
                         style={{ borderBottom: '1px solid rgba(0,0,0,0.03)' }}
                       >
                         <span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0" style={{ background: NOTIF_DOT[n.type] }} />
@@ -595,7 +622,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   {isAdminLike && (
                     <div
                       onClick={() => { setShowNotifications(false); navigate('/admin/alerts'); }}
-                      className="p-3 text-center cursor-pointer transition-colors hover:bg-blue-50/50"
+                      className="p-3 text-center cursor-pointer transition-colors hover:bg-brand-50/50"
                       style={{ borderTop: '1px solid rgba(0,0,0,0.04)', background: 'linear-gradient(to top, #f8f9fc, #fff)' }}
                     >
                       <span className="text-xs font-bold" style={{ color: '#4f6ef7' }}>View All Alerts</span>
@@ -614,16 +641,23 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" style={{ transform: showUserMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s ease' }}><polyline points="6 9 12 15 18 9" /></svg>
               </div>
               {showUserMenu && (
-                <div className="topbar-dropdown absolute right-0 mt-2 w-60 bg-white rounded-2xl z-50 overflow-hidden" style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', animation: 'scaleIn 0.2s ease both', transformOrigin: 'top right' }}>
+                <div className="topbar-dropdown absolute right-0 mt-2 w-60 bg-white rounded-card z-50 overflow-hidden" style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)', animation: 'scaleIn 0.2s ease both', transformOrigin: 'top right' }}>
                   <div className="p-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'linear-gradient(to bottom, #f8f9fc, #fff)' }}>
                     <p className="text-sm font-bold text-slate-800 truncate">{user?.name || 'User'}</p>
                     <p className="text-xs text-slate-500 truncate mt-0.5">{user?.email}</p>
                     <span className="inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)' }}>{user?.role}</span>
                   </div>
+                  <div
+                    onClick={() => { setShowUserMenu(false); navigate('/change-password'); }}
+                    className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-brand-50/50 transition-colors text-sm font-semibold text-slate-700"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8" cy="15" r="4" /><line x1="10.85" y1="12.15" x2="19" y2="4" /><line x1="18" y1="5" x2="20" y2="7" /><line x1="15" y1="8" x2="17" y2="10" /></svg>
+                    Change Password
+                  </div>
                   {isAdminLike && (
                     <div
                       onClick={() => { setShowUserMenu(false); navigate('/admin/settings'); }}
-                      className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-blue-50/50 transition-colors text-sm font-semibold text-slate-700"
+                      className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-brand-50/50 transition-colors text-sm font-semibold text-slate-700"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                       Settings
@@ -656,6 +690,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<PrivateRoute><Layout><DashboardHome /></Layout></PrivateRoute>} />
+      <Route path="/change-password" element={<PrivateRoute><Layout><ChangePassword /></Layout></PrivateRoute>} />
       <Route path="/admin/dashboard" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><AdminDashboard /></Layout></PrivateRoute>} />
       <Route path="/admin/tenders/awarded" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><AwardedTenders /></Layout></PrivateRoute>} />
       <Route path="/admin/projects" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><GlobalProjects /></Layout></PrivateRoute>} />

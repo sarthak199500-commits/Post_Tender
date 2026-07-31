@@ -46,11 +46,11 @@ export const AdminQueries = () => {
   );
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div>
       <div className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-            <MessageSquare className="w-8 h-8 text-indigo-600" />
+            <MessageSquare className="w-8 h-8 text-brand-600" />
             Vendor Queries & Support
           </h1>
           <p className="text-slate-600 mt-2 font-medium">Manage and respond to technical and administrative queries raised by vendors.</p>
@@ -66,23 +66,23 @@ export const AdminQueries = () => {
                    placeholder="Search subject or vendor..." 
                    value={searchTerm}
                    onChange={e => setSearchTerm(e.target.value)}
-                   className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
+                   className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-card text-sm focus:ring-2 focus:ring-brand-500 outline-none shadow-sm"
                  />
               </div>
               
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+              <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
                   <div className="p-4 border-b border-slate-100 bg-slate-50 font-bold text-slate-700">Inbox</div>
                   <div className="overflow-y-auto flex-1">
                       {filteredQueries.map(q => (
                         <div 
                           key={q.id} 
                           onClick={() => setSelectedQuery(q)}
-                          className={`p-4 border-b border-slate-100 transition-all cursor-pointer ${selectedQuery?.id === q.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`}
+                          className={`p-4 border-b border-slate-100 transition-all cursor-pointer ${selectedQuery?.id === q.id ? 'bg-brand-50 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`}
                         >
                             <div className="flex justify-between items-start mb-2">
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                                     q.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' : 
-                                    q.status === 'Open' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                                    q.status === 'Open' ? 'bg-amber-100 text-amber-700' : 'bg-brand-100 text-brand-700'
                                 }`}>
                                     {q.status}
                                 </span>
@@ -100,7 +100,7 @@ export const AdminQueries = () => {
            </div>
 
            {/* Main Chat Area */}
-           <div className="flex-1 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[660px] overflow-hidden">
+           <div className="flex-1 bg-white rounded-card border border-slate-200 shadow-sm flex flex-col h-[660px] overflow-hidden">
               {selectedQuery ? (
                   <>
                     <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
@@ -110,7 +110,7 @@ export const AdminQueries = () => {
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest ${
                              selectedQuery.status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' : 
-                             selectedQuery.status === 'Open' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                             selectedQuery.status === 'Open' ? 'bg-amber-100 text-amber-700' : 'bg-brand-100 text-brand-700'
                         }`}>
                              {selectedQuery.status}
                         </span>
@@ -119,12 +119,12 @@ export const AdminQueries = () => {
                     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                         {selectedQuery.messages?.map((msg: QueryMessage) => (
                             <div key={msg.id} className={`flex gap-4 max-w-xl ${msg.senderRole === 'Vendor' ? '' : 'ml-auto flex-row-reverse'}`}>
-                                <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold ${msg.senderRole === 'Vendor' ? 'bg-slate-200 text-slate-600' : 'bg-indigo-600 text-white shadow-md'}`}>
+                                <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold ${msg.senderRole === 'Vendor' ? 'bg-slate-200 text-slate-600' : 'bg-brand-600 text-white shadow-md'}`}>
                                     {msg.senderRole === 'Vendor' ? 'V' : 'PMU'}
                                 </div>
-                                <div className={`p-4 rounded-2xl shadow-sm border ${msg.senderRole === 'Vendor' ? 'bg-white border-slate-200 rounded-tl-none text-slate-800' : 'bg-indigo-50 border-indigo-100 rounded-tr-none text-indigo-900'}`}>
+                                <div className={`p-4 rounded-card shadow-sm border ${msg.senderRole === 'Vendor' ? 'bg-white border-slate-200 rounded-tl-none text-slate-800' : 'bg-brand-50 border-brand-100 rounded-tr-none text-brand-900'}`}>
                                     <p className="text-sm font-medium whitespace-pre-wrap">{msg.content}</p>
-                                    <p className={`text-[10px] mt-3 font-black uppercase tracking-wider ${msg.senderRole === 'Vendor' ? 'text-slate-600' : 'text-indigo-400'}`}>
+                                    <p className={`text-[10px] mt-3 font-black uppercase tracking-wider ${msg.senderRole === 'Vendor' ? 'text-slate-600' : 'text-brand-400'}`}>
                                         {msg.senderName} • {new Date(msg.timestamp).toLocaleString('en-IN')}
                                     </p>
                                 </div>
@@ -138,13 +138,13 @@ export const AdminQueries = () => {
                                 rows={3}
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                className="w-full p-4 pr-16 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white shadow-inner font-medium resize-none"
+                                className="w-full p-4 pr-16 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 outline-none text-sm bg-white shadow-inner font-medium resize-none"
                                 placeholder="Write your response to the vendor..."
                             />
                             <button 
                                 onClick={handleSendMessage}
                                 disabled={!newMessage.trim()}
-                                className="absolute right-3 bottom-3 p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md disabled:"
+                                className="absolute right-3 bottom-3 p-3 bg-brand-600 text-white rounded-card hover:bg-brand-700 transition-all shadow-md disabled:"
                             >
                                 <Send className="w-5 h-5" />
                             </button>

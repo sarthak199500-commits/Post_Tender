@@ -54,14 +54,14 @@ export const AddVendorCategory = () => {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold text-slate-800 mb-8">Vendor Categories Master</h2>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+      <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 mb-8">
         <form onSubmit={handleAdd} className="flex gap-4">
           <input
             type="text"
-            className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="flex-1 p-3 border border-slate-300 rounded-control focus:ring-2 focus:ring-brand-500 focus:outline-none"
             placeholder="Enter Category Name (e.g. IT, Construction)"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -70,7 +70,7 @@ export const AddVendorCategory = () => {
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-700 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:"
+            className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-control font-semibold transition-colors disabled:"
           >
             {loading ? 'Adding...' : 'Add Category'}
           </button>
@@ -78,7 +78,7 @@ export const AddVendorCategory = () => {
         {error && <p className="text-red-700 text-sm mt-2">{error}</p>}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto"><table className="w-full text-left">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>

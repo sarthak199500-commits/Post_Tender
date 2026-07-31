@@ -6,8 +6,8 @@ import axiosInstance from './axiosInstance';
  * foreign-key IDs already present on the entities (there is no backend
  * aggregation/BFF layer). A few figures can't be derived honestly from the
  * current schema (e.g. month-over-month deltas need historical snapshots we
- * don't store, and there's no "department" field on Tender/WorkOrder/Project)
- * — those are called out inline rather than filled with invented numbers.
+ * don't store) — those are called out inline rather than filled with invented
+ * numbers. Department IS now a real field on Tender/WorkOrder/Project.
  */
 
 /* ── entity shapes (only the fields the dashboards read) ────────────────── */
@@ -17,17 +17,21 @@ interface TenderDto {
     tenderNo?: string;
     title?: string;
     tenderType?: string;
+    departmentId?: string | null;
     status: string;
     budget?: number | string;
     publishDate?: string;
     closeDate?: string;
 }
 
+interface DepartmentDto { id: string; name?: string; isActive?: boolean; }
+
 interface WorkOrderDto {
     id: string;
     tenderId?: string;
     vendorId?: string;
     workOrderNo?: string;
+    departmentId?: string | null;
     status: string;
     startDate?: string;
     endDate?: string;
@@ -58,7 +62,10 @@ interface BillDto {
     retentionReleased?: boolean;
     advanceRecovered?: number;
     deductions?: { id: string; billId?: string; type: string; description: string; amount: number; isSystemGenerated?: boolean }[];
+    payments?: { id: string; amount: number; voucherNo: string; reference?: string | null; paidAt?: string }[];
     netPayableAmount?: number;
+    amountPaid?: number;
+    balanceAmount?: number;
 }
 
 interface VendorDto {
@@ -145,12 +152,13 @@ async function getList<T>(url: string, params?: Record<string, string>): Promise
 /* ── dashboards ─────────────────────────────────────────────────────────── */
 
 export async function fetchAdminDashboard() {
-    const [tenders, workorders, inspections, bills, vendors] = await Promise.all([
+    const [tenders, workorders, inspections, bills, vendors, departments] = await Promise.all([
         getList<TenderDto>('/tenders'),
         getList<WorkOrderDto>('/workorders'),
         getList<InspectionDto>('/inspections'),
         getList<BillDto>('/bills'),
-        getList<VendorDto>('/vendors')
+        getList<VendorDto>('/vendors'),
+        getList<DepartmentDto>('/masters/departments')
     ]);
 
     const now = new Date();
@@ -176,15 +184,22 @@ export async function fetchAdminDashboard() {
 
     const statusCounts: Record<string, number> = {};
     tenders.forEach(t => { statusCounts[t.status] = (statusCounts[t.status] || 0) + 1; });
-    const statusColors: Record<string, string> = { Open: '#3b82f6', Awarded: '#10b981', Closed: '#64748b' };
+    const statusColors: Record<string, string> = { Open: '#4f6ef7', Awarded: '#10b981', Closed: '#64748b' };
     const status = Object.entries(statusCounts).map(([name, value]) => ({ name, value, color: statusColors[name] || '#94a3b8' }));
 
-    // Replaces the old "Projects by Department" chart — no department field exists
-    // anywhere on Tender/WorkOrder/Project, so this shows Work Orders by Status instead.
-    const woStatusCounts: Record<string, number> = {};
-    workorders.forEach(w => { woStatusCounts[w.status] = (woStatusCounts[w.status] || 0) + 1; });
-    const maxWoCount = Math.max(1, ...Object.values(woStatusCounts));
-    const department = Object.entries(woStatusCounts).map(([name, value]) => ({ name, value, pct: Math.round((value / maxWoCount) * 100) }));
+    // Work orders now carry a DepartmentId (inherited from their tender), so this is a
+    // real Work Orders by Department breakdown. Departments are mastered in IdentityService,
+    // so the name is joined here by id; anything without one groups under "Unassigned".
+    const departmentNameById = new Map(departments.map(d => [d.id, d.name ?? 'Unnamed']));
+    const deptCounts: Record<string, number> = {};
+    workorders.forEach(w => {
+        const name = (w.departmentId && departmentNameById.get(w.departmentId)) || 'Unassigned';
+        deptCounts[name] = (deptCounts[name] || 0) + 1;
+    });
+    const maxDeptCount = Math.max(1, ...Object.values(deptCounts));
+    const department = Object.entries(deptCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({ name, value, pct: Math.round((value / maxDeptCount) * 100) }));
 
     // Buckets work orders by creation month, using each one's CURRENT status.
     // Real data, but not a true historical trend (we don't store status-change history).
@@ -213,7 +228,7 @@ export async function fetchAdminDashboard() {
             workOrderId: wo?.id ?? null,
             woNumber: wo?.workOrderNo || 'N/A',
             projectName: t.title || '',
-            department: t.tenderType || 'N/A',
+            department: (t.departmentId && departmentNameById.get(t.departmentId)) || 'Unassigned',
             value: Number(t.budget) || 0,
             status: wo?.status || t.status,
             progress: wo ? (wo.status === 'Completed' ? 100 : wo.status === 'Accepted' ? 50 : 0) : 0,
@@ -416,7 +431,7 @@ export async function fetchDepartmentDashboard() {
         kpis: {
             totalWorkOrders: workorders.length,
             pendingReports: reports.filter(r => r.status === 'Submitted' || r.status === 'Reviewed').length,
-            billsPendingApproval: bills.filter(b => b.status === 'Submitted').length,
+            billsPendingApproval: bills.filter(b => b.status === 'Submitted' || b.status === 'Under Review').length,
             totalFundRequests: bills.filter(b => b.status === 'Approved').length,
             approvedThisMonth,
             openQueries: queries.filter(q => q.status === 'Open' || q.status === 'In Progress').length
@@ -444,8 +459,8 @@ export async function fetchFinancialDashboard() {
     const workOrderById = new Map(workorders.map(w => [w.id, w]));
 
     const totalBudgetAllocated = tenders.reduce((sum, t) => sum + (Number(t.budget) || 0), 0);
-    const totalFundsReleased = bills.filter(b => b.status === 'Paid').reduce((s, b) => s + (Number(b.amount) || 0), 0);
-    const pendingApprovalValue = bills.filter(b => b.status === 'Approved').reduce((s, b) => s + (Number(b.amount) || 0), 0);
+    const totalFundsReleased = bills.reduce((s, b) => s + (Number(b.amountPaid) || 0), 0);
+    const pendingApprovalValue = bills.filter(b => b.status === 'Approved' || b.status === 'Partially Paid').reduce((s, b) => s + (Number(b.amount) || 0), 0);
     const rejectedBillsCount = bills.filter(b => b.status === 'Returned' || b.status === 'Rejected').length;
 
     const enrich = (b: BillDto) => {
@@ -474,11 +489,14 @@ export async function fetchFinancialDashboard() {
             retentionReleased: !!b.retentionReleased,
             advanceRecovered,
             deductions,
-            netPayableAmount: b.netPayableAmount ?? (amount + taxAmount - retainedAmount - advanceRecovered - totalDeductions)
+            netPayableAmount: b.netPayableAmount ?? (amount + taxAmount - retainedAmount - advanceRecovered - totalDeductions),
+            amountPaid: Number(b.amountPaid) || 0,
+            balanceAmount: Number(b.balanceAmount) || 0,
+            payments: b.payments ?? []
         };
     };
 
-    const pendingApprovals = bills.filter(b => b.status === 'Approved').map(enrich);
+    const pendingApprovals = bills.filter(b => b.status === 'Approved' || b.status === 'Partially Paid').map(enrich);
     const paymentHistory = bills
         .filter(b => b.status === 'Paid')
         .sort((a, b) => new Date(b.paidAt || 0).getTime() - new Date(a.paidAt || 0).getTime())

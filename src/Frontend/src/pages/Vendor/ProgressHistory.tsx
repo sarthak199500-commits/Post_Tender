@@ -17,6 +17,7 @@ import {
 import type { RootState } from '../../store';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
+import { statusChipClass } from '../../utils/statusTone';
 
 // Still needed for evidence media rendered via <img src>/<video src>, which cannot go
 // through axios. Mirrors axiosInstance's base so this is not pinned to localhost.
@@ -38,24 +39,24 @@ interface Submission {
   milestoneTitle?: string;
 }
 
+/*
+ * The labels are specific to progress reporting — they name who acted, not just the
+ * state — so they stay local. The colours come from the shared tone map, so
+ * "Reviewed" is no longer sky here and brand everywhere else, and an unrecognised
+ * status reads as neutral rather than as a warning.
+ */
+const REPORT_STATUS_LABELS: Record<string, string> = {
+  approved: 'Approved by Dept',
+  reviewed: 'Reviewed by Inspector',
+  returned: 'Returned for Rework',
+  queryraised: 'Query Raised',
+  submitted: 'Submitted',
+};
+
 const statusMeta = (status?: string) => {
-  const s = (status ?? 'Submitted').toLowerCase();
-  if (s === 'approved') {
-    return { label: 'Approved by Dept', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-  }
-  if (s === 'reviewed') {
-    return { label: 'Reviewed by Inspector', cls: 'bg-sky-50 text-sky-600 border-sky-200' };
-  }
-  if (s === 'returned') {
-    return { label: 'Returned for Rework', cls: 'bg-orange-50 text-orange-700 border-orange-200' };
-  }
-  if (s === 'queryraised') {
-    return { label: 'Query Raised', cls: 'bg-red-50 text-red-700 border-red-200' };
-  }
-  if (s === 'submitted') {
-    return { label: 'Submitted', cls: 'bg-blue-50 text-blue-700 border-blue-200' };
-  }
-  return { label: status ?? 'Pending', cls: 'bg-amber-100 text-amber-700 border-amber-200' };
+  const raw = status ?? 'Submitted';
+  const key = raw.toLowerCase().replace(/[\s_-]/g, '');
+  return { label: REPORT_STATUS_LABELS[key] ?? raw, cls: statusChipClass(raw, 'soft') };
 };
 
 const isVideo = (url: string) => /\.(mp4|webm|ogg)$/i.test(url);
@@ -134,22 +135,22 @@ export const ProgressHistory = () => {
   const approvedCount = submissions.filter(s => s.status.toLowerCase() === 'approved').length;
   const pendingCount = submissions.filter(s => s.status.toLowerCase() === 'submitted').length;
 
-  if (loading) return <div className="p-8 text-slate-600 font-medium">Loading progress history...</div>;
-  if (error) return <div className="p-8 text-red-700 font-medium">Error: {error}</div>;
+  if (loading) return <div className="text-slate-600 font-medium">Loading progress history...</div>;
+  if (error) return <div className="text-red-700 font-medium">Error: {error}</div>;
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="mb-8">
         <button
           onClick={() => navigate('/vendor/progress')}
-          className="text-blue-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
+          className="text-brand-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
         >
           &larr; Back to Reporter
         </button>
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 flex items-center gap-3">
-            <History className="w-8 h-8 text-blue-700" />
+            <History className="w-8 h-8 text-brand-700" />
             Progress Submission History
           </h1>
           <p className="text-slate-600 mt-2 font-medium">View, search, and audit all past field progress updates.</p>
@@ -158,8 +159,8 @@ export const ProgressHistory = () => {
 
       {/* KPI Section */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-700 rounded-xl">
+        <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 flex items-center gap-4">
+          <div className="p-3 bg-brand-50 text-brand-700 rounded-card">
             <ClipboardList className="w-6 h-6" />
           </div>
           <div>
@@ -168,8 +169,8 @@ export const ProgressHistory = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl">
+        <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 text-emerald-700 rounded-card">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
@@ -178,8 +179,8 @@ export const ProgressHistory = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+        <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 flex items-center gap-4">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-card">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
@@ -188,19 +189,19 @@ export const ProgressHistory = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-          <div className="p-3 bg-green-50 text-green-700 rounded-xl">
+        <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 text-emerald-700 rounded-card">
             <FileText className="w-6 h-6" />
           </div>
           <div>
             <p className="text-xs font-bold text-slate-600 uppercase">Fully Approved</p>
-            <p className="text-2xl font-bold text-green-700 mt-0.5">{approvedCount}</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-0.5">{approvedCount}</p>
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white p-5 rounded-card shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 w-4 h-4" />
           <input
@@ -208,7 +209,7 @@ export const ProgressHistory = () => {
             placeholder="Search descriptions, projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm"
           />
         </div>
 
@@ -218,7 +219,7 @@ export const ProgressHistory = () => {
             <select aria-label="Select an option"
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="p-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none text-sm font-semibold text-slate-700 w-full md:w-48"
+              className="p-2.5 border border-slate-200 rounded-card bg-white focus:outline-none text-sm font-semibold text-slate-700 w-full md:w-48"
             >
               <option value="All">All Projects</option>
               {projectList.map(proj => (
@@ -230,7 +231,7 @@ export const ProgressHistory = () => {
           <select aria-label="Select an option"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="p-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none text-sm font-semibold text-slate-700 w-full md:w-44"
+            className="p-2.5 border border-slate-200 rounded-card bg-white focus:outline-none text-sm font-semibold text-slate-700 w-full md:w-44"
           >
             <option value="All">All Statuses</option>
             <option value="Submitted">Submitted</option>
@@ -243,7 +244,7 @@ export const ProgressHistory = () => {
       </div>
 
       {/* Grid List */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-card border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto"><table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider">
@@ -285,7 +286,7 @@ export const ProgressHistory = () => {
                   <td className="p-4 text-right pr-6">
                     <button
                       onClick={() => handleSelectSubmission(sub.id)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-800 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors"
                     >
                       View Report <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -307,7 +308,7 @@ export const ProgressHistory = () => {
       {/* ─── Detail Modal (Matching ProgressReporting) ─── */}
       {selectedSubmission && (
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Progress Report Details</h2>
@@ -334,7 +335,7 @@ export const ProgressHistory = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2">Linked Milestone</p>
-                  <p className="text-base font-bold text-blue-700">
+                  <p className="text-base font-bold text-brand-700">
                     {selectedSubmission.milestone?.title || selectedSubmission.milestoneTitle || 'N/A'}
                   </p>
                 </div>
@@ -342,13 +343,13 @@ export const ProgressHistory = () => {
 
               <div>
                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2">Work Description</p>
-                <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-control border border-slate-100">
                   {selectedSubmission.workDescription}
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-700 shadow-sm">
+              <div className="flex items-center gap-4 bg-emerald-50 p-4 rounded-control border border-emerald-100">
+                <div className="w-10 h-10 bg-white rounded-card flex items-center justify-center text-emerald-700 shadow-sm">
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
@@ -360,7 +361,7 @@ export const ProgressHistory = () => {
               </div>
 
               {selectedSubmission.remarks && (
-                <div className="mt-4 p-4 bg-amber-50 text-amber-950 rounded-2xl border border-amber-100 border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="mt-4 p-4 bg-amber-50 text-amber-950 rounded-control border border-amber-100 border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
                   <p className="text-[10px] font-black text-amber-800/60 uppercase tracking-widest mb-1.5">Review Remarks / Return Reason</p>
                   <p className="text-sm font-semibold italic text-slate-700">"{selectedSubmission.remarks}"</p>
                 </div>
@@ -371,7 +372,7 @@ export const ProgressHistory = () => {
                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-4">Evidence Gallery</p>
                   <div className="grid grid-cols-3 gap-4">
                     {selectedSubmission.mediaUrls.map((url: string, i: number) => (
-                      <div key={i} className="aspect-square rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm">
+                      <div key={i} className="aspect-square rounded-control bg-slate-100 overflow-hidden border border-slate-200 shadow-sm">
                         {isVideo(url) ? (
                           <video src={`${API_BASE}${url}`} className="w-full h-full object-cover" controls />
                         ) : (
@@ -387,7 +388,7 @@ export const ProgressHistory = () => {
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setSelectedSubmission(null)}
-                className="bg-slate-900 text-white px-8 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                className="bg-slate-900 text-white px-8 py-2.5 rounded-card text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
               >
                 Close
               </button>

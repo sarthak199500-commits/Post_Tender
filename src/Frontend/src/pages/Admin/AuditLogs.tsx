@@ -14,11 +14,13 @@ interface AuditLog {
   changesInfo: string;
 }
 
+// Entity type is a category, not a state. Four distinct tones from the palette —
+// `purple` was the last hue in the app that belonged to no scale at all.
 const entityColors: Record<string, string> = {
-  WorkOrder: 'bg-blue-100 text-blue-700',
+  WorkOrder: 'bg-brand-100 text-brand-700',
   Project: 'bg-emerald-100 text-emerald-700',
   Vendor: 'bg-amber-100 text-amber-700',
-  Bill: 'bg-purple-100 text-purple-700',
+  Bill: 'bg-slate-100 text-slate-600',
 };
 
 export const AuditLogs = () => {
@@ -42,19 +44,19 @@ export const AuditLogs = () => {
     l.changesInfo.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return <div className="p-8 text-slate-600">Loading audit logs...</div>;
+  if (loading) return <div className="text-slate-600">Loading audit logs...</div>;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center space-x-3">
-            <Shield className="w-8 h-8 text-indigo-600" />
+            <Shield className="w-8 h-8 text-brand-600" />
             <span>Audit & Compliance Logs</span>
           </h1>
           <p className="text-slate-600 mt-1">Complete trail of all administrative actions in the system.</p>
         </div>
-        <div className="flex items-center space-x-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
+        <div className="flex items-center space-x-3 bg-white border border-slate-200 rounded-control px-3 py-2">
           <Search className="w-4 h-4 text-slate-600" />
           <input
             type="text"
@@ -66,7 +68,7 @@ export const AuditLogs = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-card border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto"><table className="w-full text-left text-sm">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium text-xs uppercase tracking-wider">
             <tr>
@@ -84,7 +86,7 @@ export const AuditLogs = () => {
                   {new Date(log.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </td>
                 <td className="py-3 px-5">
-                  <span className={`px-2 py-1 rounded-md text-xs font-semibold ${entityColors[log.entityName] || 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`px-2 py-1 rounded-control text-xs font-semibold ${entityColors[log.entityName] || 'bg-slate-100 text-slate-600'}`}>
                     {log.entityName}
                   </span>
                 </td>

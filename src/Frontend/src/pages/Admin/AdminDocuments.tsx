@@ -45,8 +45,8 @@ export const AdminDocuments = () => {
     } catch (e) { console.error(e); alert('Failed to download document.'); }
   };
 
-  if (loading) return <div className="p-12 text-slate-600 font-bold text-center">Loading documents...</div>;
-  if (error) return <div className="p-12 text-red-700 font-bold text-center">Error: {error}</div>;
+  if (loading) return <div className="text-slate-600 font-bold text-center">Loading documents...</div>;
+  if (error) return <div className="text-red-700 font-bold text-center">Error: {error}</div>;
 
   // Types come from the documents themselves rather than a fixed list, so the filter
   // always matches what is actually in the repository.
@@ -59,19 +59,19 @@ export const AdminDocuments = () => {
   );
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+    <div className="space-y-8">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-            <Folder className="w-8 h-8 text-indigo-600" />
+            <Folder className="w-8 h-8 text-brand-600" />
             Document Repository
           </h1>
           <p className="text-slate-600 mt-2 font-medium">Centralized view of all vendor submissions, contracts, and attachments.</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <h2 className="text-lg font-bold text-slate-800">All Documents</h2>
           <div className="flex gap-3">
             <div className="relative">
@@ -81,7 +81,7 @@ export const AdminDocuments = () => {
                 placeholder="Search documents..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64"
+                className="pl-9 pr-4 py-2 border border-slate-200 rounded-control text-sm focus:ring-2 focus:ring-brand-500 outline-none w-64"
               />
             </div>
             <div className="relative">
@@ -90,7 +90,7 @@ export const AdminDocuments = () => {
                 aria-label="Filter by document type"
                 value={typeFilter}
                 onChange={e => setTypeFilter(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none transition-colors"
+                className="pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-control text-sm font-semibold text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-brand-500 outline-none transition-colors"
               >
                 <option value="">All types</option>
                 {documentTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -119,8 +119,8 @@ export const AdminDocuments = () => {
                   <tr key={doc.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-50 rounded-lg">
-                          <File className="w-5 h-5 text-indigo-600" />
+                        <div className="p-2 bg-brand-50 rounded-control">
+                          <File className="w-5 h-5 text-brand-600" />
                         </div>
                         <div>
                           <p className="font-bold text-slate-800 text-sm">{doc.name || doc.url.split('/').pop() || 'Document'}</p>
@@ -129,7 +129,7 @@ export const AdminDocuments = () => {
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg">
+                      <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-control">
                         {doc.type}
                       </span>
                     </td>
@@ -147,7 +147,7 @@ export const AdminDocuments = () => {
                     <td className="p-4 text-right">
                       <button
                         onClick={() => handleDownload(doc.url, doc.name)}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-semibold border border-transparent hover:border-indigo-100">
+                        className="p-2 text-brand-600 hover:bg-brand-50 rounded-control transition-colors inline-flex items-center gap-2 text-sm font-semibold border border-transparent hover:border-brand-100">
                         <Download className="w-4 h-4" /> Download
                       </button>
                     </td>

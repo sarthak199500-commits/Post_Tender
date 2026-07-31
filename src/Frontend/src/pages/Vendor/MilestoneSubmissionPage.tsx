@@ -23,6 +23,7 @@ import {
 import type { RootState } from '../../store';
 import axiosInstance, { GATEWAY_BASE as API_BASE } from '../../api/axiosInstance';
 import type { Milestone, ProgressReport } from '../../types/domain';
+import { statusChipClass } from '../../utils/statusTone';
 
 interface SubmissionDocument { id: string; name: string; type?: string; url?: string; size?: string; uploadedAt?: string; }
 
@@ -34,19 +35,8 @@ type ReportRow = ProgressReport & { milestone?: { title: string } };
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-const statusColor = (s: string) => {
-  const m: Record<string, string> = {
-    Pending: 'bg-amber-50 text-amber-700 border-amber-200',
-    'Inspection Requested': 'bg-blue-50 text-blue-700 border-blue-200',
-    Completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    Delayed: 'bg-red-50 text-red-700 border-red-200',
-    Draft: 'bg-slate-50 text-slate-600 border-slate-200',
-    Submitted: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    Reviewed: 'bg-sky-50 text-sky-700 border-sky-200',
-    Returned: 'bg-orange-50 text-orange-700 border-orange-200',
-  };
-  return m[s] ?? 'bg-slate-100 text-slate-600 border-slate-200';
-};
+/** Bordered chips on this page, so the shared tone map is asked for its `soft` variant. */
+const statusColor = (s: string) => statusChipClass(s, 'soft');
 
 const DOC_TYPES = ['Completion Certificate', 'Test Report', 'Quality Certificate', 'Other'];
 
@@ -249,9 +239,9 @@ export const MilestoneSubmissionPage = () => {
 
   if (loading) {
     return (
-      <div className="p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="w-10 h-10 border-3 border-blue-700 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-10 h-10 border-3 border-brand-700 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-slate-600 font-medium">Loading milestone details...</p>
         </div>
       </div>
@@ -260,11 +250,11 @@ export const MilestoneSubmissionPage = () => {
 
   if (!milestone) {
     return (
-      <div className="p-8 bg-slate-50 min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-amber-700 mx-auto mb-4" />
           <p className="text-slate-600 font-medium">Milestone not found.</p>
-          <button onClick={() => navigate('/vendor/milestones')} className="text-blue-700 text-sm font-bold mt-4 hover:underline">
+          <button onClick={() => navigate('/vendor/milestones')} className="text-brand-700 text-sm font-bold mt-4 hover:underline">
             ← Back to Milestones
           </button>
         </div>
@@ -275,13 +265,13 @@ export const MilestoneSubmissionPage = () => {
   /* ─── render ─────────────────────────────────────────────────────────── */
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div>
       <div className="max-w-4xl mx-auto space-y-8">
 
         {/* ── Back button ── */}
         <button
           onClick={() => navigate(-1)}
-          className="text-blue-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
+          className="text-brand-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
         >
           &larr; Back
         </button>
@@ -289,7 +279,7 @@ export const MilestoneSubmissionPage = () => {
         {/* ── Page title ── */}
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-            <MilestoneIcon className="w-8 h-8 text-blue-700" />
+            <MilestoneIcon className="w-8 h-8 text-brand-700" />
             Milestone Submission
           </h1>
           <p className="text-slate-600 mt-1">
@@ -303,8 +293,8 @@ export const MilestoneSubmissionPage = () => {
 
         {/* ── Submitted status banner ── */}
         {isReadOnly && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center gap-4">
-            <div className="bg-emerald-100 p-3 rounded-xl">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-control p-5 flex items-center gap-4">
+            <div className="bg-emerald-100 p-3 rounded-card">
               <CheckCircle2 className="w-6 h-6 text-emerald-700" />
             </div>
             <div>
@@ -319,16 +309,16 @@ export const MilestoneSubmissionPage = () => {
         )}
 
         {/* ─────────────── MILESTONE HEADER ─────────────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-700 to-indigo-600 px-6 py-5 text-white">
+        <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-brand-700 to-brand-600 px-6 py-5 text-white">
             <h2 className="text-xl font-bold">{milestone.title}</h2>
-            <p className="text-blue-100 text-sm mt-1">{projectName}</p>
+            <p className="text-brand-100 text-sm mt-1">{projectName}</p>
           </div>
           <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Weightage</p>
               <div className="flex items-center gap-2 text-slate-800 font-bold">
-                <TrendingUp className="w-4 h-4 text-blue-500" />
+                <TrendingUp className="w-4 h-4 text-brand-500" />
                 {milestone.weightage}%
               </div>
             </div>
@@ -342,7 +332,7 @@ export const MilestoneSubmissionPage = () => {
             <div>
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Target Date</p>
               <div className="flex items-center gap-2 text-slate-800 font-bold">
-                <Calendar className="w-4 h-4 text-orange-500" />
+                <Calendar className="w-4 h-4 text-brand-500" />
                 {fmtDate(milestone.targetDate)}
               </div>
             </div>
@@ -357,18 +347,18 @@ export const MilestoneSubmissionPage = () => {
         </div>
 
         {/* ─────────────── LINKED PROGRESS REPORTS ─────────────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-blue-50 p-2 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-700" />
+              <div className="bg-brand-50 p-2 rounded-control">
+                <FileText className="w-5 h-5 text-brand-700" />
               </div>
               <div>
                 <h2 className="font-bold text-slate-800">Linked Progress Reports</h2>
                 <p className="text-xs text-slate-600">Select reports that support this milestone completion</p>
               </div>
             </div>
-            <span className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold text-brand-700 bg-brand-50 px-3 py-1 rounded-full">
               {selectedReportIds.size} selected
             </span>
           </div>
@@ -384,7 +374,7 @@ export const MilestoneSubmissionPage = () => {
                 const checked = selectedReportIds.has(r.id);
                 const expanded = expandedReport === r.id;
                 return (
-                  <div key={r.id} className={`transition-colors ${checked ? 'bg-blue-50/40' : ''}`}>
+                  <div key={r.id} className={`transition-colors ${checked ? 'bg-brand-50/40' : ''}`}>
                     <div
                       className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-slate-50/60"
                       onClick={() => toggleReport(r.id)}
@@ -392,7 +382,7 @@ export const MilestoneSubmissionPage = () => {
                       {/* Checkbox */}
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
                         isReadOnly ? ' cursor-default' : 'cursor-pointer'
-                      } ${checked ? 'bg-blue-700 border-blue-700' : 'border-slate-300'}`}>
+                      } ${checked ? 'bg-brand-600 border-brand-700' : 'border-slate-300'}`}>
                         {checked && (
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                             <polyline points="20 6 9 17 4 12" />
@@ -435,7 +425,7 @@ export const MilestoneSubmissionPage = () => {
                       {/* Expand button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); setExpandedReport(expanded ? null : r.id); }}
-                        className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                        className="p-1 hover:bg-slate-100 rounded-control transition-colors"
                       >
                         <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                       </button>
@@ -455,7 +445,7 @@ export const MilestoneSubmissionPage = () => {
                             <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Evidence Media</p>
                             <div className="flex gap-2 flex-wrap">
                               {r.mediaUrls.map((url: string, i: number) => (
-                                <div key={i} className="w-16 h-16 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
+                                <div key={i} className="w-16 h-16 rounded-control bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
                                   {url.startsWith('/') || url.startsWith('http') ? (
                                     <img src={url.startsWith('/') ? `${API_BASE}${url}` : url} alt="evidence" className="w-full h-full object-cover" />
                                   ) : (
@@ -476,10 +466,10 @@ export const MilestoneSubmissionPage = () => {
         </div>
 
         {/* ─────────────── SUPPORTING DOCUMENTS ─────────────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
-            <div className="bg-amber-50 p-2 rounded-lg">
-              <Paperclip className="w-5 h-5 text-amber-600" />
+            <div className="bg-brand-50 p-2 rounded-control">
+              <Paperclip className="w-5 h-5 text-brand-700" />
             </div>
             <div>
               <h2 className="font-bold text-slate-800">Supporting Documents</h2>
@@ -490,9 +480,9 @@ export const MilestoneSubmissionPage = () => {
           <div className="p-6 space-y-4">
             {/* Existing documents */}
             {documents.map(doc => (
-              <div key={doc.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                <div className="bg-white p-2.5 rounded-lg border border-slate-200 shrink-0">
-                  <FileText className="w-5 h-5 text-blue-500" />
+              <div key={doc.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-card border border-slate-100">
+                <div className="bg-white p-2.5 rounded-control border border-slate-200 shrink-0">
+                  <FileText className="w-5 h-5 text-brand-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-700 truncate">{doc.name}</p>
@@ -507,7 +497,7 @@ export const MilestoneSubmissionPage = () => {
                     href={doc.url.startsWith('/') ? `${API_BASE}${doc.url}` : doc.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-2 hover:bg-slate-200/60 rounded-lg transition-colors"
+                    className="p-2 hover:bg-slate-200/60 rounded-control transition-colors"
                     title="View document"
                   >
                     <Eye className="w-4 h-4 text-slate-600" />
@@ -516,7 +506,7 @@ export const MilestoneSubmissionPage = () => {
                 {!isReadOnly && (
                   <button
                     onClick={() => handleRemoveDocument(doc.id)}
-                    className="p-2 hover:bg-red-50 rounded-lg transition-colors text-slate-600 hover:text-red-700"
+                    className="p-2 hover:bg-red-50 rounded-control transition-colors text-slate-600 hover:text-red-700"
                     title="Remove"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -527,7 +517,7 @@ export const MilestoneSubmissionPage = () => {
 
             {/* Upload area */}
             {!isReadOnly && (
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-6">
+              <div className="border-2 border-dashed border-slate-200 rounded-card p-6">
                 {!submissionId ? (
                   <div className="text-center">
                     <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
@@ -538,13 +528,13 @@ export const MilestoneSubmissionPage = () => {
                     <select aria-label="Select an option"
                       value={uploadDocType}
                       onChange={e => setUploadDocType(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="bg-white border border-slate-200 rounded-control px-3 py-2 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none"
                     >
                       {DOC_TYPES.map(t => (
                         <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
-                    <label className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                    <label className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-50 border border-slate-200 rounded-card cursor-pointer hover:bg-slate-100 transition-colors">
                       <Upload className="w-4 h-4 text-slate-600" />
                       <span className="text-sm font-bold text-slate-600">
                         {uploading ? 'Uploading...' : 'Choose File'}
@@ -572,10 +562,10 @@ export const MilestoneSubmissionPage = () => {
         </div>
 
         {/* ─────────────── SUBMISSION NOTES ─────────────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
-            <div className="bg-violet-50 p-2 rounded-lg">
-              <FileText className="w-5 h-5 text-violet-600" />
+            <div className="bg-brand-50 p-2 rounded-control">
+              <FileText className="w-5 h-5 text-brand-700" />
             </div>
             <div>
               <h2 className="font-bold text-slate-800">Submission Notes</h2>
@@ -584,7 +574,7 @@ export const MilestoneSubmissionPage = () => {
           </div>
           <div className="p-6">
             {isReadOnly ? (
-              <div className="bg-slate-50 rounded-xl p-5 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap min-h-[80px]">
+              <div className="bg-slate-50 rounded-card p-5 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap min-h-[80px]">
                 {notes || <span className="text-slate-600 italic">No notes provided.</span>}
               </div>
             ) : (
@@ -593,7 +583,7 @@ export const MilestoneSubmissionPage = () => {
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Describe the work completed, any challenges overcome, and key deliverables for this milestone..."
-                className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm leading-relaxed resize-none"
+                className="w-full p-4 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm leading-relaxed resize-none"
               />
             )}
           </div>
@@ -605,7 +595,7 @@ export const MilestoneSubmissionPage = () => {
             <button
               onClick={handleSaveDraft}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-white border-2 border-slate-200 rounded-card font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:"
             >
               {saving ? (
                 <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
@@ -617,7 +607,7 @@ export const MilestoneSubmissionPage = () => {
             <button
               onClick={handleSubmit}
               disabled={submitting || selectedReportIds.size === 0}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-blue-700 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled: disabled:shadow-none"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-brand-600 text-white rounded-control font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
             >
               {submitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

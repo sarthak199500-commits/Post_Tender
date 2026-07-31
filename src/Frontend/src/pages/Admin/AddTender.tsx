@@ -17,6 +17,7 @@ interface TenderRecord {
   portal: string;
   publishDate?: string;
   closeDate?: string;
+  departmentId?: string | null;
 }
 
 export const AddTender = () => {
@@ -31,12 +32,14 @@ export const AddTender = () => {
     portal: '',
     publishDate: '',
     closeDate: '',
+    departmentId: '',
   });
   const [document, setDocument] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [tenderTypes, setTenderTypes] = useState<{id: string, name: string}[]>([]);
+  const [departments, setDepartments] = useState<{id: string, name: string}[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,6 +52,11 @@ export const AddTender = () => {
       }
     };
     fetchTenderTypes();
+
+    // Departments are mastered in IdentityService; the tender stores only the id.
+    axiosInstance.get<{id: string, name: string, isActive?: boolean}[]>('/masters/departments')
+      .then(res => setDepartments((res.data ?? []).filter(d => d.isActive !== false)))
+      .catch(err => console.error('Failed to fetch departments', err));
 
     if (id) {
       const fetchTender = async () => {
@@ -66,6 +74,7 @@ export const AddTender = () => {
               portal: tender.portal,
               publishDate: tender.publishDate ? tender.publishDate.split('T')[0] : '',
               closeDate: tender.closeDate ? tender.closeDate.split('T')[0] : '',
+              departmentId: tender.departmentId ?? '',
             });
           }
         } catch (err) {
@@ -95,6 +104,7 @@ export const AddTender = () => {
     data.append('portal', formData.portal);
     if (formData.publishDate) data.append('publishDate', formData.publishDate);
     if (formData.closeDate)   data.append('closeDate', formData.closeDate);
+    if (formData.departmentId) data.append('departmentId', formData.departmentId);
     if (document)             data.append('document', document);
 
     try {
@@ -119,20 +129,20 @@ export const AddTender = () => {
     }
   };
 
-  const inputCls = 'w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800';
+  const inputCls = 'w-full p-3 border border-slate-300 rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-800';
   const labelCls = 'block text-sm font-semibold text-slate-700 mb-2';
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <button
         onClick={() => navigate('/admin/tenders/awarded')}
-        className="text-blue-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
+        className="text-brand-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
       >
         &larr; Back to List
       </button>
       <h2 className="text-3xl font-bold text-slate-800 mb-8">{id ? 'Edit Tender' : 'Add Tender'}</h2>
 
-      <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+      <div className="bg-white p-8 rounded-card shadow-xl border border-slate-200">
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Row 1: Tender ID + Name */}
@@ -157,6 +167,14 @@ export const AddTender = () => {
                 onChange={e => set('tenderType', e.target.value)} required>
                 <option value="">Select Type</option>
                 {tenderTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Department</label>
+              <select aria-label="Select an option" className={inputCls} value={formData.departmentId}
+                onChange={e => set('departmentId', e.target.value)}>
+                <option value="">Unassigned</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
             <div>
@@ -207,7 +225,7 @@ export const AddTender = () => {
           {/* Document Upload */}
           <div>
             <label className={labelCls}>Tender Document</label>
-            <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center hover:border-blue-400 transition-colors">
+            <div className="border-2 border-dashed border-slate-300 rounded-card p-5 text-center hover:border-brand-400 transition-colors">
               <input
                 type="file"
                 id="tenderDoc"
@@ -218,7 +236,7 @@ export const AddTender = () => {
               <label htmlFor="tenderDoc" className="cursor-pointer flex flex-col items-center gap-2">
                 <span className="text-3xl">📎</span>
                 {document ? (
-                  <span className="text-blue-700 font-medium">{document.name}</span>
+                  <span className="text-brand-700 font-medium">{document.name}</span>
                 ) : (
                   <span className="text-slate-600 text-sm">Click to upload PDF, Word or Excel file</span>
                 )}
@@ -227,12 +245,12 @@ export const AddTender = () => {
           </div>
 
           {error   && <p className="text-red-700 text-sm">{error}</p>}
-          {success && <p className="text-green-700 text-sm font-medium">Tender created successfully!</p>}
+          {success && <p className="text-emerald-700 text-sm font-medium">Tender created successfully!</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 disabled:"
+            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-card shadow-lg transition-transform active:scale-95 disabled:"
           >
             {loading ? 'Saving...' : 'Save Tender'}
           </button>
