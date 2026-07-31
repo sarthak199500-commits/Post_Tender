@@ -95,13 +95,13 @@ export const AllottedTenders = () => {
     return vendors.filter(v => !takenElsewhere.has(v.id));
   };
 
-  const inputCls = 'w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800';
+  const inputCls = 'w-full p-3 border border-slate-300 rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-800';
   const labelCls = 'block text-sm font-semibold text-slate-700 mb-2';
 
 
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="flex items-center gap-4 mb-8">
         <button 
           onClick={() => window.history.back()}
@@ -116,7 +116,7 @@ export const AllottedTenders = () => {
         <h2 className="text-3xl font-bold text-slate-800 m-0">Allotted Tenders</h2>
       </div>
       {/* Create form */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+      <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 mb-8">
         <h2 className="text-lg font-semibold text-slate-700 mb-4">New Allotment</h2>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -154,10 +154,10 @@ export const AllottedTenders = () => {
           </div>
 
           {error   && <p className="text-red-700 text-sm">{error}</p>}
-          {success && <p className="text-green-700 text-sm font-medium">{success}</p>}
+          {success && <p className="text-emerald-700 text-sm font-medium">{success}</p>}
 
           <button type="submit" disabled={loading}
-            className="bg-blue-700 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow transition-transform active:scale-95 disabled:">
+            className="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-8 py-3 rounded-card shadow transition-transform active:scale-95 disabled:">
             {loading ? 'Saving...' : 'Save Allotment'}
           </button>
         </form>

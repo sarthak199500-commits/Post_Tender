@@ -191,13 +191,13 @@ export const CreateWorkOrderForm = () => {
         onCancel={() => setRemoveIdx(null)}
       />
       <div className="mb-8 flex justify-between items-center text-sm font-medium text-slate-600">
-        <span className={step >= 1 ? 'text-blue-700' : ''}>1. Basic Details</span>
-        <span className={step >= 2 ? 'text-blue-700' : ''}>2. Scope & Terms</span>
-        <span className={step >= 3 ? 'text-blue-700' : ''}>3. Milestones</span>
-        <span className={step >= 4 ? 'text-blue-700' : ''}>4. Digital Upload</span>
+        <span className={step >= 1 ? 'text-brand-700' : ''}>1. Basic Details</span>
+        <span className={step >= 2 ? 'text-brand-700' : ''}>2. Scope & Terms</span>
+        <span className={step >= 3 ? 'text-brand-700' : ''}>3. Milestones</span>
+        <span className={step >= 4 ? 'text-brand-700' : ''}>4. Digital Upload</span>
       </div>
 
-      <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+      <div className="bg-white p-8 rounded-card shadow-lg border border-slate-200">
         {step === 1 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold mb-4">Tender, Vendor & Value</h2>
@@ -205,21 +205,21 @@ export const CreateWorkOrderForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Select Tender</label>
-                <select aria-label="Select an option" value={tenderId} onChange={e => handleTenderChange(e.target.value)} className="w-full p-3 border rounded-lg bg-white">
+                <select aria-label="Select an option" value={tenderId} onChange={e => handleTenderChange(e.target.value)} className="w-full p-3 border rounded-control bg-white">
                   <option value="">Select Awarded Tender...</option>
                   {allotments.map(a => <option key={a.id} value={a.tenderId}>{a.tenderTitle} ({a.tenderNo})</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Selected Vendor (L1)</label>
-                <input type="text" value={vendorName} readOnly placeholder="Auto-filled from Tender" className="w-full p-3 border rounded-lg bg-slate-50 text-slate-600" />
+                <input type="text" value={vendorName} readOnly placeholder="Auto-filled from Tender" className="w-full p-3 border rounded-control bg-slate-50 text-slate-600" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Work ID / WO No.</label>
-                <input type="text" placeholder="e.g. WO-2024-001" value={workOrderNo} onChange={e => setWorkOrderNo(e.target.value)} className="w-full p-3 border rounded-lg" />
+                <input type="text" placeholder="e.g. WO-2024-001" value={workOrderNo} onChange={e => setWorkOrderNo(e.target.value)} className="w-full p-3 border rounded-control" />
               </div>
               <div>
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Project Cost (Total Value)</label>
@@ -242,8 +242,8 @@ export const CreateWorkOrderForm = () => {
                         setCostError('');
                       }
                     }}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:outline-none transition-all ${
-                      costError ? 'border-red-500 focus:ring-red-100 bg-red-50/30' : 'focus:ring-blue-500'
+                    className={`w-full pl-10 pr-4 py-3 border rounded-control focus:ring-2 focus:outline-none transition-all ${
+                      costError ? 'border-red-500 focus:ring-red-100 bg-red-50/30' : 'focus:ring-brand-500'
                     }`}
                   />
                 </div>
@@ -260,7 +260,7 @@ export const CreateWorkOrderForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Start Date</label>
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-3 border rounded-lg" />
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-3 border rounded-control" />
               </div>
               <div>
                 <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">End Date</label>
@@ -269,7 +269,7 @@ export const CreateWorkOrderForm = () => {
                   value={endDate}
                   min={startDate || undefined}
                   onChange={e => setEndDate(e.target.value)}
-                  className={`w-full p-3 border rounded-lg outline-none ${dateError ? 'border-red-500 bg-red-50/30' : ''}`}
+                  className={`w-full p-3 border rounded-control outline-none ${dateError ? 'border-red-500 bg-red-50/30' : ''}`}
                 />
                 {dateError && (
                   <p className="text-[10px] text-red-700 font-bold ml-1 mt-1 uppercase tracking-tight">{dateError}</p>
@@ -279,7 +279,7 @@ export const CreateWorkOrderForm = () => {
 
             <div>
               <label className="block text-xs font-black text-slate-600 uppercase tracking-widest mb-1 ml-1">Assign Inspector</label>
-              <select aria-label="Select an option" value={inspectorId} onChange={e => setInspectorId(e.target.value)} className="w-full p-3 border rounded-lg bg-white">
+              <select aria-label="Select an option" value={inspectorId} onChange={e => setInspectorId(e.target.value)} className="w-full p-3 border rounded-control bg-white">
                 <option value="">-- Select Inspector --</option>
                 {inspectors.map(i => (
                   <option key={i.id} value={i.id}>{i.name} ({i.type === '3rd Party' ? (i.companyName ?? '3rd Party') : 'Dept'})</option>
@@ -290,14 +290,14 @@ export const CreateWorkOrderForm = () => {
             <div className="flex justify-between mt-8">
               <button
                 onClick={() => navigate('/admin/work-orders')}
-                className="text-slate-600 px-6 py-2.5 rounded-lg font-medium border border-slate-300 hover:bg-slate-50 transition-colors"
+                className="text-slate-600 px-6 py-2.5 rounded-control font-medium border border-slate-300 hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => setStep(2)}
                 disabled={!tenderId || !vendorId || totalValue <= 0 || !workOrderNo.trim() || !inspectorId || !startDate || !endDate || !!costError || !!dateError}
-                className="bg-blue-700 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-2.5 rounded-control font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Next Step
               </button>
@@ -309,12 +309,12 @@ export const CreateWorkOrderForm = () => {
         {step === 2 && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold mb-4">Scope & Terms</h2>
-            <textarea placeholder="Scope Description" rows={3} value={scope} onChange={e => setScope(e.target.value)} className="w-full p-3 border rounded-lg" />
-            <textarea placeholder="Payment Terms" rows={3} value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} className="w-full p-3 border rounded-lg" />
-            <textarea placeholder="Liquidated Damages / Penalty Terms" rows={3} value={liquidatedDamagesTerms} onChange={e => setLiquidatedDamagesTerms(e.target.value)} className="w-full p-3 border rounded-lg border-orange-200 bg-orange-50/30" />
+            <textarea placeholder="Scope Description" rows={3} value={scope} onChange={e => setScope(e.target.value)} className="w-full p-3 border rounded-control" />
+            <textarea placeholder="Payment Terms" rows={3} value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} className="w-full p-3 border rounded-control" />
+            <textarea placeholder="Liquidated Damages / Penalty Terms" rows={3} value={liquidatedDamagesTerms} onChange={e => setLiquidatedDamagesTerms(e.target.value)} className="w-full p-3 border rounded-control border-orange-200 bg-orange-50/30" />
             <div className="flex justify-between mt-4">
-              <button onClick={() => setStep(1)} className="text-slate-600 px-6 py-2 rounded-lg border">Back</button>
-              <button onClick={() => setStep(3)} disabled={!scope || !paymentTerms || !liquidatedDamagesTerms} className="bg-blue-700 text-white px-6 py-2 rounded-lg disabled:">Next</button>
+              <button onClick={() => setStep(1)} className="text-slate-600 px-6 py-2 rounded-control border">Back</button>
+              <button onClick={() => setStep(3)} disabled={!scope || !paymentTerms || !liquidatedDamagesTerms} className="bg-brand-600 text-white px-6 py-2 rounded-control disabled:">Next</button>
             </div>
           </div>
         )}
@@ -323,12 +323,12 @@ export const CreateWorkOrderForm = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-slate-800">Milestone Definitions</h2>
-              <span className={`px-3 py-1.5 rounded-full text-sm font-bold ${totalWeightage === 100 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <span className={`px-3 py-1.5 rounded-full text-sm font-bold ${totalWeightage === 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                 Total Weight: {totalWeightage}% {totalWeightage === 100 ? '✓' : `(need ${100 - totalWeightage}% more)`}
               </span>
             </div>
 
-            <div className="w-full border border-slate-200 rounded-xl">
+            <div className="w-full border border-slate-200 rounded-card">
               <div className="overflow-x-auto"><table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
@@ -340,7 +340,7 @@ export const CreateWorkOrderForm = () => {
                         <span>Completion Weight</span>
                         <span className="relative group cursor-default">
                           <span className="text-slate-600 text-[10px] border border-slate-300 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center font-bold leading-none select-none">i</span>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-44 bg-slate-800 text-white text-[11px] rounded-lg px-2.5 py-2 shadow-xl z-50 font-normal normal-case tracking-normal text-center leading-relaxed pointer-events-none">
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-44 bg-slate-800 text-white text-[11px] rounded-control px-2.5 py-2 shadow-xl z-50 font-normal normal-case tracking-normal text-center leading-relaxed pointer-events-none">
                             % of physical work this milestone represents. All milestones must total 100%.
                             <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                           </span>
@@ -352,7 +352,7 @@ export const CreateWorkOrderForm = () => {
                         <span>Payment Release</span>
                         <span className="relative group cursor-default">
                           <span className="text-slate-600 text-[10px] border border-slate-300 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center font-bold leading-none select-none">i</span>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-44 bg-slate-800 text-white text-[11px] rounded-lg px-2.5 py-2 shadow-xl z-50 font-normal normal-case tracking-normal text-center leading-relaxed pointer-events-none">
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-44 bg-slate-800 text-white text-[11px] rounded-control px-2.5 py-2 shadow-xl z-50 font-normal normal-case tracking-normal text-center leading-relaxed pointer-events-none">
                             % of total contract value released to the vendor upon approving this milestone.
                             <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                           </span>
@@ -364,7 +364,7 @@ export const CreateWorkOrderForm = () => {
                         <span>Target Date</span>
                         <span className="relative group cursor-default">
                           <span className="text-slate-600 text-[10px] border border-slate-300 rounded-full w-3.5 h-3.5 inline-flex items-center justify-center font-bold leading-none select-none">i</span>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-40 bg-slate-800 text-white text-[11px] rounded-lg px-2.5 py-2 shadow-xl z-50 font-normal normal-case tracking-normal text-center leading-relaxed pointer-events-none">
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-40 bg-slate-800 text-white text-[11px] rounded-control px-2.5 py-2 shadow-xl z-50 font-normal normal-case tracking-normal text-center leading-relaxed pointer-events-none">
                             Expected date by which this milestone should be completed.
                             <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                           </span>
@@ -383,7 +383,7 @@ export const CreateWorkOrderForm = () => {
                           placeholder="e.g. Site Mobilization"
                           value={m.title}
                           onChange={e => handleMilestoneChange(i, 'title', e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-control text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"
                         />
                       </td>
                       <td className="py-2.5 px-3">
@@ -392,7 +392,7 @@ export const CreateWorkOrderForm = () => {
                             type="number" min={0} max={100} placeholder="0"
                             value={m.weightage || ''}
                             onChange={e => handleMilestoneChange(i, 'weightage', e.target.value)}
-                            className="w-full px-3 py-2 pr-7 border border-slate-200 rounded-lg text-sm text-center focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="w-full px-3 py-2 pr-7 border border-slate-200 rounded-control text-sm text-center focus:ring-2 focus:ring-brand-500 focus:outline-none"
                           />
                           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs pointer-events-none">%</span>
                         </div>
@@ -403,7 +403,7 @@ export const CreateWorkOrderForm = () => {
                             type="number" min={0} max={100} placeholder="0"
                             value={m.paymentPercentage || ''}
                             onChange={e => handleMilestoneChange(i, 'paymentPercentage', e.target.value)}
-                            className="w-full px-3 py-2 pr-7 border border-slate-200 rounded-lg text-sm text-center focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="w-full px-3 py-2 pr-7 border border-slate-200 rounded-control text-sm text-center focus:ring-2 focus:ring-brand-500 focus:outline-none"
                           />
                           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs pointer-events-none">%</span>
                         </div>
@@ -413,7 +413,7 @@ export const CreateWorkOrderForm = () => {
                           type="date"
                           value={m.targetDate}
                           onChange={e => handleMilestoneChange(i, 'targetDate', e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-control text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"
                         />
                       </td>
                       <td className="py-2.5 px-2 text-center">
@@ -433,17 +433,17 @@ export const CreateWorkOrderForm = () => {
 
             <button
               onClick={addMilestone}
-              className="flex items-center gap-1.5 text-blue-700 hover:text-blue-800 font-medium text-sm border border-blue-200 hover:bg-blue-50 px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-brand-700 hover:text-brand-800 font-medium text-sm border border-brand-200 hover:bg-brand-50 px-4 py-2 rounded-control transition-colors"
             >
               <span className="text-base leading-none">+</span><span>Add Milestone</span>
             </button>
 
             <div className="flex justify-between mt-4">
-              <button onClick={() => setStep(2)} className="text-slate-600 px-6 py-2 rounded-lg border border-slate-300 hover:bg-slate-50">Back</button>
+              <button onClick={() => setStep(2)} className="text-slate-600 px-6 py-2 rounded-control border border-slate-300 hover:bg-slate-50">Back</button>
               <button
                 onClick={() => setStep(4)}
                 disabled={totalWeightage !== 100 || milestones.some(m => !m.title || !m.targetDate)}
-                className="bg-blue-700 text-white px-6 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                className="bg-brand-600 text-white px-6 py-2 rounded-control disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-700 transition-colors"
               >Next</button>
             </div>
           </div>
@@ -455,7 +455,7 @@ export const CreateWorkOrderForm = () => {
           <div className="space-y-6 text-center py-8">
             <h2 className="text-2xl font-semibold mb-2">Digital Agreement Upload</h2>
             <p className="text-slate-600 mb-6">Attach the finalized PDF prior to issuing this Work Order Draft.</p>
-            <div className="border-2 border-dashed border-slate-300 bg-slate-50 p-12 rounded-xl text-slate-600 relative">
+            <div className="border-2 border-dashed border-slate-300 bg-slate-50 p-12 rounded-card text-slate-600 relative">
                {file ? (
                  <div className="flex flex-col items-center">
                    <span className="font-medium text-slate-800">{file.name}</span>
@@ -469,8 +469,8 @@ export const CreateWorkOrderForm = () => {
                )}
             </div>
             <div className="flex justify-between mt-8">
-              <button onClick={() => setStep(3)} disabled={uploading} className="text-slate-600 px-6 py-2 rounded-lg border">Back</button>
-              <button onClick={submitWorkOrder} disabled={!file || uploading} className="bg-green-700 hover:bg-green-700 text-white px-8 py-2 rounded-lg text-lg shadow-lg font-bold disabled:">
+              <button onClick={() => setStep(3)} disabled={uploading} className="text-slate-600 px-6 py-2 rounded-control border">Back</button>
+              <button onClick={submitWorkOrder} disabled={!file || uploading} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2 rounded-control text-lg shadow-lg font-bold disabled:">
                 {uploading ? 'Uploading & Creating...' : 'Create Work Order Draft'}
               </button>
             </div>

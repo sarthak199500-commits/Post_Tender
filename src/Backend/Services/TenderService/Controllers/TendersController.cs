@@ -39,6 +39,7 @@ public class TendersController : ControllerBase
                 t.Description,
                 t.Budget,
                 t.CreatedAt,
+                t.DepartmentId,
                 HasWorkOrder = t.WorkOrders.Any()
             })
             .ToListAsync();
@@ -60,7 +61,7 @@ public class TendersController : ControllerBase
             {
                 t.Id, t.TenderNo, t.Title, t.TenderType, t.Budget,
                 t.EMDAmount, t.Portal, t.DocumentUrl,
-                t.PublishDate, t.CloseDate, t.Status, t.CreatedAt
+                t.PublishDate, t.CloseDate, t.Status, t.CreatedAt, t.DepartmentId
             })
             .ToListAsync();
         return Ok(tenders);
@@ -95,6 +96,7 @@ public class TendersController : ControllerBase
             Budget      = dto.Budget,
             EMDAmount   = dto.EMDAmount,
             Portal      = dto.Portal ?? string.Empty,
+            DepartmentId = dto.DepartmentId,
             DocumentUrl = documentUrl,
             PublishDate = dto.PublishDate,
             CloseDate   = dto.CloseDate,
@@ -123,6 +125,7 @@ public class TendersController : ControllerBase
         tender.Budget = dto.Budget;
         tender.EMDAmount = dto.EMDAmount;
         tender.Portal = dto.Portal ?? string.Empty;
+        tender.DepartmentId = dto.DepartmentId;
         tender.PublishDate = dto.PublishDate;
         tender.CloseDate = dto.CloseDate;
 
@@ -191,6 +194,7 @@ public class TendersController : ControllerBase
         public IFormFile? Document { get; set; }
         public DateTime? PublishDate { get; set; }
         public DateTime? CloseDate { get; set; }
+        public Guid? DepartmentId { get; set; }
     }
 }
 

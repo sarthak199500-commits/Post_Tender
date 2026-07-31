@@ -75,20 +75,20 @@ export const AddVendor = () => {
     }
   };
 
-  const inputCls = 'w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-800';
+  const inputCls = 'w-full p-3 border border-slate-300 rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-800';
   const labelCls = 'block text-sm font-semibold text-slate-700 mb-2';
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto">
         <button
           onClick={() => navigate('/vendors')}
-          className="text-blue-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
+          className="text-brand-700 font-bold text-sm hover:underline mb-4 inline-flex items-center gap-1"
         >
           &larr; Back to Directory
         </button>
         <h2 className="text-3xl font-bold text-slate-800 mb-6">Add Vendor</h2>
 
-      <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+      <div className="bg-white p-8 rounded-card shadow-xl border border-slate-200">
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Row 1: Company Name + GST */}
@@ -161,12 +161,12 @@ export const AddVendor = () => {
           </div>
 
           {error   && <p className="text-red-700 text-sm">{error}</p>}
-          {success && <p className="text-green-700 text-sm font-medium">Vendor created successfully! Redirecting...</p>}
+          {success && <p className="text-emerald-700 text-sm font-medium">Vendor created successfully! Redirecting...</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 disabled:"
+            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-card shadow-lg transition-transform active:scale-95 disabled:"
           >
             {loading ? 'Creating Account...' : 'Register Vendor'}
           </button>

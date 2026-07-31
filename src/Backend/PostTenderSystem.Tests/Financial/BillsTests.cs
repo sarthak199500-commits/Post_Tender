@@ -17,9 +17,14 @@ namespace PostTenderSystem.Tests.Financial;
 /// </summary>
 public class BillsTests
 {
-    private static BillsController Build(FinancialServiceDbContext ctx, string role, Guid? vendorId)
+    // The verifier defaults to answering "this work order belongs to the calling vendor and
+    // its milestones are complete", so tests that are not about ownership are unaffected by
+    // it. Pass an explicit verifier to exercise the cross-service checks themselves.
+    private static BillsController Build(FinancialServiceDbContext ctx, string role, Guid? vendorId,
+        FinancialService.Services.WorkOrderVerifier? verifier = null)
     {
-        var controller = new BillsController(ctx, TestAudit.ForFinancial());
+        var controller = new BillsController(ctx, TestAudit.ForFinancial(),
+            verifier ?? TestVerifier.OwnedBy(vendorId ?? Guid.NewGuid()));
         FakeUser.Attach(controller, FakeUser.With(role, vendorId: vendorId));
         return controller;
     }
@@ -125,6 +130,59 @@ public class BillsTests
         });
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Create_AgainstAnotherVendorsWorkOrder_IsRejected()
+    {
+        using var ctx = TestDb.Create<FinancialServiceDbContext>();
+        var me = Guid.NewGuid();
+        // The work order comes back owned by somebody else.
+        var controller = Build(ctx, "Vendor", me, TestVerifier.OwnedBy(Guid.NewGuid()));
+
+        var result = await controller.Create(new BillsController.CreateBillDto
+        {
+            WorkOrderId = Guid.NewGuid(), BillNo = "RA-X", Type = "RA", Amount = 1000, TaxAmount = 0
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("another vendor", bad.Value!.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(ctx.Bills);
+    }
+
+    [Fact]
+    public async Task Create_ClaimingAnIncompleteMilestone_IsRejected()
+    {
+        using var ctx = TestDb.Create<FinancialServiceDbContext>();
+        var me = Guid.NewGuid();
+        var controller = Build(ctx, "Vendor", me, TestVerifier.WithIncompleteMilestones(me));
+
+        var result = await controller.Create(new BillsController.CreateBillDto
+        {
+            WorkOrderId = Guid.NewGuid(), BillNo = "RA-Y", Type = "RA", Amount = 1000, TaxAmount = 0,
+            MilestoneIds = new List<Guid> { TestVerifier.StubMilestoneId }
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("completed milestone", bad.Value!.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(ctx.Bills);
+    }
+
+    [Fact]
+    public async Task Create_WhenVerificationIsUnavailable_FailsClosed()
+    {
+        using var ctx = TestDb.Create<FinancialServiceDbContext>();
+        var me = Guid.NewGuid();
+        var controller = Build(ctx, "Vendor", me, TestVerifier.Unreachable());
+
+        var result = await controller.Create(new BillsController.CreateBillDto
+        {
+            WorkOrderId = Guid.NewGuid(), BillNo = "RA-Z", Type = "RA", Amount = 1000, TaxAmount = 0
+        });
+
+        // An ownership check that cannot be answered must refuse, not assume success.
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Empty(ctx.Bills);
     }
 
     [Fact]

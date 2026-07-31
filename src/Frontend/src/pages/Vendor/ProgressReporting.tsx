@@ -18,6 +18,7 @@ import type { RootState } from '../../store';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 import type { Project, Milestone, ProgressReport } from '../../types/domain';
+import { statusChipClass } from '../../utils/statusTone';
 
 // /progressreports/project/{id} enriches rows with the project name and linked milestone.
 type SubmissionRow = ProgressReport & { projectName?: string; milestone?: { title: string }; milestoneTitle?: string };
@@ -30,24 +31,24 @@ const PREVIEW_COUNT = 3; // show up to 3 thumbnails; 3rd becomes the "+N" tile
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+/*
+ * The labels are specific to progress reporting — they name who acted, not just the
+ * state — so they stay local. The colours come from the shared tone map, so
+ * "Reviewed" is no longer sky here and brand everywhere else, and an unrecognised
+ * status reads as neutral rather than as a warning.
+ */
+const REPORT_STATUS_LABELS: Record<string, string> = {
+  approved: 'Approved by Dept',
+  reviewed: 'Reviewed by Inspector',
+  returned: 'Returned for Rework',
+  queryraised: 'Query Raised',
+  submitted: 'Submitted',
+};
+
 const statusMeta = (status?: string) => {
-  const s = (status ?? 'Submitted').toLowerCase();
-  if (s === 'approved') {
-    return { label: 'Approved by Dept', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-  }
-  if (s === 'reviewed') {
-    return { label: 'Reviewed by Inspector', cls: 'bg-sky-50 text-sky-600 border-sky-200' };
-  }
-  if (s === 'returned') {
-    return { label: 'Returned for Rework', cls: 'bg-orange-50 text-orange-700 border-orange-200' };
-  }
-  if (s === 'queryraised') {
-    return { label: 'Query Raised', cls: 'bg-red-50 text-red-700 border-red-200' };
-  }
-  if (s === 'submitted') {
-    return { label: 'Submitted', cls: 'bg-blue-50 text-blue-700 border-blue-200' };
-  }
-  return { label: status ?? 'Pending', cls: 'bg-amber-100 text-amber-700 border-amber-200' };
+  const raw = status ?? 'Submitted';
+  const key = raw.toLowerCase().replace(/[\s_-]/g, '');
+  return { label: REPORT_STATUS_LABELS[key] ?? raw, cls: statusChipClass(raw, 'soft') };
 };
 
 const isVideo = (url: string) => /\.(mp4|webm|ogg)$/i.test(url);
@@ -65,7 +66,7 @@ const MediaTile = ({
   onClick?: () => void;
 }) => (
   <div
-    className="aspect-square rounded-xl bg-slate-100 overflow-hidden relative group border border-slate-200 cursor-pointer"
+    className="aspect-square rounded-card bg-slate-100 overflow-hidden relative group border border-slate-200 cursor-pointer"
     onClick={onClick}
   >
     {isVideo(url) ? (
@@ -91,7 +92,7 @@ const MediaTile = ({
 const OverflowTile = ({ count, onClick }: { count: number; onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="aspect-square rounded-xl bg-slate-700 text-white flex flex-col items-center justify-center font-black text-xl border border-slate-600 hover:bg-slate-600 transition-colors"
+    className="aspect-square rounded-card bg-slate-700 text-white flex flex-col items-center justify-center font-black text-xl border border-slate-600 hover:bg-slate-600 transition-colors"
   >
     <Plus className="w-5 h-5 mb-0.5" />
     <span>+{count}</span>
@@ -244,12 +245,12 @@ export const ProgressReporting = () => {
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-            <BarChart3 className="w-8 h-8 text-blue-700" />
+            <BarChart3 className="w-8 h-8 text-brand-700" />
             Field Progress Reporting
           </h1>
           <p className="text-slate-600 mt-2">Submit daily/weekly work updates with geo-tagged evidence.</p>
@@ -258,12 +259,12 @@ export const ProgressReporting = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* ── Left: Form ── */}
           <div className="md:col-span-2 space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+            <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 space-y-6">
               {/* Project Select */}
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Select Active Project</label>
                 <select aria-label="Select an option"
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full p-3 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none"
                   onChange={(e) => setSelectedProject(projects.find((p) => p.id === e.target.value) ?? null)}
                 >
                   <option value="">Select a project...</option>
@@ -278,7 +279,7 @@ export const ProgressReporting = () => {
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Link to Milestone (Optional)</label>
                   <select aria-label="Select an option"
-                    className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium text-slate-700"
+                    className="w-full p-3 border border-slate-200 rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white font-medium text-slate-700"
                     value={selectedMilestoneId}
                     onChange={(e) => setSelectedMilestoneId(e.target.value)}
                   >
@@ -295,7 +296,7 @@ export const ProgressReporting = () => {
                   <label className="block text-sm font-bold text-slate-700 mb-2">GPS Verification</label>
                   <button
                     onClick={handleCaptureLocation}
-                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
+                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-card border-2 transition-all ${
                       location
                         ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
                         : 'border-dashed border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -316,7 +317,7 @@ export const ProgressReporting = () => {
                 </label>
                 <textarea
                   rows={4}
-                  className={`w-full p-4 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm transition-colors ${
+                  className={`w-full p-4 border rounded-card focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm transition-colors ${
                     descError ? 'border-red-400 bg-red-50' : 'border-slate-200'
                   }`}
                   placeholder="Detail the work performed during this reporting period..."
@@ -337,13 +338,13 @@ export const ProgressReporting = () => {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   onClick={() => { setWorkDescription(''); setLocation(null); setMediaUrls([]); setDescError(false); setSelectedMilestoneId(''); }}
-                  className="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="px-6 py-3 rounded-card font-bold text-slate-600 hover:bg-slate-100 transition-colors"
                 >
                   Discard
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="bg-blue-700 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
+                  className="bg-brand-600 text-white px-8 py-3 rounded-card font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-100 flex items-center gap-2"
                 >
                   <Save className="w-5 h-5" />
                   Submit Report
@@ -355,7 +356,7 @@ export const ProgressReporting = () => {
           {/* ── Right: Media + Submissions ── */}
           <div className="space-y-6">
             {/* Media Evidence */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200">
               <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-slate-600" />
                 Media Evidence
@@ -382,7 +383,7 @@ export const ProgressReporting = () => {
               {/* Upload buttons */}
               {mediaUrls.length < MAX_MEDIA && (
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-600 cursor-pointer hover:bg-slate-100 transition-colors">
+                  <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-card flex flex-col items-center justify-center text-slate-600 cursor-pointer hover:bg-slate-100 transition-colors">
                     <Camera className="w-6 h-6 mb-1" />
                     <span className="text-[10px] font-bold uppercase">
                       {isUploading ? 'Uploading...' : 'Photo'}
@@ -397,7 +398,7 @@ export const ProgressReporting = () => {
                       disabled={isUploading}
                     />
                   </label>
-                  <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-600 cursor-pointer hover:bg-slate-100 transition-colors">
+                  <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-card flex flex-col items-center justify-center text-slate-600 cursor-pointer hover:bg-slate-100 transition-colors">
                     <Video className="w-6 h-6 mb-1" />
                     <span className="text-[10px] font-bold uppercase">
                       {isUploading ? 'Uploading...' : 'Video'}
@@ -421,7 +422,7 @@ export const ProgressReporting = () => {
             </div>
 
             {/* Recent Submissions */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-slate-800 flex items-center gap-2">
                   <History className="w-5 h-5 text-slate-600" />
@@ -429,7 +430,7 @@ export const ProgressReporting = () => {
                 </h2>
                 <button
                   onClick={() => navigate('/vendor/progress/history')}
-                  className="text-xs text-blue-700 hover:text-blue-800 font-semibold flex items-center gap-1 hover:underline"
+                  className="text-xs text-brand-700 hover:text-brand-800 font-semibold flex items-center gap-1 hover:underline"
                 >
                   View All
                 </button>
@@ -454,9 +455,9 @@ export const ProgressReporting = () => {
                           setSelectedSubmission(sub);
                         }
                       }}
-                      className="w-full flex gap-3 text-xs p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 text-left"
+                      className="w-full flex gap-3 text-xs p-3 rounded-card hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 text-left"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-700 shrink-0">
+                      <div className="w-8 h-8 rounded-control bg-brand-50 flex items-center justify-center text-brand-700 shrink-0">
                         <FileText className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -492,7 +493,7 @@ export const ProgressReporting = () => {
       {/* ─── Media Gallery Modal ─────────────────────────────────────────── */}
       {mediaModalOpen && (
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+          <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h2 className="text-lg font-bold text-slate-800">
                 Media Evidence ({mediaUrls.length}/{MAX_MEDIA})
@@ -525,7 +526,7 @@ export const ProgressReporting = () => {
               <p className="text-xs text-slate-600">{MAX_MEDIA - mediaUrls.length} slot(s) remaining</p>
               <button
                 onClick={() => setMediaModalOpen(false)}
-                className="bg-slate-900 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all"
+                className="bg-slate-900 text-white px-6 py-2 rounded-card text-sm font-bold hover:bg-slate-800 transition-all"
               >
                 Done
               </button>
@@ -537,7 +538,7 @@ export const ProgressReporting = () => {
       {/* ─── Submission Detail Modal ─────────────────────────────────────── */}
       {selectedSubmission && (
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+          <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Progress Report Details</h2>
@@ -576,13 +577,13 @@ export const ProgressReporting = () => {
 
               <div>
                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2">Work Description</p>
-                <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-control border border-slate-100">
                   {selectedSubmission.workDescription}
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-700 shadow-sm">
+              <div className="flex items-center gap-4 bg-emerald-50 p-4 rounded-control border border-emerald-100">
+                <div className="w-10 h-10 bg-white rounded-card flex items-center justify-center text-emerald-700 shadow-sm">
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
@@ -594,7 +595,7 @@ export const ProgressReporting = () => {
               </div>
 
               {selectedSubmission.remarks && (
-                <div className="mt-4 p-4 bg-amber-50 text-amber-950 rounded-2xl border border-amber-100 border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="mt-4 p-4 bg-amber-50 text-amber-950 rounded-control border border-amber-100 border-dashed animate-in fade-in slide-in-from-top-2 duration-300">
                   <p className="text-[10px] font-black text-amber-800/60 uppercase tracking-widest mb-1.5">Review Remarks / Return Reason</p>
                   <p className="text-sm font-semibold italic text-slate-700">"{selectedSubmission.remarks}"</p>
                 </div>
@@ -605,7 +606,7 @@ export const ProgressReporting = () => {
                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-4">Evidence Gallery</p>
                   <div className="grid grid-cols-3 gap-4">
                     {(selectedSubmission.mediaUrls ?? []).map((url: string, i: number) => (
-                      <div key={i} className="aspect-square rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm">
+                      <div key={i} className="aspect-square rounded-control bg-slate-100 overflow-hidden border border-slate-200 shadow-sm">
                         {isVideo(url) ? (
                           <video src={`${API_BASE}${url}`} className="w-full h-full object-cover" controls />
                         ) : (
@@ -621,7 +622,7 @@ export const ProgressReporting = () => {
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setSelectedSubmission(null)}
-                className="bg-slate-900 text-white px-8 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                className="bg-slate-900 text-white px-8 py-2.5 rounded-card text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
               >
                 Close
               </button>

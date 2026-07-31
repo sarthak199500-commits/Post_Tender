@@ -6,6 +6,7 @@ import { FilePlus, ChevronRight, CheckCircle, Clock, Send, AlertCircle, Info } f
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { rupeesCompact } from '../../utils/currency';
 import axiosInstance from '../../api/axiosInstance';
+import { statusChipClass } from '../../utils/statusTone';
 
 interface VendorRecord { id: string; name: string; vendorCode?: string; }
 interface MilestoneRecord { workOrderId: string; status: string; }
@@ -36,14 +37,9 @@ interface WorkOrder {
 
 const STATUS_FLOW = ['Draft', 'Authority Approval', 'Pending Vendor Acceptance', 'Accepted', 'Completed'];
 
-const statusColor: Record<string, string> = {
-  'Draft': 'bg-slate-100 text-slate-600',
-  'Authority Approval': 'bg-amber-100 text-amber-700',
-  'Pending Vendor Acceptance': 'bg-blue-100 text-blue-700',
-  'Accepted': 'bg-green-100 text-green-700',
-  'Completed': 'bg-emerald-100 text-emerald-700',
-  'Cancelled': 'bg-red-100 text-red-700',
-};
+/* Status colours come from utils/statusTone so this page agrees with the rest of
+   the app; `Accepted` in particular used to be `green` here and `emerald`
+   everywhere else. */
 
 export const WorkOrderManagement = () => {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
@@ -129,10 +125,10 @@ export const WorkOrderManagement = () => {
     loadWOs();
   };
 
-  if (loading) return <div className="p-8 text-slate-600">Loading work orders...</div>;
+  if (loading) return <div className="text-slate-600">Loading work orders...</div>;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       <ConfirmDialog
         isOpen={confirm.open}
         title={confirm.title}
@@ -148,7 +144,7 @@ export const WorkOrderManagement = () => {
             <h1 className="text-3xl font-bold text-slate-800">Work Orders</h1>
             <button 
               onClick={() => setShowWorkflow(!showWorkflow)}
-              className="flex items-center justify-center p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+              className="flex items-center justify-center p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors"
               title="Toggle Workflow Info"
             >
               <Info className="w-5 h-5" />
@@ -158,7 +154,7 @@ export const WorkOrderManagement = () => {
         </div>
         <button
           onClick={() => navigate('/admin/work-orders/new')}
-          className="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
+          className="inline-flex items-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-control font-medium transition-colors"
         >
           <FilePlus className="w-4 h-4" />
           <span>New Work Order</span>
@@ -167,12 +163,12 @@ export const WorkOrderManagement = () => {
 
       {/* Workflow Legend */}
       {showWorkflow && (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 animate-in slide-in-from-top-2 fade-in duration-200">
+        <div className="bg-white border border-slate-200 rounded-card p-4 animate-in slide-in-from-top-2 fade-in duration-200">
           <p className="text-xs font-semibold text-slate-600 uppercase mb-3">Approval Workflow</p>
           <div className="flex items-center space-x-2 overflow-x-auto">
             {STATUS_FLOW.map((s, i) => (
               <React.Fragment key={s}>
-                <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${statusColor[s]}`}>{s}</span>
+                <span className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${statusChipClass(s)}`}>{s}</span>
                 {i < STATUS_FLOW.length - 1 && <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />}
               </React.Fragment>
             ))}
@@ -182,16 +178,16 @@ export const WorkOrderManagement = () => {
 
       <div className="space-y-4">
         {workOrders.map(wo => (
-          <div key={wo.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <div key={wo.id} className="bg-white border border-slate-200 rounded-card p-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div className="flex items-start space-x-4">
-                <div className="p-2 bg-indigo-50 rounded-lg">
-                  <FilePlus className="w-5 h-5 text-indigo-600" />
+                <div className="p-2 bg-brand-50 rounded-control">
+                  <FilePlus className="w-5 h-5 text-brand-600" />
                 </div>
                 <div>
                   <div className="flex items-center space-x-3">
                     <h2 className="font-semibold text-slate-800">{wo.workOrderNo}</h2>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor[wo.status] || 'bg-slate-100 text-slate-600'}`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusChipClass(wo.status)}`}>
                       {wo.status}
                     </span>
                   </div>
@@ -212,7 +208,7 @@ export const WorkOrderManagement = () => {
               <div className="flex items-center space-x-2">
                 <Link
                   to={`/admin/work-orders/${wo.id}`}
-                  className="flex items-center space-x-1 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  className="flex items-center space-x-1 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-1.5 rounded-control text-sm font-medium transition-colors"
                 >
                   <span>View Details</span>
                 </Link>
@@ -227,7 +223,7 @@ export const WorkOrderManagement = () => {
                       onConfirm: () => transitionStatus(wo.id, 'Authority Approval'),
                     })}
                     disabled={acting === wo.id}
-                    className="flex items-center space-x-1 bg-amber-700 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:"
+                    className="flex items-center space-x-1 bg-amber-700 hover:bg-amber-800 text-white px-3 py-1.5 rounded-control text-sm font-medium transition-colors disabled:"
                   >
                     <CheckCircle className="w-4 h-4" />
                     <span>Submit for Approval</span>
@@ -244,14 +240,14 @@ export const WorkOrderManagement = () => {
                       onConfirm: () => approve(wo.id),
                     })}
                     disabled={acting === wo.id}
-                    className="flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:"
+                    className="flex items-center space-x-1 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-control text-sm font-medium transition-colors disabled:"
                   >
                     <Send className="w-4 h-4" />
                     <span>{acting === wo.id ? 'Sending...' : 'Approve & Send to Vendor'}</span>
                   </button>
                 )}
                 {wo.status === 'Pending Vendor Acceptance' && (
-                  <span className="flex items-center space-x-1 text-blue-700 text-sm">
+                  <span className="flex items-center space-x-1 text-brand-700 text-sm">
                     <Clock className="w-4 h-4" />
                     <span>Awaiting vendor acceptance</span>
                   </span>
@@ -269,13 +265,13 @@ export const WorkOrderManagement = () => {
                           onConfirm: () => transitionStatus(wo.id, 'Completed'),
                         })}
                         disabled={acting === wo.id}
-                        className="flex items-center space-x-1 bg-green-700 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:"
+                        className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-control text-sm font-medium transition-colors disabled:"
                       >
                         <CheckCircle className="w-4 h-4" />
                         <span>Mark Completed</span>
                       </button>
                     ) : (
-                      <div className="flex items-center space-x-1 text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-sm cursor-not-allowed group relative">
+                      <div className="flex items-center space-x-1 text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-control text-sm cursor-not-allowed group relative">
                         <AlertCircle className="w-4 h-4" />
                         <span>Cannot Close</span>
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
@@ -297,7 +293,7 @@ export const WorkOrderManagement = () => {
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2">
                   <div
-                    className="bg-green-500 h-2 rounded-full"
+                    className="bg-emerald-500 h-2 rounded-full"
                     style={{ width: `${wo.milestoneCount > 0 ? (wo.completedMilestones / wo.milestoneCount) * 100 : 0}%` }}
                   />
                 </div>
@@ -307,7 +303,7 @@ export const WorkOrderManagement = () => {
         ))}
 
         {workOrders.length === 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-16 text-center">
+          <div className="bg-white rounded-card border border-slate-200 p-16 text-center">
             <FilePlus className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-600">No work orders yet. Create one from an Awarded Tender.</p>
           </div>

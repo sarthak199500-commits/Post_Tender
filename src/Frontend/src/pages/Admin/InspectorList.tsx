@@ -35,10 +35,10 @@ const InspectorList: React.FC = () => {
         fetchInspectors();
     }, []);
 
-    if (loading) return <div className="p-10 text-center text-slate-600">Loading inspectors...</div>;
+    if (loading) return <div className="text-center text-slate-600">Loading inspectors...</div>;
 
     return (
-        <div className="p-8">
+        <div>
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Inspector Directory</h1>
@@ -46,13 +46,13 @@ const InspectorList: React.FC = () => {
                 </div>
                 <button
                     onClick={() => navigate('/admin/masters/inspectors/add')}
-                    className="bg-blue-700 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition-all active:scale-95"
+                    className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-card font-bold shadow-md transition-all active:scale-95"
                 >
                     + Add Inspector
                 </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto"><table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
@@ -64,7 +64,7 @@ const InspectorList: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {inspectors.map((i) => (
-                            <tr key={i.id} className="hover:bg-blue-50/30 transition-colors">
+                            <tr key={i.id} className="hover:bg-brand-50/30 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="font-bold text-slate-800">{i.name}</div>
                                     <div className="text-[10px] text-slate-600 font-mono">ID: {i.id.substring(0, 8)}</div>
@@ -75,7 +75,9 @@ const InspectorList: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded text-[10px] font-extrabold uppercase tracking-widest ${
-                                        i.type === 'Department' ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700'
+                                        // Inspector type is a category, not a state — slate keeps it from
+                                        // reading as "returned", which is what orange means elsewhere.
+                                        i.type === 'Department' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'
                                     }`}>
                                         {i.type}
                                     </span>
@@ -88,7 +90,7 @@ const InspectorList: React.FC = () => {
                                         is the system's record of what this user did. */}
                                     <button
                                         onClick={() => navigate(`/admin/audit-logs?q=${encodeURIComponent(i.name)}`)}
-                                        className="text-blue-700 hover:text-blue-800 font-bold text-sm underline"
+                                        className="text-brand-700 hover:text-brand-800 font-bold text-sm underline"
                                     >
                                         View History
                                     </button>

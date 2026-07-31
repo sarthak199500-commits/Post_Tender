@@ -20,7 +20,7 @@ builder.Services.AddHttpClient<IIdentityClient, IdentityClient>(client =>
 
 // Configure Entity Framework Core with SQLite
 builder.Services.AddDbContext<VendorDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure JWT Authentication (using same key as IdentityService to validate tokens)
 var jwtKey = builder.Configuration["Jwt:Key"];

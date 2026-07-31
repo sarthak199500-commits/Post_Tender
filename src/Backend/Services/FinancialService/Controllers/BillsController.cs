@@ -31,7 +31,7 @@ public class BillsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        var query = _context.Bills.Include(b => b.Deductions).AsQueryable();
+        var query = _context.Bills.Include(b => b.Deductions).Include(b => b.Payments).AsQueryable();
 
         // A vendor sees only their own bills. Reviewers (Department/Finance/Admin/PMU)
         // see all. Fail closed if a vendor token carries no claim.
@@ -48,7 +48,7 @@ public class BillsController : ControllerBase
     // A bill in one of these states is still in play, so it holds its milestone claim and
     // its share of an outstanding advance recovery. "Returned" is deliberately absent — a
     // returned bill has been handed back for correction and must release both.
-    private static readonly string[] ClaimingStatuses = { "Submitted", "Under Review", "Approved", "Paid" };
+    private static readonly string[] ClaimingStatuses = { "Submitted", "Under Review", "Approved", "Partially Paid", "Paid" };
 
     // Only a bill still awaiting a department decision can be approved. Approving a
     // Returned bill would release funds for the very submission that was handed back,
@@ -170,15 +170,29 @@ public class BillsController : ControllerBase
             var ld = LiquidatedDamagesCalculator.Compute(check.TotalValue, check.EndDate, check.WorkOrderStatus);
             if (ld.Amount > 0)
             {
-                bill.Deductions.Add(new BillDeduction
+                // LD is a percentage of the whole CONTRACT, so on a small interim claim it
+                // can exceed the bill entirely — a 10% charge on a crore-scale work order
+                // against a lakh-scale RA bill. Recovering more than the bill is worth would
+                // drive the payable negative, so take what this bill can absorb and leave
+                // the rest to be recovered from later bills while the work order stays late.
+                var absorbable = bill.TotalAmount - bill.RetainedAmount - bill.AdvanceRecovered;
+                var charged = Math.Min(Math.Round(ld.Amount, 2), Math.Max(0, absorbable));
+
+                if (charged > 0)
                 {
-                    BillId = bill.Id,
-                    Type = "LiquidatedDamages",
-                    Description = $"Work order is {ld.WeeksLate} week(s) past its scheduled end date. " +
-                                   "Computed at 0.5%/week of contract value, capped at 10%. Remove if an extension was granted.",
-                    Amount = Math.Round(ld.Amount, 2),
-                    IsSystemGenerated = true
-                });
+                    var capped = charged < Math.Round(ld.Amount, 2);
+                    bill.Deductions.Add(new BillDeduction
+                    {
+                        BillId = bill.Id,
+                        Type = "LiquidatedDamages",
+                        Description = $"Work order is {ld.WeeksLate} week(s) past its scheduled end date. " +
+                                       "Computed at 0.5%/week of contract value, capped at 10%. " +
+                                       (capped ? $"Full charge is {ld.Amount:C}; limited to this bill's payable value, the balance carries to later bills. " : "") +
+                                       "Remove if an extension was granted.",
+                        Amount = charged,
+                        IsSystemGenerated = true
+                    });
+                }
             }
         }
 
@@ -200,9 +214,16 @@ public class BillsController : ControllerBase
     // NextVoucherNoAsync below reads the rows first and aggregates in memory.
     private async Task<decimal> GetOutstandingAdvanceAsync(Guid workOrderId)
     {
-        var paidAdvance = (await _context.Bills
-            .Where(b => b.WorkOrderId == workOrderId && b.Type == "Advance" && b.Status == "Paid")
-            .Select(b => b.Amount)
+        var advanceBillIds = await _context.Bills
+            .Where(b => b.WorkOrderId == workOrderId && b.Type == "Advance")
+            .Select(b => b.Id)
+            .ToListAsync();
+
+        // Sum the instalments actually released, not the bill face value: an advance that
+        // is only part-paid has only part-disbursed, so only that much is recoverable.
+        var paidAdvance = (await _context.BillPayments
+            .Where(p => advanceBillIds.Contains(p.BillId))
+            .Select(p => p.Amount)
             .ToListAsync()).Sum();
 
         var recovered = (await _context.Bills
@@ -218,6 +239,26 @@ public class BillsController : ControllerBase
         public string? Reason { get; set; }
     }
 
+    // Department: claim a submitted bill for review. "Under Review" existed in the status
+    // vocabulary from the start but nothing ever assigned it, so the stage was invisible —
+    // two reviewers could work the same bill without knowing. Taking a bill into review is
+    // a deliberate act, not a side effect of opening the screen, so it has its own endpoint.
+    [HttpPost("{id}/start-review")]
+    [Authorize(Roles = "Department,Admin,PMU")]
+    public async Task<IActionResult> StartReview(Guid id)
+    {
+        var bill = await _context.Bills.FindAsync(id);
+        if (bill == null) return NotFound("Bill not found");
+
+        if (bill.Status != "Submitted")
+            return BadRequest($"Only a submitted bill can be taken into review (current: '{bill.Status}').");
+
+        bill.Status = "Under Review";
+        await _context.SaveChangesAsync();
+        await _audit.LogAsync("Bill", id.ToString(), "Bill Under Review", "Taken into review by the department.");
+        return Ok(new { message = "Bill taken into review" });
+    }
+
     // Department: approve a submitted/under-review bill for fund release.
     [HttpPost("{id}/approve")]
     [Authorize(Roles = "Department,Admin,PMU")]
@@ -226,8 +267,8 @@ public class BillsController : ControllerBase
         var bill = await _context.Bills.FindAsync(id);
         if (bill == null) return NotFound("Bill not found");
 
-        if (bill.Status == "Paid")
-            return BadRequest("A paid bill cannot be re-approved.");
+        if (bill.Status is "Paid" or "Partially Paid")
+            return BadRequest("A bill that has been paid cannot be re-approved.");
         if (!ApprovableStatuses.Contains(bill.Status))
             return BadRequest($"A bill that is '{bill.Status}' cannot be approved. Only a bill awaiting review can be.");
 
@@ -245,8 +286,8 @@ public class BillsController : ControllerBase
         var bill = await _context.Bills.FindAsync(id);
         if (bill == null) return NotFound("Bill not found");
 
-        if (bill.Status == "Paid")
-            return BadRequest("A paid bill cannot be returned.");
+        if (bill.Status is "Paid" or "Partially Paid")
+            return BadRequest("A bill that has been paid cannot be returned.");
 
         bill.Status = "Returned";
         bill.RejectionReason = request?.Reason;
@@ -255,27 +296,95 @@ public class BillsController : ControllerBase
         return Ok(new { message = "Bill returned with query" });
     }
 
-    // Finance: release funds for a department-approved bill.
+    public class PayRequest
+    {
+        /// <summary>
+        /// How much to release now. Omit (or send null) to settle the whole outstanding
+        /// balance, which is what the endpoint always used to do.
+        /// </summary>
+        public decimal? Amount { get; set; }
+
+        /// <summary>Cheque number, UTR, NEFT reference — recorded against the instalment.</summary>
+        public string? Reference { get; set; }
+    }
+
+    // Finance: release funds for a department-approved bill, in full or in instalments.
+    //
+    // A partial release keeps the bill open at "Partially Paid" so it stays in Finance's
+    // queue; it only reaches "Paid" once the balance is cleared. Each instalment gets its
+    // own voucher number, and the bill's own PaymentVoucherNo/PaidAt track the final one
+    // so records written before instalments existed still read correctly.
     [HttpPost("{id}/pay")]
     [Authorize(Roles = "Finance,Admin,PMU")]
-    public async Task<IActionResult> Pay(Guid id)
+    public async Task<IActionResult> Pay(Guid id, [FromBody] PayRequest? request)
     {
-        var bill = await _context.Bills.Include(b => b.Deductions).FirstOrDefaultAsync(b => b.Id == id);
+        var bill = await _context.Bills
+            .Include(b => b.Deductions)
+            .Include(b => b.Payments)
+            .FirstOrDefaultAsync(b => b.Id == id);
         if (bill == null) return NotFound("Bill not found");
 
-        if (bill.Status != "Approved")
-            return BadRequest("Only approved bills can be paid.");
+        if (bill.Status is not ("Approved" or "Partially Paid"))
+            return BadRequest("Only an approved bill can be paid.");
 
-        bill.Status = "Paid";
-        bill.PaidAt = DateTime.UtcNow;
-        bill.PaymentVoucherNo = await NextVoucherNoAsync();
+        var balance = bill.BalanceAmount;
+
+        // Deductions can consume the whole payable (a large LD charge). Nothing is
+        // disbursed, but the bill must still be closeable rather than stranded in Approved.
+        if (balance <= 0 && bill.AmountPaid <= 0 && bill.NetPayableAmount <= 0)
+        {
+            bill.Status = "Paid";
+            bill.PaidAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await _audit.LogAsync("Bill", id.ToString(), "Bill Settled (nil payable)",
+                "Deductions consumed the full claim; no funds released.");
+            return Ok(new { message = "Bill settled — deductions consumed the full claim, nothing to release.", voucherNo = (string?)null, amountPaid = 0m, netPayable = 0m, totalPaid = 0m, balance = 0m, fullySettled = true });
+        }
+
+        if (balance <= 0)
+            return BadRequest("This bill has no outstanding balance.");
+
+        var amount = request?.Amount ?? balance;
+        if (amount <= 0)
+            return BadRequest("The payment amount must be greater than zero.");
+        if (amount > balance)
+            return BadRequest($"That exceeds the outstanding balance of {balance:C}.");
+
+        var voucherNo = await NextVoucherNoAsync();
+        var paidAt = DateTime.UtcNow;
+
+        _context.BillPayments.Add(new BillPayment
+        {
+            BillId = bill.Id,
+            Amount = amount,
+            VoucherNo = voucherNo,
+            Reference = string.IsNullOrWhiteSpace(request?.Reference) ? null : request!.Reference!.Trim(),
+            PaidByUserId = CallerContext.UserId(User),
+            PaidAt = paidAt
+        });
+
+        var remaining = balance - amount;
+        var settled = remaining <= 0;
+
+        bill.Status = settled ? "Paid" : "Partially Paid";
+        bill.PaidAt = paidAt;
+        bill.PaymentVoucherNo = voucherNo;
+
         await _context.SaveChangesAsync();
 
-        var netPayable = bill.NetPayableAmount;
-        await _audit.LogAsync("Bill", id.ToString(), "Funds Released",
-            $"Voucher {bill.PaymentVoucherNo} issued for {netPayable:C} net of retention/advance recovery/deductions.");
+        await _audit.LogAsync("Bill", id.ToString(), settled ? "Funds Released" : "Part Payment Released",
+            $"Voucher {voucherNo} issued for {amount:C}." + (settled ? " Bill fully settled." : $" {remaining:C} still outstanding."));
 
-        return Ok(new { message = "Funds released successfully", voucherNo = bill.PaymentVoucherNo, netPayable });
+        return Ok(new
+        {
+            message = settled ? "Funds released successfully" : "Part payment released",
+            voucherNo,
+            amountPaid = amount,
+            netPayable = bill.NetPayableAmount,
+            totalPaid = bill.NetPayableAmount - remaining,
+            balance = remaining,
+            fullySettled = settled
+        });
     }
 
     // A voucher number is the reconciliation key for a released payment, so it has to be
@@ -287,12 +396,17 @@ public class BillsController : ControllerBase
         var today = DateTime.UtcNow;
         var prefix = $"VOUCHER-{today:yyyyMMdd}-";
 
-        var issuedToday = await _context.Bills
+        var onBills = await _context.Bills
             .Where(b => b.PaymentVoucherNo != null && b.PaymentVoucherNo.StartsWith(prefix))
             .Select(b => b.PaymentVoucherNo!)
             .ToListAsync();
 
-        var highest = issuedToday
+        var onPayments = await _context.BillPayments
+            .Where(p => p.VoucherNo.StartsWith(prefix))
+            .Select(p => p.VoucherNo)
+            .ToListAsync();
+
+        var highest = onBills.Concat(onPayments)
             .Select(v => int.TryParse(v.Substring(prefix.Length), out var n) ? n : 0)
             .DefaultIfEmpty(0)
             .Max();
@@ -308,8 +422,8 @@ public class BillsController : ControllerBase
         var bill = await _context.Bills.FindAsync(id);
         if (bill == null) return NotFound("Bill not found");
 
-        if (bill.Status == "Paid")
-            return BadRequest("A paid bill cannot be rejected.");
+        if (bill.Status is "Paid" or "Partially Paid")
+            return BadRequest("A bill that has been paid cannot be rejected.");
 
         bill.Status = "Returned";
         bill.RejectionReason = request?.Reason;
@@ -338,7 +452,8 @@ public class BillsController : ControllerBase
 
         var bill = await _context.Bills.FindAsync(id);
         if (bill is null) return NotFound("Bill not found");
-        if (bill.Status == "Paid") return BadRequest("Cannot add a deduction to a bill that has already been paid.");
+        if (bill.Status is "Paid" or "Partially Paid")
+            return BadRequest("Cannot add a deduction once a payment has been released — it would change the net payable after money has gone out.");
 
         var deduction = new BillDeduction
         {
@@ -359,7 +474,8 @@ public class BillsController : ControllerBase
     {
         var bill = await _context.Bills.FindAsync(id);
         if (bill is null) return NotFound("Bill not found");
-        if (bill.Status == "Paid") return BadRequest("Cannot remove a deduction from a bill that has already been paid.");
+        if (bill.Status is "Paid" or "Partially Paid")
+            return BadRequest("Cannot remove a deduction once a payment has been released — it would change the net payable after money has gone out.");
 
         var deduction = await _context.BillDeductions.FirstOrDefaultAsync(d => d.Id == deductionId && d.BillId == id);
         if (deduction is null) return NotFound("Deduction not found");
@@ -379,7 +495,7 @@ public class BillsController : ControllerBase
     {
         var bill = await _context.Bills.FindAsync(id);
         if (bill is null) return NotFound("Bill not found");
-        if (bill.Status != "Paid") return BadRequest("Retention can only be released once the bill has been paid.");
+        if (bill.Status != "Paid") return BadRequest("Retention can only be released once the bill has been paid in full.");
         if (bill.RetainedAmount <= 0) return BadRequest("This bill has no retention withheld.");
         if (bill.RetentionReleased) return BadRequest("Retention has already been released for this bill.");
 

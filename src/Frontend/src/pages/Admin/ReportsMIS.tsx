@@ -38,7 +38,7 @@ export const ReportsMIS = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-8 text-slate-600">Generating reports...</div>;
+  if (loading) return <div className="text-slate-600">Generating reports...</div>;
 
   const totalContractValue = workOrders.reduce((s, w) => s + (w.totalValue || 0), 0);
   const totalUtilized = projects.reduce((s, p) => s + (p.utilized || 0), 0);
@@ -57,10 +57,10 @@ export const ReportsMIS = () => {
   }));
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-slate-800 flex items-center space-x-3">
-          <BarChart2 className="w-8 h-8 text-indigo-600" />
+          <BarChart2 className="w-8 h-8 text-brand-600" />
           <span>Reports & MIS</span>
         </h1>
         <p className="text-slate-600 mt-1">Management Information System — consolidated performance overview.</p>
@@ -68,21 +68,21 @@ export const ReportsMIS = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="bg-white border border-slate-200 rounded-card p-5">
           <p className="text-sm text-slate-600">Total Contract Value</p>
           <p className="text-2xl font-bold text-slate-800 mt-1">{rupeesCompact(totalContractValue)}</p>
           <p className="text-xs text-slate-600 mt-1">across {workOrders.length} work orders</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="bg-white border border-slate-200 rounded-card p-5">
           <p className="text-sm text-slate-600">Total Funds Released</p>
           <p className="text-2xl font-bold text-emerald-700 mt-1">{rupeesCompact(totalUtilized)}</p>
           <p className="text-xs text-slate-600 mt-1">{totalContractValue > 0 ? ((totalUtilized / totalContractValue) * 100).toFixed(1) : 0}% of total</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
-          <p className="text-sm text-slate-600 flex items-center space-x-1"><TrendingUp className="w-4 h-4 text-green-700" /><span>On-Time Projects</span></p>
-          <p className="text-2xl font-bold text-green-700 mt-1">{onTime}</p>
+        <div className="bg-white border border-slate-200 rounded-card p-5">
+          <p className="text-sm text-slate-600 flex items-center space-x-1"><TrendingUp className="w-4 h-4 text-emerald-700" /><span>On-Time Projects</span></p>
+          <p className="text-2xl font-bold text-emerald-700 mt-1">{onTime}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="bg-white border border-slate-200 rounded-card p-5">
           <p className="text-sm text-slate-600 flex items-center space-x-1"><AlertTriangle className="w-4 h-4 text-red-700" /><span>Estimated LD Liability</span></p>
           <p className="text-2xl font-bold text-red-700 mt-1">{rupeesCompact(totalLd)}</p>
         </div>
@@ -90,7 +90,7 @@ export const ReportsMIS = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Work Order Status Breakdown */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="bg-white border border-slate-200 rounded-card p-6">
           <h2 className="text-base font-semibold text-slate-700 mb-4">Work Order Status Breakdown</h2>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
@@ -99,14 +99,14 @@ export const ReportsMIS = () => {
                 <XAxis dataKey="status" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={5} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dx={-5} allowDecimals={false} />
                 <Tooltip itemStyle={{ color: '#0f172a' }} labelStyle={{ color: '#0f172a' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#4f6ef7" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Budget vs Utilized per Project */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="bg-white border border-slate-200 rounded-card p-6">
           <h2 className="text-base font-semibold text-slate-700 mb-4">Budget vs Utilized (₹ Lakhs)</h2>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
@@ -122,7 +122,7 @@ export const ReportsMIS = () => {
                   formatter={(value) => <span style={{ color: '#374151', fontWeight: 500 }}>{value}</span>}
                 />
                 <Bar dataKey="Budget" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Utilized" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Utilized" fill="#4f6ef7" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -130,7 +130,7 @@ export const ReportsMIS = () => {
       </div>
 
       {/* Penalty Calculator Table */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
+      <div className="bg-white border border-slate-200 rounded-card p-6">
         <h2 className="text-base font-semibold text-slate-700 mb-4 flex items-center space-x-2">
           <AlertTriangle className="w-5 h-5 text-amber-700" />
           <span>Penalty / LD Calculator</span>
@@ -152,7 +152,7 @@ export const ReportsMIS = () => {
                 <td className="py-2 px-3 text-slate-600">{p.vendorName}</td>
                 <td className="py-2 px-3 text-slate-600">{p.endDate ? new Date(p.endDate).toLocaleDateString() : '—'}</td>
                 <td className="py-2 px-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.ldAmount > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.ldAmount > 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                     {p.ldStatus === 'None' ? 'On Schedule' : p.ldStatus}
                   </span>
                 </td>

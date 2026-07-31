@@ -27,8 +27,8 @@ export const ConfirmDialog = ({
 
   const colors = {
     danger:  { icon: 'text-red-700',    bg: 'bg-red-50',    btn: 'bg-red-600 hover:bg-red-700',    ring: 'ring-red-100' },
-    warning: { icon: 'text-amber-700',  bg: 'bg-amber-50',  btn: 'bg-amber-700 hover:bg-amber-700', ring: 'ring-amber-100' },
-    info:    { icon: 'text-blue-500',   bg: 'bg-blue-50',   btn: 'bg-blue-700 hover:bg-blue-700',  ring: 'ring-blue-100' },
+    warning: { icon: 'text-amber-700',  bg: 'bg-amber-50',  btn: 'bg-amber-700 hover:bg-amber-800', ring: 'ring-amber-100' },
+    info:    { icon: 'text-brand-500',   bg: 'bg-brand-50',   btn: 'bg-brand-600 hover:bg-brand-700',  ring: 'ring-brand-100' },
   }[variant];
 
   return (
@@ -40,7 +40,7 @@ export const ConfirmDialog = ({
       />
 
       {/* Dialog */}
-      <div className={`relative bg-white rounded-2xl shadow-2xl ring-4 ${colors.ring} w-full max-w-sm mx-4 p-6 animate-in`}>
+      <div className={`relative bg-white rounded-card shadow-2xl ring-4 ${colors.ring} w-full max-w-sm mx-4 p-6 animate-in`}>
         {/* Icon */}
         <div className={`w-12 h-12 rounded-full ${colors.bg} flex items-center justify-center mx-auto mb-4`}>
           <AlertTriangle className={`w-6 h-6 ${colors.icon}`} />
@@ -54,13 +54,13 @@ export const ConfirmDialog = ({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-card text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           >
             {cancelLabel}
           </button>
           <button
             onClick={() => onConfirm()}
-            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${colors.btn}`}
+            className={`flex-1 px-4 py-2.5 rounded-card text-sm font-medium text-white transition-colors ${colors.btn}`}
           >
             {confirmLabel}
           </button>

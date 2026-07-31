@@ -42,18 +42,18 @@ export const BillingClaims = () => {
   useEffect(loadBills, [token]);
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+    <div className="space-y-8">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-            <Wallet className="w-8 h-8 text-indigo-600" />
+            <Wallet className="w-8 h-8 text-brand-600" />
             Billing & Payment Claims
           </h1>
           <p className="text-slate-600 mt-2">Manage RA bills, track payment disbursements, and link work completions.</p>
         </div>
         <button 
           onClick={() => setShowSubmit(true)}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+          className="bg-brand-600 text-white px-6 py-3 rounded-card font-bold flex items-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-100"
         >
           <Plus className="w-5 h-5" />
           Raise New Claim
@@ -72,7 +72,7 @@ export const BillingClaims = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm">
           <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Total Paid</p>
           <p className="text-3xl font-black text-slate-800 mt-1">₹{bills.filter(b => b.status === 'Paid').reduce((acc, b) => acc + b.totalAmount, 0).toLocaleString('en-IN')}</p>
           <div className="flex items-center gap-1 text-emerald-700 text-xs font-bold mt-2">
@@ -80,7 +80,7 @@ export const BillingClaims = () => {
             <span>Verified Disbursements</span>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm">
           <p className="text-sm font-bold text-slate-600 uppercase tracking-widest">Pending Review</p>
           <p className="text-3xl font-black text-slate-800 mt-1">₹{bills.filter(b => b.status === 'Submitted').reduce((acc, b) => acc + b.totalAmount, 0).toLocaleString('en-IN')}</p>
           <div className="flex items-center gap-1 text-amber-700 text-xs font-bold mt-2">
@@ -88,22 +88,22 @@ export const BillingClaims = () => {
             <span>Currently with PMU</span>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm bg-indigo-600">
-           <p className="text-sm font-bold text-indigo-700 uppercase tracking-widest">Active Claims</p>
+        <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm bg-brand-600">
+           <p className="text-sm font-bold text-brand-700 uppercase tracking-widest">Active Claims</p>
            <p className="text-3xl font-black text-white mt-1">{bills.filter(b => b.status !== 'Paid').length}</p>
-           <p className="text-xs text-indigo-700 mt-2 font-medium">Running Account (RA) cycle</p>
+           <p className="text-xs text-brand-700 mt-2 font-medium">Running Account (RA) cycle</p>
         </div>
       </div>
 
       {/* Billing History Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
+        <div className="border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <History className="w-5 h-5 text-slate-600" />
             Recent Claim History
           </h2>
           <div className="flex gap-2">
-            <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600">All Projects</span>
+            <span className="px-3 py-1 bg-white border border-slate-200 rounded-control text-xs font-bold text-slate-600">All Projects</span>
           </div>
         </div>
         <div className="overflow-x-auto"><table className="w-full text-left">
@@ -121,7 +121,7 @@ export const BillingClaims = () => {
               <tr key={bill.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-6 py-5">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-100 rounded-lg">
+                    <div className="p-2 bg-slate-100 rounded-control">
                       <FileText className="w-5 h-5 text-slate-600" />
                     </div>
                     <div>
@@ -134,7 +134,7 @@ export const BillingClaims = () => {
                    <div className="flex flex-col items-start gap-2">
                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                        bill.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' :
-                       bill.status === 'Submitted' ? 'bg-blue-100 text-blue-700' :
+                       bill.status === 'Submitted' ? 'bg-brand-100 text-brand-700' :
                        bill.status === 'Returned' || bill.status === 'Rejected' ? 'bg-red-100 text-red-700' :
                        'bg-amber-100 text-amber-700'
                      }`}>

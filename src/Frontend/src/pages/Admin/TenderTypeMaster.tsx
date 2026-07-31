@@ -75,7 +75,7 @@ const TenderTypeMaster: React.FC = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-6 bg-white rounded-xl shadow-sm border border-slate-100 mt-10">
+        <div className="max-w-2xl mx-auto p-6 bg-white rounded-card shadow-sm border border-slate-100 mt-10">
             <h1 className="text-2xl font-bold text-slate-800 mb-6">Tender Type Master</h1>
 
             <form onSubmit={handleAdd} className="flex gap-2 mb-8">
@@ -84,13 +84,13 @@ const TenderTypeMaster: React.FC = () => {
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="Enter new tender type (e.g. PPP, Hybrid)"
-                    className="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="flex-1 px-4 py-2 border border-slate-200 rounded-control focus:ring-2 focus:ring-brand-500 outline-none"
                     required
                 />
                 <button
                     type="submit"
                     disabled={loading}
-                    className="bg-blue-700 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors disabled:"
+                    className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-control font-semibold transition-colors disabled:"
                 >
                     {loading ? 'Adding...' : 'Add Type'}
                 </button>
@@ -99,7 +99,7 @@ const TenderTypeMaster: React.FC = () => {
             {/* One banner, not two: when the service is down the add and the reload fail
                 for the same reason and produced the identical sentence twice. */}
             {(error || loadError) && (
-                <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start justify-between gap-4">
+                <div className="mb-4 p-4 rounded-control bg-red-50 border border-red-200 flex items-start justify-between gap-4">
                     <p className="text-sm text-red-700 font-medium">{error || loadError}</p>
                     {loadError && (
                         <button
@@ -113,7 +113,7 @@ const TenderTypeMaster: React.FC = () => {
                 </div>
             )}
 
-            <div className="border border-slate-100 rounded-lg overflow-hidden">
+            <div className="border border-slate-100 rounded-control overflow-hidden">
                 <div className="overflow-x-auto"><table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-100">
                         <tr>

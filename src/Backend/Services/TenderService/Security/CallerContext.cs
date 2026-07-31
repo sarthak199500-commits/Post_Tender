@@ -16,4 +16,8 @@ public static class CallerContext
         Guid.TryParse(user.FindFirstValue("vendorId"), out var id) ? id : null;
 
     public static bool IsVendor(ClaimsPrincipal user) => user.IsInRole("Vendor");
+
+    /// <summary>The acting login's own id — used to record who made a decision.</summary>
+    public static Guid? UserId(ClaimsPrincipal user) =>
+        Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 }

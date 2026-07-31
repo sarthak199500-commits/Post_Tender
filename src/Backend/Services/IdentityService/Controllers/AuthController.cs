@@ -49,7 +49,8 @@ public class AuthController : ControllerBase
                 email = user.Email,
                 name = user.Name,
                 role = user.Role.ToString(),
-                vendorId = user.VendorId
+                vendorId = user.VendorId,
+                mustChangePassword = user.MustChangePassword
             }
         });
     }
@@ -109,10 +110,96 @@ public class AuthController : ControllerBase
                 name = u.Name,
                 email = u.Email,
                 role = u.Role.ToString(),
-                createdAt = u.CreatedAt
+                createdAt = u.CreatedAt,
+                mustChangePassword = u.MustChangePassword
             })
             .ToListAsync();
 
         return Ok(users);
+    }
+
+    public class ChangePasswordRequest
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Minimum length only. Deliberately not a composition rule (upper/digit/symbol):
+    /// length is what actually resists guessing, and composition rules push people
+    /// toward predictable substitutions.
+    /// </summary>
+    private const int MinPasswordLength = 8;
+
+    // Any signed-in user changes their own password. Proving knowledge of the current one
+    // is what stops a borrowed session from locking the real owner out.
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (request is null) return BadRequest("Request body is required.");
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < MinPasswordLength)
+            return BadRequest($"The new password must be at least {MinPasswordLength} characters.");
+
+        var callerId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(callerId, out var userId)) return Forbid();
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return NotFound("User not found.");
+
+        if (!PasswordHasher.Verify(request.CurrentPassword ?? string.Empty, user.PasswordHash))
+            return BadRequest("The current password is incorrect.");
+
+        if (PasswordHasher.Verify(request.NewPassword, user.PasswordHash))
+            return BadRequest("The new password must be different from the current one.");
+
+        user.PasswordHash = PasswordHasher.Hash(request.NewPassword);
+        user.MustChangePassword = false;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Password changed." });
+    }
+
+    public class ResetPasswordRequest
+    {
+        /// <summary>Optional. When omitted the server generates one and returns it.</summary>
+        public string? TemporaryPassword { get; set; }
+    }
+
+    // Admin-initiated reset. There is no email sender in this system, so the temporary
+    // password is returned in the response for the admin to hand over out-of-band rather
+    // than mailed. It is returned exactly once and stored only as a hash.
+    [HttpPost("users/{id}/reset-password")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordRequest? request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return NotFound("User not found.");
+
+        var temporary = request?.TemporaryPassword;
+        if (string.IsNullOrWhiteSpace(temporary))
+            temporary = GenerateTemporaryPassword();
+        else if (temporary.Length < MinPasswordLength)
+            return BadRequest($"The temporary password must be at least {MinPasswordLength} characters.");
+
+        user.PasswordHash = PasswordHasher.Hash(temporary);
+        user.MustChangePassword = true;
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Password reset. Give this temporary password to the user — it is not shown again.",
+            temporaryPassword = temporary,
+            mustChangePassword = true
+        });
+    }
+
+    // Cryptographically random, and drawn from an alphabet with no 0/O or 1/l/I so it
+    // survives being read aloud or written down.
+    private static string GenerateTemporaryPassword()
+    {
+        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(12);
+        return new string(bytes.Select(b => alphabet[b % alphabet.Length]).ToArray());
     }
 }

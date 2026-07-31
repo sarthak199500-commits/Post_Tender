@@ -10,6 +10,14 @@ public class ExecutionServiceDbContext : DbContext {
     public DbSet<ProgressReport> ProgressReports { get; set; }
     public DbSet<Query> Queries { get; set; }
     public DbSet<QueryMessage> QueryMessages { get; set; }
+
+    // SQL Server has no implicit decimal store type; unstated, EF falls back to
+    // decimal(18,2) and warns for every property. Weightage, payment and physical
+    // percentages are all 0-100 with at most two places, so state it rather than inherit it.
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
+    }
 }
 
 

@@ -73,25 +73,25 @@ const MilestoneTemplateMaster: React.FC = () => {
     };
 
     return (
-        <div className="p-8">
+        <div>
             <h1 className="text-3xl font-extrabold text-slate-900 mb-8">Milestone Templates Master</h1>
             
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+            <div className="bg-white p-6 rounded-card shadow-sm border border-slate-200 mb-8">
                 <h2 className="text-xl font-bold mb-4">{isEditing ? 'Edit' : 'Add'} Milestone Templates</h2>
                 <form onSubmit={handleSubmit} className="flex flex-wrap gap-4 items-end">
                     <div className="flex-1 min-w-[200px]">
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Template Name</label>
-                        <input type="text" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required={true} />
+                        <input type="text" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-slate-300 rounded-control px-4 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none" required={true} />
                     </div>
                     <div className="flex-1 min-w-[200px]">
                         <label className="block text-sm font-semibold text-slate-700 mb-1">Description</label>
-                        <input type="text" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required={false} />
+                        <input type="text" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full border border-slate-300 rounded-control px-4 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none" required={false} />
                     </div>
-                    <button type="submit" className="bg-blue-700 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold">
+                    <button type="submit" className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-control font-bold">
                         {isEditing ? 'Update' : 'Save'}
                     </button>
                     {isEditing && (
-                        <button type="button" onClick={() => { setIsEditing(false); setFormData({"name":"","description":""}); }} className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-6 py-2.5 rounded-lg font-bold">
+                        <button type="button" onClick={() => { setIsEditing(false); setFormData({"name":"","description":""}); }} className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-6 py-2.5 rounded-control font-bold">
                             Cancel
                         </button>
                     )}
@@ -99,7 +99,7 @@ const MilestoneTemplateMaster: React.FC = () => {
             </div>
 
             {(loadError || saveError) && (
-                <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start justify-between gap-4">
+                <div className="mb-6 p-4 rounded-card bg-red-50 border border-red-200 flex items-start justify-between gap-4">
                     <p className="text-sm text-red-700 font-medium">{saveError || loadError}</p>
                     {loadError && (
                         <button type="button" onClick={fetchData} className="text-sm font-bold text-red-700 underline shrink-0 hover:text-red-800">Retry</button>
@@ -107,7 +107,7 @@ const MilestoneTemplateMaster: React.FC = () => {
                 </div>
             )}
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto"><table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
@@ -122,7 +122,7 @@ const MilestoneTemplateMaster: React.FC = () => {
                                 <td className="px-6 py-4 font-medium text-slate-800">{item.name}</td>
                                 <td className="px-6 py-4 font-medium text-slate-800">{item.description}</td>
                                 <td className="px-6 py-4 text-right space-x-3">
-                                    <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-indigo-800 font-bold underline text-sm">Edit</button>
+                                    <button onClick={() => handleEdit(item)} className="text-brand-600 hover:text-brand-800 font-bold underline text-sm">Edit</button>
                                     <button onClick={() => handleDelete(item.id)} className="text-red-700 hover:text-red-700 font-bold underline text-sm">Delete</button>
                                 </td>
                             </tr>

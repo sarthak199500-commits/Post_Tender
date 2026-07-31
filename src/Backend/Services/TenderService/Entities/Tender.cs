@@ -18,6 +18,12 @@ public class Tender
     public DateTime? CloseDate { get; set; }
     public string Status { get; set; } = "Open";              // Open, Closed, Awarded
 
+    // The owning department. Departments are mastered in IdentityService, so only the
+    // id is stored here and the name is joined client-side — the same cross-service
+    // pattern used for vendor and inspector names.
+    public Guid? DepartmentId { get; set; }
+
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<WorkOrder> WorkOrders { get; set; } = new List<WorkOrder>();

@@ -126,10 +126,10 @@ export const GlobalProjects = () => {
     load();
   }, []);
 
-  if (loading) return <div className="p-8 text-slate-600">Loading projects...</div>;
+  if (loading) return <div className="text-slate-600">Loading projects...</div>;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-slate-800">Project Monitoring</h1>
         <p className="text-slate-600 mt-1">Global view of all active projects — milestones, financial utilization and delays.</p>
@@ -137,14 +137,14 @@ export const GlobalProjects = () => {
 
       <div className="grid grid-cols-1 gap-6">
         {projects.map(proj => (
-          <div key={proj.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div key={proj.id} className="bg-white rounded-card border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center space-x-3">
                     <h2 className="text-lg font-semibold text-slate-800">{proj.name}</h2>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${proj.status === 'Activated' ? 'bg-blue-100 text-blue-700' :
-                      proj.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${proj.status === 'Activated' ? 'bg-brand-100 text-brand-700' :
+                      proj.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
                       }`}>{proj.status}</span>
                   </div>
                   <p className="text-sm text-slate-600 mt-1">
@@ -176,7 +176,7 @@ export const GlobalProjects = () => {
 
               {/* LD Warning */}
               {proj.ldAmount > 0 && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-control flex items-center space-x-3">
                   <AlertTriangle className="w-5 h-5 text-red-700 flex-shrink-0" />
                   <div className="text-sm">
                     <span className="font-semibold text-red-700">LD Alert: </span>
@@ -193,13 +193,13 @@ export const GlobalProjects = () => {
                     <div key={i} className="flex items-center justify-between text-sm">
                       <div className="flex items-center space-x-2">
                         {m.status === 'Completed'
-                          ? <CheckCircle className="w-4 h-4 text-green-700" />
+                          ? <CheckCircle className="w-4 h-4 text-emerald-700" />
                           : <Clock className="w-4 h-4 text-slate-600" />
                         }
-                        <span className={m.status === 'Completed' ? 'text-green-700 font-medium' : 'text-slate-600'}>{m.title}</span>
+                        <span className={m.status === 'Completed' ? 'text-emerald-700 font-medium' : 'text-slate-600'}>{m.title}</span>
                         <span className="text-slate-600 text-xs">({m.weightage}%)</span>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
                         new Date(m.targetDate) < new Date() ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
                         }`}>
                         {m.status === 'Completed' ? 'Done' : `Due ${new Date(m.targetDate).toLocaleDateString()}`}
@@ -210,7 +210,7 @@ export const GlobalProjects = () => {
               </div>
 
               {proj.pendingBills > 0 && (
-                <div className="mt-3 flex items-center space-x-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">
+                <div className="mt-3 flex items-center space-x-2 text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-control">
                   <AlertTriangle className="w-4 h-4" />
                   <span>{proj.pendingBills} bill(s) pending approval</span>
                 </div>
@@ -221,7 +221,7 @@ export const GlobalProjects = () => {
               <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
                 <Link
                   to={`/admin/projects/${proj.id}`}
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-control transition-colors"
                 >
                   View Details <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -230,7 +230,7 @@ export const GlobalProjects = () => {
           </div>
         ))}
         {projects.length === 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-16 text-center">
+          <div className="bg-white rounded-card border border-slate-200 p-16 text-center">
             <Activity className="w-12 h-12 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-600">No active projects found. Work orders must be accepted by vendors to activate projects.</p>
           </div>

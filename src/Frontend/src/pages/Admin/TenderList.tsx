@@ -51,7 +51,7 @@ const TenderList: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="p-10 text-center">Loading tenders...</div>;
+    if (loading) return <div className="text-center">Loading tenders...</div>;
 
     const filteredTenders = tenders.filter(t => {
         const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -61,7 +61,7 @@ const TenderList: React.FC = () => {
     });
 
     return (
-        <div className="p-8">
+        <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Tender Directory</h1>
                 <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto">
@@ -70,12 +70,12 @@ const TenderList: React.FC = () => {
                         placeholder="Search by ID or Title" 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="border border-slate-300 rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="border border-slate-300 rounded-control px-4 py-2 w-64 focus:ring-2 focus:ring-brand-500 focus:outline-none"
                     />
                     <select aria-label="Select an option" 
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
-                        className="border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="border border-slate-300 rounded-control px-4 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none"
                     >
                         <option value="">All Types</option>
                         <option value="Open">Open</option>
@@ -85,14 +85,14 @@ const TenderList: React.FC = () => {
                     </select>
                     <button
                         onClick={() => navigate('/admin/masters/tenders/add')}
-                        className="bg-blue-700 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition-all active:scale-95 inline-flex items-center justify-center gap-2"
+                        className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-card font-bold shadow-md transition-all active:scale-95 inline-flex items-center justify-center gap-2"
                     >
                         <Plus size={18} /> Create New Tender
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
                 <div className="w-full overflow-x-auto">
                     <table className="w-full text-left min-w-[1000px]">
                         <thead className="bg-slate-50 border-b border-slate-200">
@@ -107,8 +107,8 @@ const TenderList: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {[...filteredTenders].sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((t) => (
-                            <tr key={t.id} className="hover:bg-blue-50/30 transition-colors">
-                                <td className="px-6 py-4 font-mono text-sm font-semibold text-blue-700">{t.tenderNo}</td>
+                            <tr key={t.id} className="hover:bg-brand-50/30 transition-colors">
+                                <td className="px-6 py-4 font-mono text-sm font-semibold text-brand-700">{t.tenderNo}</td>
                                 <td className="px-6 py-4 font-medium text-slate-800">{t.title}</td>
                                 <td className="px-6 py-4">
                                     <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold">{t.tenderType}</span>
@@ -116,7 +116,7 @@ const TenderList: React.FC = () => {
                                 <td className="px-6 py-4 font-bold text-slate-900">₹{t.budget.toLocaleString('en-IN')}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${
-                                        t.status === 'Awarded' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                        t.status === 'Awarded' ? 'bg-emerald-100 text-emerald-700' : 'bg-brand-100 text-brand-700'
                                     }`}>
                                         {t.status}
                                     </span>
@@ -125,7 +125,7 @@ const TenderList: React.FC = () => {
                                     <button 
                                         aria-label="Edit Tender"
                                         onClick={() => navigate(`/admin/masters/tenders/edit/${t.id}`)}
-                                        className="text-indigo-600 hover:text-indigo-800 text-sm font-bold inline-flex items-center gap-1.5"
+                                        className="text-brand-600 hover:text-brand-800 text-sm font-bold inline-flex items-center gap-1.5"
                                     >
                                         <Edit2 size={16} /> Edit
                                     </button>

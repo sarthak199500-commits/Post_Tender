@@ -93,10 +93,10 @@ export const AdminMilestoneApprovals = () => {
         return `${GATEWAY_BASE}${url}`;
     };
 
-    if (loading) return <div className="p-10 text-center text-slate-600">Loading pending milestones...</div>;
+    if (loading) return <div className="text-center text-slate-600">Loading pending milestones...</div>;
 
     return (
-        <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+        <div className="space-y-8">
             <ConfirmDialog
                 isOpen={confirm.open}
                 title={confirm.title}
@@ -117,7 +117,7 @@ export const AdminMilestoneApprovals = () => {
 
             <div>
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-                    <CheckCircle className="w-8 h-8 text-indigo-600" />
+                    <CheckCircle className="w-8 h-8 text-brand-600" />
                     Milestone Approvals
                 </h1>
                 <p className="text-slate-600 mt-2">
@@ -126,14 +126,14 @@ export const AdminMilestoneApprovals = () => {
             </div>
 
             {milestones.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-sm">
+                <div className="bg-white rounded-card border border-slate-200 p-16 text-center shadow-sm">
                     <CheckCircle className="w-16 h-16 text-slate-200 mx-auto mb-4" />
                     <p className="text-slate-600 text-lg font-medium">No pending milestones require your approval.</p>
                 </div>
             ) : (
                 <div className="space-y-6">
                     {milestones.map((m) => (
-                        <div key={m.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div key={m.id} className="bg-white rounded-card border border-slate-200 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
                                     <h2 className="text-xl font-bold text-slate-800">{m.projectName}</h2>
@@ -147,7 +147,7 @@ export const AdminMilestoneApprovals = () => {
                                     </div>
                                 </div>
                                 <div className="text-left md:text-right">
-                                    <div className="text-sm font-bold text-indigo-700 bg-indigo-50 px-4 py-2 rounded-xl inline-block border border-indigo-100">
+                                    <div className="text-sm font-bold text-brand-700 bg-brand-50 px-4 py-2 rounded-card inline-block border border-brand-100">
                                         {m.title} ({m.weightage}%)
                                     </div>
                                     <div className="text-xs text-slate-600 mt-2 font-medium">
@@ -162,7 +162,7 @@ export const AdminMilestoneApprovals = () => {
                                 </h2>
                                 
                                 {m.reports.length === 0 ? (
-                                    <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-orange-800 flex items-center gap-3">
+                                    <div className="p-4 bg-orange-50 border border-orange-100 rounded-control text-orange-800 flex items-center gap-3">
                                         <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                                         <div className="text-sm">
                                             <span className="font-bold">No Inspection Report Found.</span> 
@@ -172,7 +172,7 @@ export const AdminMilestoneApprovals = () => {
                                 ) : (
                                     <div className="space-y-4">
                                         {m.reports.map((r) => (
-                                            <div key={r.id} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl">
+                                            <div key={r.id} className="p-5 bg-slate-50 border border-slate-200 rounded-control">
                                                 <div className="flex justify-between items-start mb-4">
                                                     <div className="flex items-center gap-2">
                                                         <Clock className="w-4 h-4 text-slate-600" />
@@ -181,20 +181,20 @@ export const AdminMilestoneApprovals = () => {
                                                         </span>
                                                     </div>
                                                     <span className={`px-2 py-1 text-[10px] font-black uppercase tracking-widest rounded ${
-                                                        r.status === 'Reviewed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                                                        r.status === 'Reviewed' ? 'bg-emerald-100 text-emerald-700' : 'bg-brand-100 text-brand-700'
                                                     }`}>
                                                         {r.status}
                                                     </span>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                                    <div className="bg-white p-4 rounded-card border border-slate-100 shadow-sm">
                                                         <div className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2">Work Description</div>
                                                         <p className="text-sm text-slate-700">{r.workDescription}</p>
                                                     </div>
                                                     
                                                     {r.remarks && (
-                                                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 shadow-sm">
+                                                        <div className="bg-orange-50 p-4 rounded-card border border-orange-100 shadow-sm">
                                                             <div className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-2">Inspector Remarks</div>
                                                             <p className="text-sm text-orange-800">{r.remarks}</p>
                                                         </div>
@@ -208,7 +208,7 @@ export const AdminMilestoneApprovals = () => {
                                                             <div className="flex gap-2">
                                                                 {r.mediaUrls.map((url: string, i: number) => (
                                                                     <a key={i} href={formatMediaUrl(url)} target="_blank" rel="noreferrer" 
-                                                                       className="text-xs font-bold bg-white border border-slate-200 text-blue-700 px-2 py-1 rounded hover:bg-blue-50 transition-colors">
+                                                                       className="text-xs font-bold bg-white border border-slate-200 text-brand-700 px-2 py-1 rounded hover:bg-brand-50 transition-colors">
                                                                         Photo {i + 1}
                                                                     </a>
                                                                 ))}
@@ -234,7 +234,7 @@ export const AdminMilestoneApprovals = () => {
                                         onConfirm: (reason) => handleReturn(m.id, reason ?? '')
                                     })}
                                     disabled={acting === m.id}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 hover:text-slate-900 transition-colors disabled:"
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-card font-bold text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 hover:text-slate-900 transition-colors disabled:"
                                 >
                                     <CornerDownLeft className="w-4 h-4" />
                                     <span>Ask for Changes</span>
@@ -250,7 +250,7 @@ export const AdminMilestoneApprovals = () => {
                                         onConfirm: () => handleApprove(m.id)
                                     })}
                                     disabled={acting === m.id || (m.reports.length === 0 && m.status !== 'Submitted')}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors disabled:"
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-card font-bold text-sm text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition-colors disabled:"
                                 >
                                     <CheckCircle className="w-4 h-4" />
                                     <span>{acting === m.id ? 'Approving...' : 'Approve Milestone'}</span>

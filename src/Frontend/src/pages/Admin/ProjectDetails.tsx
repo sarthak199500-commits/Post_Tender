@@ -18,6 +18,7 @@ import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 import { rupees, rupeesCompact } from '../../utils/currency';
 import { fetchProjectDetail } from '../../api/projectDetails';
 import type { ProjectDetail } from '../../api/projectDetails';
+import { statusChipClass } from '../../utils/statusTone';
 
 type TabKey = 'overview' | 'milestones' | 'reports' | 'documents' | 'bills';
 
@@ -27,24 +28,7 @@ const fmtDate = (d?: string | null) =>
 const fmtDateTime = (d?: string | null) =>
   d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
-const badge = (status: string) => {
-  const map: Record<string, string> = {
-    Activated: 'bg-blue-100 text-blue-700',
-    Completed: 'bg-emerald-100 text-emerald-700',
-    Approved: 'bg-emerald-100 text-emerald-700',
-    Paid: 'bg-emerald-100 text-emerald-700',
-    Verified: 'bg-emerald-100 text-emerald-700',
-    Submitted: 'bg-indigo-100 text-indigo-700',
-    Reviewed: 'bg-sky-100 text-sky-700',
-    'Inspection Requested': 'bg-amber-100 text-amber-700',
-    Pending: 'bg-amber-100 text-amber-700',
-    Draft: 'bg-slate-100 text-slate-600',
-    Returned: 'bg-orange-100 text-orange-700',
-    Rejected: 'bg-red-100 text-red-700',
-    Delayed: 'bg-red-100 text-red-700',
-  };
-  return map[status] ?? 'bg-slate-100 text-slate-600';
-};
+const badge = (status: string) => statusChipClass(status);
 
 /**
  * The files endpoint needs the bearer token, so a plain <a href> 401s. Fetch as a blob
@@ -71,11 +55,11 @@ const downloadFile = async (url: string, name: string) => {
 const mediaUrl = (url: string) => (url.startsWith('http') ? url : `${GATEWAY_BASE}${url}`);
 
 const Empty = ({ children }: { children: React.ReactNode }) => (
-  <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-600">{children}</div>
+  <div className="bg-white rounded-card border border-slate-200 p-12 text-center text-slate-600">{children}</div>
 );
 
 const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+  <div className="bg-white rounded-card border border-slate-200 shadow-sm p-6">
     <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-4">{title}</h2>
     {children}
   </div>
@@ -98,10 +82,10 @@ export const ProjectDetails = () => {
     return () => { cancelled = true; };
   }, [id]);
 
-  if (loading) return <div className="p-8 text-slate-600">Loading project…</div>;
+  if (loading) return <div className="text-slate-600">Loading project…</div>;
   if (!detail) return (
-    <div className="p-8">
-      <Link to="/admin/projects" className="text-blue-700 font-bold text-sm hover:underline">&larr; Back to Execution</Link>
+    <div>
+      <Link to="/admin/projects" className="text-brand-700 font-bold text-sm hover:underline">&larr; Back to Execution</Link>
       <div className="mt-6 text-red-700 font-bold">Project not found.</div>
     </div>
   );
@@ -124,9 +108,9 @@ export const ProjectDetails = () => {
   ];
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       <div>
-        <Link to="/admin/projects" className="text-blue-700 font-bold text-sm hover:underline inline-flex items-center gap-1">
+        <Link to="/admin/projects" className="text-brand-700 font-bold text-sm hover:underline inline-flex items-center gap-1">
           &larr; Back to Execution
         </Link>
         <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
@@ -147,7 +131,7 @@ export const ProjectDetails = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <div className="bg-white rounded-card border border-slate-200 shadow-sm p-6">
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center space-x-2 text-sm font-medium text-slate-600">
             <Target className="w-4 h-4" />
@@ -169,7 +153,7 @@ export const ProjectDetails = () => {
             onClick={() => setTab(t.key)}
             className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
               tab === t.key
-                ? 'border-blue-600 text-blue-700'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-slate-600 hover:text-slate-800'
             }`}
           >
@@ -228,7 +212,7 @@ export const ProjectDetails = () => {
             {wo && (
               <Link
                 to={`/admin/work-orders/${wo.id}`}
-                className="flex items-center justify-center gap-2 w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
+                className="flex items-center justify-center gap-2 w-full bg-white border border-slate-200 rounded-card px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" /> Open Work Order
               </Link>
@@ -245,7 +229,7 @@ export const ProjectDetails = () => {
               const sub = detail.submissions[m.id];
               const overdue = m.status !== 'Completed' && !!m.targetDate && new Date(m.targetDate) < new Date();
               return (
-                <div key={m.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <div key={m.id} className="bg-white rounded-card border border-slate-200 shadow-sm p-6">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-600 flex-shrink-0">
@@ -270,7 +254,7 @@ export const ProjectDetails = () => {
                         <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Weight</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold text-blue-700">{m.paymentPercentage}%</div>
+                        <div className="text-sm font-bold text-brand-700">{m.paymentPercentage}%</div>
                         <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Payout</div>
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
@@ -294,13 +278,13 @@ export const ProjectDetails = () => {
                           </span>
                           <Link
                             to={`/inspector/milestones/${m.id}/submission?projectId=${detail.id}`}
-                            className="ml-auto text-sm font-semibold text-blue-700 hover:underline inline-flex items-center gap-1"
+                            className="ml-auto text-sm font-semibold text-brand-700 hover:underline inline-flex items-center gap-1"
                           >
                             View submission <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
                         </div>
                         {sub.notes && (
-                          <p className="text-sm text-slate-700 bg-slate-50 border border-slate-100 rounded-xl p-3 whitespace-pre-line">{sub.notes}</p>
+                          <p className="text-sm text-slate-700 bg-slate-50 border border-slate-100 rounded-card p-3 whitespace-pre-line">{sub.notes}</p>
                         )}
                         {sub.documents && sub.documents.length > 0 && (
                           <div className="flex flex-wrap gap-2">
@@ -309,7 +293,7 @@ export const ProjectDetails = () => {
                                 key={d.id}
                                 type="button"
                                 onClick={() => d.url && downloadFile(d.url, d.name)}
-                                className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-control px-3 py-2 hover:bg-brand-50 hover:text-brand-700 transition-colors"
                               >
                                 <Paperclip className="w-3.5 h-3.5" />
                                 {d.name}
@@ -335,22 +319,22 @@ export const ProjectDetails = () => {
         detail.reports.length === 0 ? <Empty>The vendor has not submitted any progress reports on this project.</Empty> : (
           <div className="space-y-4">
             {detail.reports.map(r => (
-              <div key={r.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <div key={r.id} className="bg-white rounded-card border border-slate-200 shadow-sm p-6">
                 <div className="flex flex-wrap justify-between items-start gap-3">
                   <div>
                     <div className="text-xs text-slate-600">Reported on</div>
                     <div className="font-semibold text-slate-800">{fmtDateTime(r.reportedAt)}</div>
-                    {r.milestone && <div className="text-sm font-semibold text-blue-700 mt-1">Milestone: {r.milestone.title}</div>}
+                    {r.milestone && <div className="text-sm font-semibold text-brand-700 mt-1">Milestone: {r.milestone.title}</div>}
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${badge(r.status)}`}>{r.status}</span>
                 </div>
 
-                <p className="text-sm text-slate-700 bg-slate-50 border border-slate-100 rounded-xl p-3 mt-4 whitespace-pre-line">{r.workDescription}</p>
+                <p className="text-sm text-slate-700 bg-slate-50 border border-slate-100 rounded-card p-3 mt-4 whitespace-pre-line">{r.workDescription}</p>
 
                 {r.remarks && (
                   <div className="mt-3">
                     <div className="text-[10px] text-orange-700 font-bold uppercase tracking-widest mb-1">Inspector Remarks</div>
-                    <p className="text-sm text-orange-800 bg-orange-50 border border-orange-100 rounded-xl p-3">{r.remarks}</p>
+                    <p className="text-sm text-orange-800 bg-orange-50 border border-orange-100 rounded-card p-3">{r.remarks}</p>
                   </div>
                 )}
 
@@ -362,7 +346,7 @@ export const ProjectDetails = () => {
                         href={mediaUrl(url)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 hover:bg-blue-100 transition-colors"
+                        className="inline-flex items-center gap-2 text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-control px-3 py-2 hover:bg-brand-100 transition-colors"
                       >
                         <ImageIcon className="w-3.5 h-3.5" /> Photo {i + 1}
                       </a>
@@ -383,7 +367,7 @@ export const ProjectDetails = () => {
               <button
                 type="button"
                 onClick={() => downloadFile(wo.agreementDocumentUrl, `${wo.workOrderNo}-agreement`)}
-                className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors w-full text-left"
+                className="flex items-center gap-3 p-3 bg-brand-50 rounded-card text-brand-700 hover:bg-brand-100 transition-colors w-full text-left"
               >
                 <FileText className="w-5 h-5 flex-shrink-0" />
                 <div>
@@ -412,7 +396,7 @@ export const ProjectDetails = () => {
                             key={d.id}
                             type="button"
                             onClick={() => d.url && downloadFile(d.url, d.name)}
-                            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-control px-3 py-2 hover:bg-brand-50 hover:text-brand-700 transition-colors"
                           >
                             <Paperclip className="w-3.5 h-3.5" />
                             {d.name}
@@ -462,7 +446,7 @@ export const ProjectDetails = () => {
                           <button
                             type="button"
                             onClick={() => downloadFile(d.url, d.name)}
-                            className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline"
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:underline"
                           >
                             <Download className="w-4 h-4" /> Download
                           </button>
@@ -480,7 +464,7 @@ export const ProjectDetails = () => {
       {/* ── Bills ────────────────────────────────────────────────────────── */}
       {tab === 'bills' && (
         detail.bills.length === 0 ? <Empty>No bills raised against this work order.</Empty> : (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-card border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
@@ -518,7 +502,7 @@ export const ProjectDetails = () => {
                           <button
                             type="button"
                             onClick={() => downloadFile(b.attachmentUrl!, `${b.billNo}`)}
-                            className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline"
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:underline"
                           >
                             <Download className="w-4 h-4" /> Download
                           </button>

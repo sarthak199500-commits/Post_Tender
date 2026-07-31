@@ -1,13 +1,20 @@
 import axiosInstance from './axiosInstance';
 
 /**
- * There is no Alert/Notification entity or controller in the backend, so this
- * derives a notification feed client-side from signals that already exist in
- * the domain (overdue work orders, bills awaiting action, milestones pending
- * approval, open defects, open queries).
+ * The notification feed is deliberately two halves merged together.
  *
- * Everything here is real data — nothing is invented. If a service is down its
- * list degrades to empty rather than blanking the whole feed.
+ * STATE is derived here, client-side, from signals that already exist in the domain
+ * (overdue work orders, bills awaiting action, milestones pending approval, open
+ * defects, open queries). These are conditions that are true right now, so deriving
+ * them is always current and there is nothing meaningful to mark as "read".
+ *
+ * EVENTS come from GET /api/alerts — durable rows written when something happened at a
+ * point in time (a bill was returned, a visit was scheduled, an admin broadcast a
+ * notice). Those need to survive the underlying record moving on, and they carry a
+ * per-user read mark.
+ *
+ * Everything here is real data — nothing is invented. If a service is down its list
+ * degrades to empty rather than blanking the whole feed.
  */
 
 export type NotificationType = 'critical' | 'warning' | 'info' | 'success';
@@ -21,6 +28,54 @@ export interface AppNotification {
     timestamp: string;
     /** In-app route this notification points at. */
     link?: string;
+    /** True for a persisted alert; derived state entries are not markable. */
+    persisted?: boolean;
+    /** Only meaningful when persisted. */
+    isRead?: boolean;
+}
+
+interface AlertDto {
+    id: string;
+    type?: string;
+    title?: string;
+    message?: string;
+    link?: string | null;
+    createdAt?: string;
+    isRead?: boolean;
+}
+
+/** Persisted, per-user alerts. Degrades to [] like every other feed source. */
+async function persistedAlerts(): Promise<AppNotification[]> {
+    try {
+        const res = await axiosInstance.get<AlertDto[]>('/alerts');
+        return (res.data ?? []).map(a => ({
+            id: a.id,
+            type: (a.type as NotificationType) || 'info',
+            title: a.title ?? '',
+            message: a.message ?? '',
+            timestamp: a.createdAt ?? '',
+            link: a.link ?? undefined,
+            persisted: true,
+            isRead: !!a.isRead,
+        }));
+    } catch {
+        return [];
+    }
+}
+
+/** Marks one persisted alert read, then drops the cache so the badge recounts. */
+export async function markAlertRead(id: string): Promise<void> {
+    try {
+        await axiosInstance.post(`/alerts/${id}/read`);
+        invalidateNotifications();
+    } catch { /* leave it unread rather than lying about it */ }
+}
+
+export async function markAllAlertsRead(): Promise<void> {
+    try {
+        await axiosInstance.post('/alerts/read-all');
+        invalidateNotifications();
+    } catch { /* no-op */ }
 }
 
 /* ── entity shapes (only the fields this feed reads) ─────────────────────── */
@@ -171,7 +226,7 @@ async function adminFeed(role: string): Promise<AppNotification[]> {
         });
 
     bills
-        .filter(b => b.status === 'Submitted')
+        .filter(b => b.status === 'Submitted' || b.status === 'Under Review')
         .forEach(b => out.push({
             id: `bill-pending-${b.id}`,
             type: 'warning',
@@ -339,14 +394,17 @@ export async function fetchNotifications(
         return cache.data;
     }
 
-    let data: AppNotification[] = [];
+    let derived: AppNotification[] = [];
     if (role === 'Admin' || role === 'PMU' || role === 'Department' || role === 'Finance') {
-        data = await adminFeed(role);
+        derived = await adminFeed(role);
     } else if (role === 'Vendor') {
-        data = await vendorFeed(userId);
+        derived = await vendorFeed(userId);
     } else if (role === 'Inspector') {
-        data = await inspectorFeed(userId);
+        derived = await inspectorFeed(userId);
     }
+
+    // Events first, then the derived state conditions; the sort below interleaves them.
+    const data = [...(await persistedAlerts()), ...derived];
 
     // Newest first; entries without a usable timestamp sink to the bottom.
     data.sort((a, b) => {

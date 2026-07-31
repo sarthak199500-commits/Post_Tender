@@ -85,7 +85,7 @@ export const DocumentUploads = () => {
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div>
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex justify-between items-start">
           <div>
@@ -95,7 +95,7 @@ export const DocumentUploads = () => {
             </h1>
             <p className="text-slate-600 mt-2">Manage your contractual documents, insurances, and compliance certificates.</p>
           </div>
-          <label className="bg-amber-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-amber-700 transition-all shadow-lg shadow-amber-100 cursor-pointer">
+          <label className="bg-amber-700 text-white px-6 py-3 rounded-card font-bold flex items-center gap-2 hover:bg-amber-800 transition-all shadow-lg shadow-amber-100 cursor-pointer">
             <Upload className="w-5 h-5" />
             {isUploading ? 'Uploading...' : 'Upload New Document'}
             <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
@@ -103,8 +103,8 @@ export const DocumentUploads = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700">
+            <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-card bg-brand-50 flex items-center justify-center text-brand-700">
                  <Briefcase className="w-6 h-6" />
               </div>
               <div>
@@ -112,8 +112,8 @@ export const DocumentUploads = () => {
                  <p className="text-xl font-black text-slate-800">{docs.filter(d => d.type === 'Financial').length} Files</p>
               </div>
            </div>
-           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
+           <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-card bg-emerald-50 flex items-center justify-center text-emerald-700">
                  <Shield className="w-6 h-6" />
               </div>
               <div>
@@ -121,8 +121,8 @@ export const DocumentUploads = () => {
                  <p className="text-xl font-black text-slate-800">{docs.filter(d => d.type === 'Compliance').length} Files</p>
               </div>
            </div>
-           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 text-amber-600">
-              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center">
+           <div className="bg-white p-6 rounded-card border border-slate-200 shadow-sm flex items-center gap-4 text-amber-600">
+              <div className="w-12 h-12 rounded-card bg-amber-50 flex items-center justify-center">
                  <Clock className="w-6 h-6" />
               </div>
               <div>
@@ -132,7 +132,7 @@ export const DocumentUploads = () => {
            </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
               <h2 className="font-bold text-slate-800">Active Documents</h2>
            </div>
@@ -140,7 +140,7 @@ export const DocumentUploads = () => {
               {docs.map(doc => (
                 <div key={doc.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/30 transition-colors">
                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-slate-100 rounded-xl">
+                      <div className="p-3 bg-slate-100 rounded-card">
                          <FileText className="w-6 h-6 text-slate-600" />
                       </div>
                       <div>
@@ -157,14 +157,14 @@ export const DocumentUploads = () => {
                        <div className="flex gap-2">
                           <button
                             onClick={() => handleDownload(doc.url, doc.name)}
-                            className="p-2 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-slate-600 hover:text-brand-700 hover:bg-brand-50 rounded-control transition-colors"
                             title="Download"
                           >
                              <Upload className="w-4 h-4 rotate-180" />
                           </button>
                           <button 
                             onClick={() => handleDelete(doc.id, doc.url)}
-                            className="p-2 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded-control transition-colors"
                           >
                              <Trash2 className="w-4 h-4" />
                           </button>

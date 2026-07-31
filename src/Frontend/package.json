@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "//typecheck": "Use this, NOT `tsc --noEmit`: the root tsconfig is a solution file ({files:[], references:[...]}), so without -b tsc resolves zero files and exits 0 without checking anything.",
+    "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "vite preview",
     "seed:demo": "node scripts/seed-demo-data.mjs",

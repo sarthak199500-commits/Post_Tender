@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
+import { statusChipClass } from '../../utils/statusTone';
 
 interface Vendor {
   id: string;
@@ -62,18 +63,14 @@ export const VendorDirectory = () => {
     }
   };
 
-  const statusColor = (status: string) => {
-    if (status === 'Active') return 'bg-green-100 text-green-700 border-green-300';
-    if (status === 'Blacklisted') return 'bg-red-100 text-red-700 border-red-300';
-    return 'bg-amber-100 text-amber-700 border-amber-300';
-  };
+  const statusColor = (status: string) => statusChipClass(status, 'soft');
 
   return (
     <div className="max-w-6xl mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Vendor Directory</h1>
         {deleteError && (
-          <p className="text-red-700 text-sm font-medium bg-red-50 px-4 py-2 rounded-lg">{deleteError}</p>
+          <p className="text-red-700 text-sm font-medium bg-red-50 px-4 py-2 rounded-control">{deleteError}</p>
         )}
         <div className="flex items-center gap-4">
           <input 
@@ -81,26 +78,26 @@ export const VendorDirectory = () => {
             placeholder="Search by Name or Code" 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-slate-300 rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="border border-slate-300 rounded-control px-4 py-2 w-64 focus:ring-2 focus:ring-brand-500 focus:outline-none"
           />
           <select aria-label="Filter by status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="border border-slate-300 rounded-control px-4 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none"
           >
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
             <option value="On-Hold">On-Hold</option>
             <option value="Blacklisted">Blacklisted</option>
           </select>
-          <Link to="/admin/masters/vendors/add" className="bg-blue-700 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+          <Link to="/admin/masters/vendors/add" className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-control font-medium flex items-center gap-2 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Vendor
           </Link>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto"><table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-600 uppercase tracking-wider">
@@ -122,7 +119,7 @@ export const VendorDirectory = () => {
                   <select aria-label="Select an option"
                     value={v.status || 'Active'}
                     onChange={(e) => handleStatusChange(v.id, e.target.value)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${statusColor(v.status)}`}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-400 ${statusColor(v.status)}`}
                   >
                     {STATUS_OPTIONS.map(s => (
                       <option key={s} value={s}>{s}</option>

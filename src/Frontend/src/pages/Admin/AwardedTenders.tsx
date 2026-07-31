@@ -26,7 +26,7 @@ export const AwardedTenders = () => {
   }, []);
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Awarded Tenders</h1>
@@ -34,13 +34,13 @@ export const AwardedTenders = () => {
         </div>
         <button 
           onClick={() => navigate('/admin/masters/allotted-tenders')}
-          className="mt-4 sm:mt-0 bg-blue-700 hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition-all active:scale-95 flex items-center gap-2"
+          className="mt-4 sm:mt-0 bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-card font-bold shadow-md transition-all active:scale-95 flex items-center gap-2"
         >
           <FilePlus className="w-5 h-5" /> Award Tender
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-card shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto"><table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
             <tr>
@@ -55,7 +55,7 @@ export const AwardedTenders = () => {
               <tr key={tender.id} className="hover:bg-slate-50/50">
                 <td className="py-4 px-6">
                   <div className="flex items-center space-x-3">
-                    <FileText className="w-5 h-5 text-indigo-500" />
+                    <FileText className="w-5 h-5 text-brand-500" />
                     <div>
                       <p className="font-medium text-slate-800">{tender.title}</p>
                       <p className="text-xs text-slate-600 truncate max-w-xs">{tender.description}</p>
@@ -67,7 +67,7 @@ export const AwardedTenders = () => {
                 <td className="py-4 px-6 text-right flex justify-end items-center space-x-2">
                   <button 
                     onClick={() => setSelectedTender(tender)}
-                    className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    className="p-2 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-control transition-colors"
                     title="View Details"
                   >
                     <Eye className="w-5 h-5" />
@@ -76,13 +76,13 @@ export const AwardedTenders = () => {
                   {!tender.hasWorkOrder ? (
                     <button 
                       onClick={() => navigate(`/admin/work-orders/new?tenderId=${tender.id}`)}
-                      className="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center space-x-1 bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-control text-sm font-medium transition-colors"
                     >
                       <FilePlus className="w-4 h-4" />
                       <span>Initiate Work Order</span>
                     </button>
                   ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                       WO Created
                     </span>
                   )}

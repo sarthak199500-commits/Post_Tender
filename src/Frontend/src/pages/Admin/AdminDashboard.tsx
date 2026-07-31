@@ -55,6 +55,7 @@ interface DashboardData {
 }
 
 import { fetchAdminDashboard } from '../../api/dashboardService';
+import { statusChipClass } from '../../utils/statusTone';
 
 /**
  * Status colours are semantic, not positional — a status keeps its colour
@@ -63,11 +64,11 @@ import { fetchAdminDashboard } from '../../api/dashboardService';
  */
 const STATUS_TONE: Record<string, { solid: string; bar: string }> = {
   completed: { solid: '#10b981', bar: 'linear-gradient(90deg, #10b981, #34d399)' },
-  accepted: { solid: '#4f6ef7', bar: 'linear-gradient(90deg, #4f6ef7, #6366f1)' },
-  issued: { solid: '#3b82f6', bar: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
-  'in progress': { solid: '#3b82f6', bar: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
+  accepted: { solid: '#3b54d4', bar: 'linear-gradient(90deg, #3b54d4, #4f6ef7)' },
+  issued: { solid: '#4f6ef7', bar: 'linear-gradient(90deg, #4f6ef7, #7b90f8)' },
+  'in progress': { solid: '#4f6ef7', bar: 'linear-gradient(90deg, #4f6ef7, #7b90f8)' },
   awarded: { solid: '#10b981', bar: 'linear-gradient(90deg, #10b981, #34d399)' },
-  open: { solid: '#3b82f6', bar: 'linear-gradient(90deg, #3b82f6, #60a5fa)' },
+  open: { solid: '#4f6ef7', bar: 'linear-gradient(90deg, #4f6ef7, #7b90f8)' },
   draft: { solid: '#94a3b8', bar: 'linear-gradient(90deg, #94a3b8, #cbd5e1)' },
   pending: { solid: '#f59e0b', bar: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
   overdue: { solid: '#f59e0b', bar: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
@@ -109,19 +110,19 @@ export const AdminDashboard = () => {
   }, [token]);
 
   if (error) return (
-    <div className="p-12 flex flex-col items-center justify-center space-y-4">
-      <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 flex items-center gap-3">
+    <div className="flex flex-col items-center justify-center space-y-4 min-h-[60vh]">
+      <div className="bg-red-50 text-red-700 rounded-card border border-red-100 flex items-center gap-3">
         <span className="font-medium">{error}</span>
       </div>
-      <button onClick={fetchDashboard} className="px-6 py-2 bg-blue-700 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors">
+      <button onClick={fetchDashboard} className="px-6 py-2 bg-brand-600 text-white rounded-control font-bold hover:bg-brand-700 transition-colors">
         Retry
       </button>
     </div>
   );
 
   if (!data) return (
-    <div className="p-12 flex flex-col items-center justify-center space-y-4">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <div className="flex flex-col items-center justify-center space-y-4 min-h-[60vh]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
       <p className="text-slate-600 font-medium italic">Loading secure dashboard data...</p>
     </div>
   );
@@ -132,7 +133,7 @@ export const AdminDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{background: '#dbeafe', color: '#1d4ed8'}}>
+            <div className="kpi-icon bg-brand-50 text-brand-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </div>
             <div className="kpi-lbl">Active Tenders</div>
@@ -143,7 +144,7 @@ export const AdminDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{background: '#e0e7ff', color: '#4f46e5'}}>
+            <div className="kpi-icon bg-brand-50 text-brand-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div className="kpi-lbl">In-Progress WOs</div>
@@ -154,7 +155,7 @@ export const AdminDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{background: '#dcfce7', color: '#15803d'}}>
+            <div className="kpi-icon bg-emerald-50 text-emerald-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg>
             </div>
             <div className="kpi-lbl">Total Value (Cr)</div>
@@ -165,7 +166,7 @@ export const AdminDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{background: '#fee2e2', color: '#b91c1c'}}>
+            <div className="kpi-icon bg-red-50 text-red-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             </div>
             <div className="kpi-lbl">Delayed Projects</div>
@@ -176,7 +177,7 @@ export const AdminDashboard = () => {
 
         <div className="kpi-card">
           <div className="kpi-top">
-            <div className="kpi-icon" style={{background: '#f3e8ff', color: '#7e22ce'}}>
+            <div className="kpi-icon bg-amber-50 text-amber-700">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
             <div className="kpi-lbl">Inspections Pending</div>
@@ -188,14 +189,14 @@ export const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
         <div className="bot-card">
-          <div className="kpi-icon" style={{background: '#fee2e2', color: '#ef4444'}}>
+          <div className="kpi-icon bg-red-50 text-red-700">
              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
           <div>
             <div className="text-xs text-slate-600 font-medium">Avg. Time Overdue</div>
             <div className="text-[17px] font-bold text-slate-800">{data.bottomKpis.avgTimeOverdue} <span className="text-xs font-normal text-slate-600">days</span></div>
-            <div className="text-[10px] text-green-700 mt-[2px] flex items-center gap-1 font-medium">
-                <span className={data.bottomKpis.trends.overdue > 0 ? "text-red-700" : "text-green-700"}>
+            <div className="text-[10px] text-emerald-700 mt-[2px] flex items-center gap-1 font-medium">
+                <span className={data.bottomKpis.trends.overdue > 0 ? "text-red-700" : "text-emerald-700"}>
                     {data.bottomKpis.trends.overdue > 0 ? "↗" : "↘"} {Math.abs(data.bottomKpis.trends.overdue)} days
                 </span> 
                 <span className="text-slate-600 font-normal">vs last month</span>
@@ -204,14 +205,14 @@ export const AdminDashboard = () => {
         </div>
 
         <div className="bot-card">
-          <div className="kpi-icon" style={{background: '#ccfbf1', color: '#0f766e'}}>
+          <div className="kpi-icon bg-emerald-50 text-emerald-700">
              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div>
             <div className="text-xs text-slate-600 font-medium">On-time Completion</div>
             <div className="text-[17px] font-bold text-slate-800">{data.bottomKpis.onTimeCompletionPct}%</div>
-            <div className="text-[10px] text-green-700 mt-[2px] flex items-center gap-1 font-medium">
-                <span className={data.bottomKpis.trends.onTime > 0 ? "text-green-700" : "text-red-700"}>
+            <div className="text-[10px] text-emerald-700 mt-[2px] flex items-center gap-1 font-medium">
+                <span className={data.bottomKpis.trends.onTime > 0 ? "text-emerald-700" : "text-red-700"}>
                     {data.bottomKpis.trends.onTime > 0 ? "↗" : "↘"} {Math.abs(data.bottomKpis.trends.onTime)}%
                 </span> 
                 <span className="text-slate-600 font-normal">vs last month</span>
@@ -220,14 +221,14 @@ export const AdminDashboard = () => {
         </div>
 
         <div className="bot-card">
-          <div className="kpi-icon" style={{background: '#e0e7ff', color: '#4338ca'}}>
+          <div className="kpi-icon bg-brand-50 text-brand-700">
              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2-2.4-3.5-4.4-3.5h-1.2c-.7-3-3.2-5.2-6.2-5.6-3-.3-5.9 1.3-7.3 4-1.2 2.5-1 6.5.5 8.8m8.7-1.6V21"/><path d="M16 16l-4-4-4 4"/></svg>
           </div>
           <div>
             <div className="text-xs text-slate-600 font-medium">Budget Utilization</div>
             <div className="text-[17px] font-bold text-slate-800">{data.bottomKpis.budgetUtilizationPct}%</div>
-            <div className="text-[10px] text-green-700 mt-[2px] flex items-center gap-1 font-medium">
-                <span className={data.bottomKpis.trends.budget > 0 ? "text-green-700" : "text-red-700"}>
+            <div className="text-[10px] text-emerald-700 mt-[2px] flex items-center gap-1 font-medium">
+                <span className={data.bottomKpis.trends.budget > 0 ? "text-emerald-700" : "text-red-700"}>
                     {data.bottomKpis.trends.budget > 0 ? "↗" : "↘"} {Math.abs(data.bottomKpis.trends.budget)}%
                 </span> 
                 <span className="text-slate-600 font-normal">vs last month</span>
@@ -236,14 +237,14 @@ export const AdminDashboard = () => {
         </div>
 
         <div className="bot-card">
-          <div className="kpi-icon" style={{background: '#fae8ff', color: '#a21caf'}}>
+          <div className="kpi-icon bg-emerald-50 text-emerald-700">
              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           </div>
           <div>
             <div className="text-xs text-slate-600 font-medium">Payments Made</div>
             <div className="text-[17px] font-bold text-slate-800">{rupeesCompact(data.bottomKpis.paymentsMade)}</div>
-            <div className="text-[10px] text-green-700 mt-[2px] flex items-center gap-1 font-medium">
-                <span className={data.bottomKpis.trends.payments > 0 ? "text-green-700" : "text-red-700"}>
+            <div className="text-[10px] text-emerald-700 mt-[2px] flex items-center gap-1 font-medium">
+                <span className={data.bottomKpis.trends.payments > 0 ? "text-emerald-700" : "text-red-700"}>
                     {data.bottomKpis.trends.payments > 0 ? "↗" : "↘"} {Math.abs(data.bottomKpis.trends.payments)}%
                 </span> 
                 <span className="text-slate-600 font-normal">vs last month</span>
@@ -252,14 +253,14 @@ export const AdminDashboard = () => {
         </div>
 
         <div className="bot-card">
-          <div className="kpi-icon" style={{background: '#f3e8ff', color: '#7e22ce'}}>
+          <div className="kpi-icon bg-brand-50 text-brand-700">
              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <div>
             <div className="text-xs text-slate-600 font-medium">Active Vendors</div>
             <div className="text-[17px] font-bold text-slate-800">{data.bottomKpis.activeVendors}</div>
-            <div className="text-[10px] text-green-700 mt-[2px] flex items-center gap-1 font-medium">
-                <span className={data.bottomKpis.trends.vendors > 0 ? "text-green-700" : "text-red-700"}>
+            <div className="text-[10px] text-emerald-700 mt-[2px] flex items-center gap-1 font-medium">
+                <span className={data.bottomKpis.trends.vendors > 0 ? "text-emerald-700" : "text-red-700"}>
                     {data.bottomKpis.trends.vendors > 0 ? "↗" : "↘"} {Math.abs(data.bottomKpis.trends.vendors)}%
                 </span> 
                 <span className="text-slate-600 font-normal">vs last month</span>
@@ -273,7 +274,7 @@ export const AdminDashboard = () => {
         <div className="chart-card" style={{ minHeight: '340px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'linear-gradient(135deg, #eef1fe, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'linear-gradient(135deg, #eef1fe, #dfe5fd)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f6ef7" strokeWidth="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
               </div>
               <div className="c-title" style={{ marginBottom: 0 }}>Tenders by Status</div>
@@ -436,14 +437,14 @@ export const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* ── Work Orders by Status ── */}
+        {/* ── Work Orders by Department ── */}
         <div className="chart-card" style={{ minHeight: '340px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: 'linear-gradient(135deg, #fef3c7, #fde68a)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
               </div>
-              <div className="c-title" style={{ marginBottom: 0 }}>Work Orders by Status</div>
+              <div className="c-title" style={{ marginBottom: 0 }}>Work Orders by Department</div>
             </div>
             <button type="button" className="c-link" onClick={() => navigate('/admin/work-orders')} style={{ paddingTop: 0, marginTop: 0, fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>View work orders →</button>
           </div>
@@ -525,11 +526,9 @@ export const AdminDashboard = () => {
                 <td className="text-slate-600 font-medium">{row.department}</td>
                 <td className="td-val font-semibold text-slate-700">{typeof row.value === 'number' ? rupeesCompact(row.value) : row.value}</td>
                 <td>
-                  <span className={`badge ${row.status === 'Completed' ? 'b-ok' : row.status === 'Overdue' ? 'b-od' : 'b-ip'}`}
-                        style={{
-                            background: row.status === 'Completed' ? '#dcfce7' : row.status === 'Overdue' ? '#fee2e2' : '#dbeafe',
-                            color: row.status === 'Completed' ? '#166534' : row.status === 'Overdue' ? '#991b1b' : '#1e40af'
-                        }}>
+                  {/* Was `b-ok` — a class that is not defined anywhere — with an inline
+                      style hardcoding the palette on top to cover for it. */}
+                  <span className={`badge ${statusChipClass(row.status)}`}>
                     {row.status}
                   </span>
                 </td>
@@ -537,8 +536,10 @@ export const AdminDashboard = () => {
                   <div className="prog-cell">
                     <div className="prog-pct">{row.progress}%</div>
                     <div className="prog-bar">
-                        <div className={`prog-fill ${row.progress < 50 ? 'pf-red' : ''}`} 
-                             style={{width: `${row.progress}%`, background: row.progress < 50 ? '#ef4444' : row.progress === 100 ? '#22c55e' : '#f59e0b'}}>
+                        {/* The .pf-* fills already encode these three states; the inline
+                            background was re-specifying them in raw hex. */}
+                        <div className={`prog-fill ${row.progress < 50 ? 'pf-red' : row.progress === 100 ? 'pf-green' : 'pf-orange'}`}
+                             style={{ width: `${row.progress}%` }}>
                         </div>
                     </div>
                   </div>
@@ -552,7 +553,7 @@ export const AdminDashboard = () => {
                     title={row.workOrderId ? 'View work order' : 'No work order issued yet'}
                     disabled={!row.workOrderId}
                     onClick={() => row.workOrderId && navigate(`/admin/work-orders/${row.workOrderId}`)}
-                    className="p-2 bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-700 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-600"
+                    className="p-2 bg-slate-100 hover:bg-brand-100 text-slate-600 hover:text-brand-700 rounded-control transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-600"
                   >
                     <Eye size={16} strokeWidth={2.5} />
                   </button>
