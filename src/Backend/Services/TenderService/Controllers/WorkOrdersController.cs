@@ -67,6 +67,7 @@ public class WorkOrdersController : ControllerBase
                 w.LiquidatedDamagesTerms,
                 w.AgreementDocumentUrl,
                 w.Status,
+                w.DepartmentId,
                 w.CreatedAt,
                 Tender = w.Tender == null ? null : new
                 {
@@ -156,6 +157,9 @@ public class WorkOrdersController : ControllerBase
             LiquidatedDamagesTerms = dto.LiquidatedDamagesTerms,
             AgreementDocumentUrl = dto.AgreementDocumentUrl,
             InspectorId = dto.InspectorId,
+            // Work almost always sits with the department that floated the tender, so
+            // inherit it rather than making the caller restate it; an explicit value wins.
+            DepartmentId = dto.DepartmentId ?? tender.DepartmentId,
             Status = "Draft"
         };
 
@@ -182,6 +186,7 @@ public class WorkOrdersController : ControllerBase
             workOrder.LiquidatedDamagesTerms,
             workOrder.AgreementDocumentUrl,
             workOrder.Status,
+            workOrder.DepartmentId,
             workOrder.CreatedAt
         });
     }
@@ -238,6 +243,7 @@ public class WorkOrdersController : ControllerBase
                 WorkOrderId = workOrder.Id,
                 Name = $"Project for WO {workOrder.WorkOrderNo}",
                 Budget = workOrder.TotalValue,
+                DepartmentId = workOrder.DepartmentId,
                 Status = "Activated"
             });
         }
@@ -285,6 +291,8 @@ public class WorkOrdersController : ControllerBase
         public string LiquidatedDamagesTerms { get; set; } = string.Empty;
         public string AgreementDocumentUrl { get; set; } = string.Empty;
         public Guid? InspectorId { get; set; }
+        /// <summary>Optional — defaults to the parent tender's department.</summary>
+        public Guid? DepartmentId { get; set; }
         public List<MilestoneInput> Milestones { get; set; } = new();
     }
 

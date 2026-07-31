@@ -14,5 +14,10 @@ public class User
     // Vendor record so login can mint a vendorId claim without a cross-service call.
     public Guid? VendorId { get; set; }
 
+    // Set when an admin resets the password to a temporary one. Login still succeeds —
+    // blocking it would leave the user unable to clear the flag — but the response carries
+    // the flag so the client can route straight to the change-password screen.
+    public bool MustChangePassword { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
