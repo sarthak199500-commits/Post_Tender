@@ -83,6 +83,9 @@ public class InspectionVisitsTests : IDisposable
     private static InspectionVisitsController.CreateVisitRequest ValidRequest() => new()
     {
         WorkOrderId = Guid.NewGuid(),
+        // Denormalized from the work order by the caller so the vendor's own schedule can
+        // be scoped; the endpoint rejects a visit without it.
+        VendorId = Guid.NewGuid(),
         ScheduledDate = DateTime.UtcNow.AddDays(2),
         Purpose = "Foundation quality check"
     };
