@@ -3,10 +3,11 @@
 
 | | |
 |---|---|
-| **Document version** | 1.0 |
-| **Date** | 30 July 2026 |
+| **Document version** | 2.0 |
+| **Date** | 31 July 2026 |
 | **Status** | Reflects the system as currently implemented |
 | **Applies to** | `E:\Projects\Innovador\Post trender_1.2\Post trender` |
+| **Database** | SQL Server 2022 (migrated from SQLite — see `tools/db-migration/README.md`) |
 
 ---
 
@@ -20,10 +21,22 @@ Sections marked **⚠ Gap** describe things that are missing, incomplete, or beh
 - §1–3 — what the system is, who uses it, how it is built
 - §4 — the data model (what is stored)
 - §5 — **the flows** (the core of this document)
-- §6 — module-by-module requirements
+- §6 — **module-by-module: every screen, action and rule, in plain English**
 - §7 — security rules
 - §8 — cross-cutting behaviour
 - §9 — known gaps, consolidated
+- §10 — every endpoint, generated from the controllers
+
+**What changed in version 2.0**
+
+| Area | Change |
+|---|---|
+| §4 | Added `BillPayment`, `BillDeduction`, `TimeExtension`, `Alert`/`AlertRead` |
+| §6 | Rewritten. Each module now lists **every action** — what it does in plain terms, which endpoint, what it changes, and what it is forbidden from doing |
+| §8.2 | Notifications are now persisted alerts merged with derived signals, not derived-only |
+| §9.1 | Six gaps closed (alerts, department field, partial payments, time extensions, password reset, "Under Review"); four new ones recorded |
+| §9.3 | Verification status expanded with actual test counts |
+| §10 | Regenerated **from the controllers themselves** — 114 endpoints, no longer collapsed rows |
 
 ---
 
@@ -273,6 +286,71 @@ NetPayable = (Amount + TaxAmount) − RetainedAmount − AdvanceRecovered − Σ
 ```
 
 **Why values are snapshotted:** `RetentionPercentage` and `AdvanceRecovered` are copied onto the bill at creation rather than looked up at payment time. If an admin later changes the retention policy from 5% to 8%, bills already in flight keep the terms they were submitted under.
+
+#### BillPayment (FinancialService)
+
+One row per instalment. A bill paid in three parts has three of these.
+
+| Field | Notes |
+|---|---|
+| BillId | Parent bill; cascade delete |
+| Amount | This instalment only |
+| VoucherNo | **Unique system-wide**, including across instalments |
+| Reference | Cheque number / UTR, optional |
+| PaidByUserId, PaidAt | Who released it and when |
+
+Two computed properties live on `Bill` rather than in the database:
+
+```
+AmountPaid   = Σ(Payments)          — or, for a legacy bill with no payment rows
+                                      that is already "Paid", the full NetPayable
+BalanceAmount = NetPayable − AmountPaid   (floored at zero)
+```
+
+**Why the legacy fallback:** bills paid before instalments existed have no `BillPayment` rows. Rather than backfill synthetic payment records — inventing a voucher and a timestamp that never happened — `AmountPaid` falls back to the net payable when the bill is already `Paid`. Historical rows read correctly without fabricating history.
+
+`Bill.PaymentVoucherNo` and `PaidAt` retain the **final** instalment, so anything written against the old single-payment shape still behaves.
+
+#### BillDeduction (FinancialService)
+
+| Field | Notes |
+|---|---|
+| BillId | Parent bill; cascade delete |
+| Type | `LD` \| `TDS` \| `Cess` \| free text |
+| Description | Why it was applied — shown to the vendor |
+| Amount | Subtracted from net payable |
+| IsSystemGenerated | True for the automatic liquidated-damages suggestion |
+
+Deductions are **locked once any payment has been made** against the bill — a late deduction would move the net payable after funds had already gone out.
+
+#### TimeExtension (TenderService)
+
+| Field | Notes |
+|---|---|
+| WorkOrderId | Which contract |
+| RequestedEndDate | The new date being asked for |
+| Reason | Vendor's justification |
+| Status | `Pending` → `Approved` \| `Rejected` |
+| DecidedByUserId, DecidedAt | |
+
+Approving one **moves `WorkOrder.EndDate`**, which is what stops liquidated damages accruing. Without this the LD calculator has no way to know a delay was authorised.
+
+#### Alert / AlertRead (CommonService)
+
+| Alert field | Notes |
+|---|---|
+| Type | `critical` \| `warning` \| `info` \| `success` — validated against a whitelist |
+| Title, Message | |
+| TargetRole, TargetUserId, TargetVendorId | All null = broadcast to everyone |
+| EntityName, RecordId, Link | Lets the UI navigate to the thing the alert is about |
+| RaisedByUserId, CreatedAt | |
+
+| AlertRead field | Notes |
+|---|---|
+| AlertId, UserId | Unique together |
+| ReadAt | |
+
+**Why read state is a separate table:** a broadcast alert goes to many people. A single `IsRead` flag on the alert itself could only record that *somebody* read it. A join row per user is what allows the same alert to be read by Finance and still unread for a vendor. `AlertRead` deliberately has **no** navigation property back to `Alert` — that back-reference is what causes `System.Text.Json` to fail on a serialisation cycle.
 
 ### 4.3 Master data
 
@@ -630,23 +708,45 @@ The most complex flow. Money moves here, so every step is gated.
 #### 5.6.2 Bill state machine
 
 ```
-                  ┌──────────────► Returned ──────┐
-                  │  (query/reject)               │ (vendor resubmits
-                  │                               │  as a NEW bill)
-   Submitted ─────┼──────────────► Approved ──────┴──► [new Submitted bill]
-                  │                    │
-                  │                    ▼
-                  └───────────────►  Paid  ────► retention released
+                     ┌────────────► Returned ──────┐
+                     │ (query/reject)              │ (vendor resubmits
+                     │                             │  as a NEW bill)
+   Submitted ──► Under Review ──► Approved ────────┴──► [new Submitted bill]
+                     │                 │
+                     │                 │  pay(amount < balance)
+                     │                 ▼
+                     │          Partially Paid ──┐
+                     │                 │         │ pay() again
+                     │                 │◄────────┘
+                     │                 │  balance reaches zero
+                     │                 ▼
+                     └──────────────► Paid ────► retention released
                                     (TERMINAL)
 ```
+
+`Under Review` is optional — a department can approve straight from `Submitted`. It exists so a claim being actively examined is visibly distinct from one nobody has picked up.
 
 **Enforced:**
 | Rule | Behaviour |
 |---|---|
-| Only `Submitted` can be approved | Approving a `Returned` bill → 400 |
-| Only `Approved` can be paid | Paying a `Submitted` bill → 400 |
-| `Paid` is terminal | Re-approve / re-pay / reject / query all → 400 |
+| Only `Submitted` / `Under Review` can be approved | Approving a `Returned` bill → 400 |
+| Only `Approved` / `Partially Paid` can be paid | Paying a `Submitted` bill → 400 |
+| Payment cannot exceed the outstanding balance | Over-payment, zero and negative all → 400 |
+| Each instalment gets its own voucher | Voucher numbers are unique system-wide |
+| Once money has moved, the bill locks | Re-approve, return, reject and **deduction edits** all → 400 |
+| Retention needs full settlement | Releasing on a `Partially Paid` bill → 400 |
+| `Paid` is terminal | Re-pay / re-approve / reject / query all → 400 |
 | A `Returned` bill releases its milestones | Vendor can resubmit them on a new bill |
+
+**A worked instalment sequence** (net payable ₹1,13,000):
+
+```
+pay(50,000)  → Partially Paid   VOUCHER-…-0001   balance ₹63,000
+pay(30,000)  → Partially Paid   VOUCHER-…-0002   balance ₹33,000
+pay()        → Paid             VOUCHER-…-0003   balance ₹0
+```
+
+Calling `pay` with no amount always settles the remaining balance, which is what preserves the original single-payment behaviour for any caller that predates instalments.
 
 #### 5.6.3 The money, worked through
 
@@ -773,72 +873,180 @@ File download (`GET /api/files/{name}`) **requires authentication** — these ar
 
 ### 6.2 Vendor module
 
+**Who this is for:** the contractor doing the work. They see their own jobs, report progress, fix defects, and ask for money.
+
 **Screens:** Dashboard, Work Orders, Bill Submission, Inspections & Defects, Progress Reporting, Progress History, Milestone Updates, Document Uploads, Queries & Clarifications.
 
-| Requirement | Detail |
+#### What a vendor can do
+
+| # | Action | In plain terms | Endpoint | What it changes |
+|---|---|---|---|---|
+| V-1 | **Accept a work order** | Agree to do the job. This is the moment the job becomes real. | `PUT /workorders/{id}/status` | Status `Issued` → `Accepted`, and a **Project is auto-created** |
+| V-2 | **Reject a work order** | Decline the job, with a reason. | `PUT /workorders/{id}/status` | Status → `Rejected`. Terminal. |
+| V-3 | **Request a time extension** | Ask for the deadline to move, because of rain, late site handover, etc. | `POST /timeextensions` | Creates a `Pending` request. Does **not** move the date yet. |
+| V-4 | **Start a milestone package** | Begin assembling proof that a chunk of work is done. | `POST /milestonesubmissions` | Creates a `Draft` package |
+| V-5 | **Attach / remove documents** | Add test reports, photos, certificates. | `POST` / `DELETE .../documents` | Only while still `Draft` |
+| V-6 | **Submit the package** | Hand it in for approval. | `POST /milestonesubmissions/{id}/submit` | Becomes **immutable** — no further edits |
+| V-7 | **File a progress report** | Say what was built this period, with photos and GPS. | `POST /progressreports` | Creates a report awaiting inspector review |
+| V-8 | **Submit a bill (RA claim)** | Ask to be paid for completed milestones. | `POST /bills` | Creates a `Submitted` bill; retention and advance recovery are calculated and frozen onto it |
+| V-9 | **Request a mobilisation advance** | Ask for money up front to get started. | `POST /bills` (type `Advance`) | Capped by policy; recovered from later bills |
+| V-10 | **Rectify a defect** | Fix something an inspector flagged, and upload proof. | `PUT /inspections/defect/{id}/rectify` | Defect → `Rectified`, awaiting inspector verification |
+| V-11 | **Raise a query** | Ask PMU a question and keep the thread. | `POST /queries`, `POST /queries/{id}/message` | Creates/extends a conversation |
+| V-12 | **Upload contract documents** | Licences, registrations, insurance. | `POST /documents` | Vendor-scoped repository |
+| V-13 | **Change own password** | | `POST /auth/change-password` | Requires the current password |
+| V-14 | **View own alerts** | See what needs attention; mark as read. | `GET /alerts`, `POST /alerts/{id}/read` | Read state is **per user** |
+
+#### Rules enforced against vendors
+
+| ID | Rule |
 |---|---|
-| VEN-01 | Vendor sees only their own data. All lists are scoped by the `vendorId` claim server-side. |
-| VEN-02 | Vendor accepts a work order, which auto-creates the project. |
-| VEN-03 | Vendor submits geo-tagged progress reports with photo evidence. |
-| VEN-04 | Vendor assembles a milestone submission with documents, then submits it (becomes immutable). |
-| VEN-05 | Vendor bills only against milestones that are `Completed` — enforced server-side. |
-| VEN-06 | Vendor sees a live preview of retention and advance recovery before submitting a claim. |
-| VEN-07 | Vendor requests a mobilisation advance, capped by policy. |
-| VEN-08 | Vendor sees scheduled inspection visits, with past-due ones flagged "Awaiting Visit". |
-| VEN-09 | Vendor rectifies defects by uploading evidence and notes. |
-| VEN-10 | Vendor raises query threads with PMU. |
+| VEN-01 | A vendor sees **only their own data**. Every list is filtered by the `vendorId` **claim**, never a parameter the browser sends. |
+| VEN-02 | Accepting a work order auto-creates the project — the vendor never creates a project directly. |
+| VEN-03 | Progress reports are geo-tagged and carry photo evidence. |
+| VEN-04 | A submitted milestone package is immutable. Mistakes require a fresh package, not an edit. |
+| VEN-05 | A vendor can bill **only** against milestones that are `Completed`, verified server-side against ExecutionService. |
+| VEN-06 | The claim form shows a live preview of retention and advance recovery **before** submitting, so the payable figure is never a surprise. |
+| VEN-07 | Advance requests are capped by `MaxAdvancePercentage` in the billing policy. |
+| VEN-08 | Scheduled inspection visits are visible, with past-due ones flagged "Awaiting Visit". |
+| VEN-09 | A vendor **cannot** bill against another vendor's work order — checked cross-service, and refused if the check cannot be completed. |
+| VEN-10 | A vendor cannot approve, pay, or inspect anything. |
+
+---
 
 ### 6.3 Inspector module
 
+**Who this is for:** the field engineer who physically visits sites and judges quality. They are the independent check between "the vendor says it's done" and "the department pays for it".
+
 **Screens:** Dashboard, Work Orders, Audit Visits, Progress Review, Quality Defects.
 
-| Requirement | Detail |
+#### What an inspector can do
+
+| # | Action | In plain terms | Endpoint | What it changes |
+|---|---|---|---|---|
+| I-1 | **Schedule a site visit** | Book a date to go and look. | `POST /inspectionvisits` | Creates a `Scheduled` visit the vendor can see |
+| I-2 | **Close out a visit** | Record that the visit happened. | `PUT /inspectionvisits/{id}/status` | Only for visits **they** booked |
+| I-3 | **Log an inspection** | Record what was found, with any number of defects in one go. | `POST /inspections` | Creates an inspection plus its defect list |
+| I-4 | **Verify a rectification** | Confirm a fix is genuine, or send it back. | `PUT /inspections/defect/{id}/verify` | Defect → `Closed` or back to `Open` |
+| I-5 | **Review a progress report** | Recommend Accept or Reject. | `POST /progressreports/{id}/review` | **Gates** department approval — the department cannot approve until this exists |
+| I-6 | **Raise an alert** | Flag something that needs attention. | `POST /alerts` | Persisted, targeted by role/vendor/user |
+
+#### Rules enforced against inspectors
+
+| ID | Rule |
 |---|---|
-| INS-01 | Inspector sees only work orders assigned to them (`InspectorId` = their **profile** id). |
-| INS-02 | Inspector schedules visits; must supply the vendorId so the vendor can see it. |
-| INS-03 | Inspector logs an inspection with multiple defects in one submission. |
-| INS-04 | Inspector reviews progress reports with an Accept/Reject recommendation — this **gates** department approval. |
-| INS-05 | Inspector verifies or rejects defect rectifications. |
-| INS-06 | Inspector can only close out visits they personally booked. |
-| INS-07 | Inspector **cannot** approve milestones or touch anything financial. |
+| INS-01 | An inspector sees only work orders assigned to them. `InspectorId` here is their **profile** id, not their login id — see trap T-07. |
+| INS-02 | Scheduling a visit requires the vendorId, otherwise the vendor cannot see their own visit. |
+| INS-03 | An inspector can only close out visits they personally booked. |
+| INS-04 | Inspector review is a **precondition** for department approval of a progress report, not an optional opinion. |
+| INS-05 | An inspector **cannot** approve milestones. |
+| INS-06 | An inspector **cannot** touch anything financial — no bills, no deductions, no payments. |
+
+---
 
 ### 6.4 Department module
 
-**Screen:** Department Dashboard (single consolidated screen).
+**Who this is for:** the government department that owns the work. They are the technical approver — they decide whether what was built is acceptable, and what should be deducted.
 
-| Requirement | Detail |
+**Screen:** Department Dashboard (one consolidated screen).
+
+#### What a department user can do
+
+| # | Action | In plain terms | Endpoint | What it changes |
+|---|---|---|---|---|
+| D-1 | **Approve a progress report** | Agree the reported progress is real. | `POST /progressreports/{id}/approve` | Only **after** an inspector has reviewed it |
+| D-2 | **Query a progress report** | Send it back with questions. | `POST /progressreports/{id}/query` | Returns to the vendor |
+| D-3 | **Approve a milestone** | Confirm a chunk of work is complete. | `POST /execution/milestones/{id}/approve` | Milestone → `Completed`, which **unlocks billing** for it |
+| D-4 | **Return a milestone** | Reject the submitted package. | `POST /execution/milestones/{id}/return` | Vendor must resubmit |
+| D-5 | **Start reviewing a bill** | Pick up a claim so others can see it's being looked at. | `POST /bills/{id}/start-review` | `Submitted` → `Under Review` |
+| D-6 | **Approve a bill** | Certify the claim as technically correct and pass it to Finance. | `POST /bills/{id}/approve` | → `Approved`. Department **cannot** then pay it. |
+| D-7 | **Return a bill** | Send the claim back to the vendor with a reason. | `POST /bills/{id}/query` | → `Returned`; the claimed milestones are released |
+| D-8 | **Add a deduction** | Withhold money for a specific reason (damages, recoveries, penalties). | `POST /bills/{id}/deductions` | Reduces net payable |
+| D-9 | **Remove a deduction** | Reverse a deduction — e.g. an extension was granted, so the delay penalty no longer applies. | `DELETE /bills/{id}/deductions/{id}` | Locked once any payment has been made |
+| D-10 | **Approve / reject a time extension** | Decide whether the deadline moves. | `POST /timeextensions/{id}/approve` \| `/reject` | Approval **moves `WorkOrder.EndDate`**, which stops liquidated damages accruing |
+
+#### Rules enforced against the department
+
+| ID | Rule |
 |---|---|
-| DEP-01 | Approve or query progress reports — only after inspector review. |
-| DEP-02 | Approve or return bills, with a reason on return. |
-| DEP-03 | Add/remove deductions on a bill before payment. |
-| DEP-04 | Approve milestone submissions. |
-| DEP-05 | **Cannot** pay a bill (403). |
+| DEP-01 | Cannot approve a progress report that no inspector has reviewed. |
+| DEP-02 | Returning a bill requires a reason. |
+| DEP-03 | Deductions can only be edited **before** money moves. |
+| DEP-04 | **Cannot pay a bill** — 403. This is the core separation of duties. |
+
+---
 
 ### 6.5 Finance module
 
+**Who this is for:** the treasury function. They release money. They deliberately cannot decide *whether* work was acceptable — only the department can do that.
+
 **Screen:** Financial Dashboard.
 
-| Requirement | Detail |
+#### What a finance user can do
+
+| # | Action | In plain terms | Endpoint | What it changes |
+|---|---|---|---|---|
+| F-1 | **Release full payment** | Pay the whole outstanding balance. | `POST /bills/{id}/pay` (no amount) | → `Paid`, voucher issued |
+| F-2 | **Release a part payment** | Pay an instalment now, the rest later. | `POST /bills/{id}/pay` with `amount` | → `Partially Paid`; each instalment gets its **own voucher** |
+| F-3 | **Reject an approved bill** | Send it back to the vendor even after departmental approval. | `POST /bills/{id}/reject` | → `Returned` |
+| F-4 | **Release retention** | Pay back the money withheld as a quality guarantee. | `POST /bills/{id}/release-retention` | Only on a **fully** paid bill, and only once |
+| F-5 | **Add / remove a deduction** | Same as the department. | `POST` / `DELETE .../deductions` | Locked once money has moved |
+
+#### Rules enforced against finance
+
+| ID | Rule |
 |---|---|
-| FIN-01 | See KPIs: total budget, funds released, pending approval value, returned bills. |
-| FIN-02 | Release funds only on department-approved bills. |
-| FIN-03 | See the full breakdown — claimed, withheld, net payable — before paying. |
-| FIN-04 | Reject an approved bill back to the vendor. |
-| FIN-05 | Release retention on a paid bill, once. |
-| FIN-06 | **Cannot** approve a bill (403). |
+| FIN-01 | Can only pay a bill that is `Approved` or `Partially Paid`. A `Submitted` bill is invisible to payment. |
+| FIN-02 | **Cannot approve a bill** — 403. Approver ≠ payer. |
+| FIN-03 | Cannot pay more than the outstanding balance; cannot pay zero or a negative amount. |
+| FIN-04 | Retention releases only after full settlement — a part-paid bill cannot release retention. |
+| FIN-05 | Every voucher number is unique across the whole system, including across instalments. |
+| FIN-06 | The full breakdown — claimed, withheld, net payable, already paid, balance — is visible before paying. |
+
+---
 
 ### 6.6 Admin / PMU module
 
-**Screens:** Dashboard, Tenders, Awarded Tenders, Projects, Work Orders, Billing, Payments, Vendors, Inspectors, Users, Documents, Alerts, Queries, Reports, Audit Logs, Settings, and eight master-data screens.
+**Who this is for:** the programme management unit. They set the system up and oversee everything, but deliberately do not *originate* vendor or inspector work.
 
-| Requirement | Detail |
+**Screens:** Dashboard, Tenders, Awarded Tenders, Projects, Work Orders, Billing, Payments, Vendors, Inspectors, Users, Documents, Alerts, Queries, Reports, Audit Logs, Settings, plus eight master-data screens.
+
+#### What an admin can do
+
+| # | Action | In plain terms | Endpoint |
+|---|---|---|---|
+| A-1 | **Create a tender** | Publish an opportunity. | `POST /tenders` |
+| A-2 | **Record the allotment** | Capture who came L1/L2/L3. | `POST /tenderallotments` |
+| A-3 | **Issue a work order** | Award the job to the winner, with milestones. | `POST /workorders` |
+| A-4 | **Define milestones** | Break the job into billable chunks; weightages must total 100. | `POST /execution/milestones` |
+| A-5 | **Register a vendor** | Onboard a contractor and create their login. | `POST /vendors` |
+| A-6 | **Register an inspector** | Create an inspector profile. | `POST /inspectors` |
+| A-7 | **Create an internal user** | Admin/PMU/Finance/Department staff. There is **no self-registration**. | `POST /auth/register` |
+| A-8 | **Reset a user's password** | Issue a one-time temporary password. | `POST /auth/users/{id}/reset-password` |
+| A-9 | **Set the billing policy** | Retention %, advance cap, recovery %. | `PUT /api/masters/billingpolicy` |
+| A-10 | **Manage master data** | Tender types, vendor categories, taxes, locations, departments, defect categories, milestone templates. | `/api/masters/*` |
+| A-11 | **Broadcast an alert** | Notify everyone, a role, a vendor, or one person. | `POST /alerts` |
+| A-12 | **Read the audit trail** | Every state change, who did it, when. | `GET /auditlogs` |
+
+#### Rules enforced against admins
+
+| ID | Rule |
 |---|---|
-| ADM-01 | Full CRUD on all master data. |
-| ADM-02 | Create users; there is no self-registration. |
-| ADM-03 | Create tenders, work orders, milestones. |
-| ADM-04 | Oversight on every module — Admin/PMU permissions are a superset of all others *except* they cannot create bills or inspections (those are Vendor/Inspector actions). |
-| ADM-05 | Set the billing policy (retention %, advance cap, recovery %). |
-| ADM-06 | View the full audit trail. |
+| ADM-01 | Admin/PMU permissions are a **superset of all others, with two deliberate exceptions**: they cannot submit a bill (that is a Vendor action) and cannot create an inspection (that is an Inspector action). Oversight must not be able to manufacture the evidence it oversees. |
+| ADM-02 | Milestone weightages must total 100 at work-order creation — validated, not assumed. |
+| ADM-03 | Admins can pay and approve bills, so a single admin account *can* bypass separation of duties. This is intentional for a break-glass path and is why the audit log matters. |
+
+---
+
+### 6.7 Shared behaviour (all roles)
+
+| Action | Endpoint | Notes |
+|---|---|---|
+| Log in | `POST /auth/login` | The **only** anonymous endpoint in the system |
+| Change own password | `POST /auth/change-password` | Requires the current password, so a borrowed session cannot lock the owner out |
+| Upload a file | `POST /files/upload` | Returns a URL; extension and size validated |
+| Download a file | `GET /files/{name}` | **Requires authentication** — these are confidential contract documents |
+| List alerts | `GET /alerts` | Scoped to the caller's role, vendor and user id |
+| Mark alert read / read-all | `POST /alerts/{id}/read`, `POST /alerts/read-all` | Read state is per-user, so a broadcast can be read by one recipient and unread for another |
 
 ---
 
@@ -888,15 +1096,21 @@ Audit logging is **best-effort and never blocks** the primary operation. If Comm
 
 ### 8.2 Notifications
 
-The bell icon shows a **derived** feed, computed client-side per role:
+The bell icon shows **two kinds of notification merged into one feed**. The distinction is deliberate, because they answer different questions.
 
-| Role | Sees |
+**Persisted alerts** — durable records in CommonService (`Alert` + `AlertRead`). These are *events*: something happened at a point in time and it still matters after the underlying record has moved on ("your bill was returned on the 12th"). They have real read/unread state.
+
+**Derived signals** — computed client-side from live data on each load. These are *state*: always-current counts that have no meaningful "read" mark ("3 bills awaiting approval"). Marking that read would be nonsense; it is true until it isn't.
+
+| Role | Derived signals |
 |---|---|
 | Admin/PMU/Dept/Finance | Overdue work orders, bills awaiting approval, milestones pending, open defects, open queries |
 | Vendor | Returned/rejected bills, overdue work orders, query replies |
 | Inspector | Pending progress reviews, scheduled visits, open defects |
 
-**⚠ Gap — there is no Alert entity.** Notifications are computed on every page load by fetching and filtering live data. Nothing is persisted, so there is no read/unread state, no notification history, and no push. The "Raise Alert" admin screen does not create a durable record.
+Alerts are targeted four ways: **broadcast** (everyone), **by role**, **by vendor**, or **to one named user**. Read state lives in a separate `AlertRead` join row per user, so the same broadcast can be read by one recipient and still unread for another — a flag on the alert itself could not express that.
+
+`POST /alerts` is open to Admin, PMU, Department, Finance and Inspector. Vendors can read alerts but cannot raise them.
 
 ### 8.3 Error handling
 
@@ -916,18 +1130,29 @@ Consolidated. These are real, verified, and worth knowing before planning furthe
 
 ### 9.1 Functional gaps
 
+#### Closed since the first revision
+
+| # | Was | Now |
+|---|---|---|
+| G-01 | No Alert entity | **Closed.** `Alert` + `AlertRead` in CommonService, `/api/alerts`, per-user read state. See 8.2. |
+| G-02 | No Department field | **Closed — but unpopulated.** `DepartmentId` exists on Tender/WorkOrder/Project and cascades Tender → WorkOrder → Project. Every existing row is still `NULL`, so department filtering shows nothing until data is backfilled or new records are created through the UI. |
+| G-03 | No partial payments | **Closed.** `BillPayment` rows, `Partially Paid` status, one voucher per instalment. See 5.6. |
+| G-05 | No time-extension record | **Closed.** `TimeExtension` entity; approval moves `WorkOrder.EndDate`, which stops liquidated damages accruing. |
+| G-06 | No password reset | **Closed.** Admin-initiated reset issues a one-time temporary password; self-service change requires the current password. |
+| G-08 | `"Under Review"` unreachable | **Closed.** `POST /bills/{id}/start-review` sets it. |
+
+#### Still open
+
 | # | Gap | Impact |
 |---|---|---|
-| G-01 | **No Alert entity** — notifications are derived client-side | No read/unread, no history, no push |
-| G-02 | **No Department field** on Tender/WorkOrder/Project | Cannot filter or report by department, despite a Departments master existing |
-| G-03 | **No partial payments** — a bill is paid in full or not at all | Cannot split a payment across instalments |
 | G-04 | **No defects-liability-period tracking** | Retention release is a manual judgement call with no date to gate it |
-| G-05 | **No time-extension record** | The LD deduction can only flag lateness; someone must manually remove it if an extension was granted |
-| G-06 | **No password reset** | Admin must reset manually |
 | G-07 | **Severity is decorative** | Does not affect ordering, escalation, or deadlines |
-| G-08 | **`"Under Review"` bill status is unreachable** | No code path sets it; it exists only in the entity comment |
 | G-09 | **No delete endpoint for bills or inspections** | Test/erroneous records need direct DB edits |
 | G-10 | **Tax master is empty by default** | Bill submission falls back to a hardcoded 18% |
+| G-11 | **`Project.Progress` has no writer** | The column exists but nothing assigns it, so it is 0 forever. The UI derives physical completion from the weighted sum of completed milestones instead. |
+| G-12 | **`ContractDocument` is vendor-scoped only** | It carries a `VendorId` and nothing else, so a per-project document view can only show the vendor's whole repository, not that project's papers |
+| G-13 | **No user edit/delete endpoints** | Internal users can be created and password-reset, but not amended or removed |
+| G-14 | **One pre-existing dangling reference** | Bill `RA-2026-001` (₹500,000, Paid) points at a work order that does not exist. Predates the SQL Server migration; carried across unchanged rather than silently deleted. Separate databases mean no FK catches it. |
 
 ### 9.2 Technical traps
 
@@ -947,12 +1172,18 @@ Consolidated. These are real, verified, and worth knowing before planning furthe
 
 | Area | Status |
 |---|---|
+| Backend unit/integration tests | Verified — **136/136** passing |
 | Inspector flow (API) | Verified — 35/35 automated checks |
 | Billing flow (API) | Verified — 44/45 (1 environmental skip) |
 | Retention / advance / deductions / LD (API) | Verified — 22/22 |
+| Alerts, incl. per-user read state (API) | Verified — 24/24 |
+| Partial payments (API) | Verified — 30/30 |
+| Gateway route coverage | Verified by a reflection test that fails if any controller lacks a gateway route |
 | Frontend build | `tsc -b` + `vite build` clean |
 | Lint | ESLint clean on `src/` |
-| **Billing UI screens** | **Not verified in a browser.** Code compiles; screens have not been rendered and clicked through. |
+| SQL Server migration script | Executed end-to-end against a real SQL Server 2022 instance: 121 batches, 0 errors, 374 rows, idempotent on re-run |
+| **Live staging deployment** | **Not done.** The migration has not been applied to `PostTender_Staging`; services are stopped and pointed at it but have not been started. |
+| **Billing UI screens** | **Not verified in a browser.** Code compiles and the APIs are proven; the screens themselves have not been rendered and clicked through. |
 
 ---
 
@@ -960,36 +1191,65 @@ Consolidated. These are real, verified, and worth knowing before planning furthe
 
 All routes are behind the gateway at `http://localhost:5249`.
 
-### Identity (5001)
+> Generated from the controllers themselves, not written by hand — every row below
+> corresponds to a real `[Http*]` attribute. **114 endpoints across 27 controllers.**
+> `POST /api/auth/login` is the only anonymous endpoint in the system.
+
+### Identity (5001) — 9 endpoints
+
 | Method | Route | Roles |
 |---|---|---|
-| POST | `/api/auth/login` | **anonymous** |
+| POST | `/api/auth/login` | **anonymous** (the only one) |
 | POST | `/api/auth/register` | Admin, PMU |
 | GET | `/api/auth/users` | Admin, PMU |
-| GET/POST/PUT/DELETE | `/api/masters/departments` | any / Admin, PMU |
+| POST | `/api/auth/change-password` | any authenticated |
+| POST | `/api/auth/users/{id}/reset-password` | Admin, PMU |
+| GET | `/api/masters/departments` | any authenticated |
+| POST | `/api/masters/departments` | Admin, PMU |
+| PUT | `/api/masters/departments/{id}` | Admin, PMU |
+| DELETE | `/api/masters/departments/{id}` | Admin, PMU |
 
-### Vendor (5002)
+### Vendor (5002) — 7 endpoints
+
 | Method | Route | Roles |
 |---|---|---|
+| GET | `/api/vendorcategories` | any authenticated |
+| POST | `/api/vendorcategories` | Admin, PMU |
+| DELETE | `/api/vendorcategories/{id}` | Admin, PMU |
 | GET | `/api/vendors` | any authenticated |
-| POST/PUT/DELETE | `/api/vendors` | Admin, PMU |
-| GET/POST/DELETE | `/api/vendorcategories` | any / Admin, PMU |
+| POST | `/api/vendors` | Admin, PMU |
+| PATCH | `/api/vendors/{id}/status` | Admin, PMU |
+| DELETE | `/api/vendors/{id}` | Admin, PMU |
 
-### Tender (5003)
+### Tender (5003) — 22 endpoints
+
 | Method | Route | Roles |
 |---|---|---|
-| GET | `/api/tenders` | Admin, PMU, Department, Inspector, Finance |
+| GET | `/api/projects` | any authenticated |
+| GET | `/api/projects/{id}` | any authenticated |
+| GET | `/api/tenderallotments` | any authenticated |
+| POST | `/api/tenderallotments` | Admin, PMU |
+| GET | `/api/tendertypes` | any authenticated |
+| POST | `/api/tendertypes` | Admin, PMU |
+| PUT | `/api/tendertypes/{id}` | Admin, PMU |
+| DELETE | `/api/tendertypes/{id}` | Admin, PMU |
 | GET | `/api/tenders/awarded` | Admin, PMU, Department |
-| POST/PUT/DELETE | `/api/tenders` | Admin, PMU |
-| GET | `/api/workorders`, `/api/workorders/{id}` | any authenticated |
+| GET | `/api/tenders` | Admin, PMU, Department, Inspector, Finance |
+| POST | `/api/tenders` | Admin, PMU |
+| PUT | `/api/tenders/{id}` | Admin, PMU |
+| DELETE | `/api/tenders/{id}` | Admin, PMU |
+| GET | `/api/timeextensions` | any authenticated |
+| POST | `/api/timeextensions` | **Vendor only** |
+| POST | `/api/timeextensions/{id}/approve` | Admin, PMU, Department |
+| POST | `/api/timeextensions/{id}/reject` | Admin, PMU, Department |
+| GET | `/api/workorders` | any authenticated |
+| GET | `/api/workorders/{id}` | any authenticated |
 | POST | `/api/workorders` | Admin, PMU |
-| PUT | `/api/workorders/{id}/status` | role-checked per transition |
+| PUT | `/api/workorders/{id}/status` | any authenticated |
 | PUT | `/api/workorders/{id}/approve` | Admin, PMU |
-| GET | `/api/projects`, `/api/projects/{id}` | any authenticated |
-| GET/POST | `/api/tenderallotments` | any / Admin, PMU |
-| GET/POST/PUT/DELETE | `/api/tendertypes` | any / Admin, PMU |
 
-### Execution (5004)
+### Execution (5004) — 27 endpoints
+
 | Method | Route | Roles |
 |---|---|---|
 | GET | `/api/execution/milestones` | any authenticated |
@@ -997,63 +1257,92 @@ All routes are behind the gateway at `http://localhost:5249`.
 | GET | `/api/execution/milestones/pending` | Admin, PMU, Department, Inspector |
 | POST | `/api/execution/milestones/{id}/approve` | Admin, PMU, Department |
 | POST | `/api/execution/milestones/{id}/return` | Admin, PMU, Department |
-| GET | `/api/milestonesubmissions/milestone/{id}` | any authenticated |
-| POST/PUT | `/api/milestonesubmissions` | Vendor |
-| POST | `/api/milestonesubmissions/{id}/submit` | Vendor |
-| POST/DELETE | `/api/milestonesubmissions/{id}/documents` | Vendor |
-| GET | `/api/progressreports`, `/{id}`, `/project/{id}` | any authenticated |
-| GET | `/api/progressreports/my` | Vendor |
-| POST | `/api/progressreports` | Vendor |
+| GET | `/api/milestonesubmissions/milestone/{milestoneId}` | any authenticated |
+| POST | `/api/milestonesubmissions` | **Vendor only** |
+| PUT | `/api/milestonesubmissions/{id}` | **Vendor only** |
+| POST | `/api/milestonesubmissions/{id}/submit` | **Vendor only** |
+| POST | `/api/milestonesubmissions/{id}/documents` | **Vendor only** |
+| DELETE | `/api/milestonesubmissions/{id}/documents/{docId}` | **Vendor only** |
+| GET | `/api/masters/milestonetemplates` | any authenticated |
+| POST | `/api/masters/milestonetemplates` | Admin, PMU |
+| PUT | `/api/masters/milestonetemplates/{id}` | Admin, PMU |
+| DELETE | `/api/masters/milestonetemplates/{id}` | Admin, PMU |
+| GET | `/api/progressreports` | any authenticated |
+| POST | `/api/progressreports` | **Vendor only** |
 | GET | `/api/progressreports/pending-review` | any authenticated |
+| GET | `/api/progressreports/my` | **Vendor only** |
+| GET | `/api/progressreports/project/{projectId}` | any authenticated |
+| GET | `/api/progressreports/{id}` | any authenticated |
 | POST | `/api/progressreports/{id}/review` | **Inspector only** |
 | POST | `/api/progressreports/{id}/approve` | Department, Admin, PMU |
 | POST | `/api/progressreports/{id}/query` | Department, Admin, PMU |
-| GET | `/api/queries` | any (vendor-scoped) |
-| POST | `/api/queries` | Vendor |
+| GET | `/api/queries` | any authenticated |
+| POST | `/api/queries` | **Vendor only** |
 | POST | `/api/queries/{id}/message` | any authenticated |
-| GET/POST/PUT/DELETE | `/api/masters/milestonetemplates` | any / Admin, PMU |
 
-### Inspection (5005)
+### Inspection (5005) — 17 endpoints
+
 | Method | Route | Roles |
 |---|---|---|
+| GET | `/api/masters/defectcategories` | any authenticated |
+| POST | `/api/masters/defectcategories` | Admin, PMU |
+| PUT | `/api/masters/defectcategories/{id}` | Admin, PMU |
+| DELETE | `/api/masters/defectcategories/{id}` | Admin, PMU |
+| GET | `/api/inspectionvisits` | Inspector, Admin, PMU |
+| GET | `/api/inspectionvisits/vendor` | **Vendor only** |
+| POST | `/api/inspectionvisits/backfill-vendor` | Admin, PMU |
+| POST | `/api/inspectionvisits` | **Inspector only** |
+| PUT | `/api/inspectionvisits/{id}/status` | Inspector, Admin, PMU |
 | GET | `/api/inspections` | Admin, PMU, Department, Finance, Inspector |
-| GET | `/api/inspections/vendor` | Vendor |
+| GET | `/api/inspections/vendor` | **Vendor only** |
 | GET | `/api/inspections/inspector` | Inspector, Admin, PMU |
 | POST | `/api/inspections` | **Inspector only** |
-| PUT | `/api/inspections/defect/{id}/verify` | Inspector, Admin, PMU |
-| PUT | `/api/inspections/defect/{id}/rectify` | **Vendor only** |
-| GET | `/api/inspectionvisits` | Inspector, Admin, PMU |
-| GET | `/api/inspectionvisits/vendor` | Vendor |
-| POST | `/api/inspectionvisits` | Inspector |
-| PUT | `/api/inspectionvisits/{id}/status` | Inspector (own), Admin, PMU |
-| POST | `/api/inspectionvisits/backfill-vendor` | Admin, PMU |
-| GET/POST | `/api/inspectors` | any / Admin, PMU |
-| GET/POST/PUT/DELETE | `/api/masters/defectcategories` | any / Admin, PMU |
+| PUT | `/api/inspections/defect/{defectId}/verify` | Inspector, Admin, PMU |
+| PUT | `/api/inspections/defect/{defectId}/rectify` | **Vendor only** |
+| GET | `/api/inspectors` | any authenticated |
+| POST | `/api/inspectors` | Admin, PMU |
 
-### Financial (5006)
+### Financial (5006) — 16 endpoints
+
 | Method | Route | Roles |
 |---|---|---|
-| GET | `/api/bills` | any (vendor-scoped) |
+| GET | `/api/masters/billingpolicy` | any authenticated |
+| PUT | `/api/masters/billingpolicy` | Admin, PMU |
+| GET | `/api/bills` | any authenticated |
 | POST | `/api/bills` | **Vendor only** |
+| POST | `/api/bills/{id}/start-review` | Department, Admin, PMU |
 | POST | `/api/bills/{id}/approve` | Department, Admin, PMU |
 | POST | `/api/bills/{id}/query` | Department, Admin, PMU |
-| POST | `/api/bills/{id}/pay` | **Finance, Admin, PMU** |
+| POST | `/api/bills/{id}/pay` | Finance, Admin, PMU |
 | POST | `/api/bills/{id}/reject` | Finance, Admin, PMU |
 | POST | `/api/bills/{id}/deductions` | Department, Finance, Admin, PMU |
 | DELETE | `/api/bills/{id}/deductions/{deductionId}` | Department, Finance, Admin, PMU |
 | POST | `/api/bills/{id}/release-retention` | Finance, Admin, PMU |
-| GET/PUT | `/api/masters/billingpolicy` | any / Admin, PMU |
-| GET/POST/PUT/DELETE | `/api/masters/taxconfigurations` | any / Admin, PMU |
+| GET | `/api/masters/taxconfigurations` | any authenticated |
+| POST | `/api/masters/taxconfigurations` | Admin, PMU |
+| PUT | `/api/masters/taxconfigurations/{id}` | Admin, PMU |
+| DELETE | `/api/masters/taxconfigurations/{id}` | Admin, PMU |
 
-### Common (5007)
+### Common (5007) — 16 endpoints
+
 | Method | Route | Roles |
 |---|---|---|
-| GET/POST | `/api/auditlogs` | any authenticated |
+| GET | `/api/alerts` | any authenticated |
+| POST | `/api/alerts` | Admin, PMU, Department, Finance, Inspector |
+| POST | `/api/alerts/{id}/read` | any authenticated |
+| POST | `/api/alerts/read-all` | any authenticated |
+| GET | `/api/auditlogs` | any authenticated |
+| POST | `/api/auditlogs` | any authenticated |
 | GET | `/api/documents` | any authenticated |
-| POST/DELETE | `/api/documents` | Vendor |
+| POST | `/api/documents` | **Vendor only** |
+| DELETE | `/api/documents/{id}` | **Vendor only** |
 | POST | `/api/files/upload` | any authenticated |
-| GET | `/api/files/{name}` | any authenticated (**not public**) |
-| GET/POST/PUT/DELETE | `/api/masters/locations` | any / Admin, PMU |
+| GET | `/api/files/{name}` | any authenticated |
+| DELETE | `/api/files` | any authenticated |
+| GET | `/api/masters/locations` | any authenticated |
+| POST | `/api/masters/locations` | Admin, PMU |
+| PUT | `/api/masters/locations/{id}` | Admin, PMU |
+| DELETE | `/api/masters/locations/{id}` | Admin, PMU |
 
 ---
 

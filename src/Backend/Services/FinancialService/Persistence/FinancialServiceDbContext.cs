@@ -9,15 +9,6 @@ public class FinancialServiceDbContext : DbContext {
     public DbSet<BillingPolicy> BillingPolicies { get; set; }
     public DbSet<BillPayment> BillPayments { get; set; }
 
-    // SQLite stored decimals as TEXT at arbitrary precision. SQL Server needs a real
-    // store type, and left unstated EF silently falls back to decimal(18,2) while warning
-    // about every property. Stating it makes the money semantics deliberate: 16 integer
-    // digits and exactly the two paise of scale these amounts are rounded to anyway.
-    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
-    {
-        configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // NetPayableAmount is computed in memory (it needs Deductions loaded, which is a

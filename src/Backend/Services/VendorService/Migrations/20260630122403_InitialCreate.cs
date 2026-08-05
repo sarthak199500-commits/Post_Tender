@@ -1,0 +1,80 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace VendorService.Migrations
+{
+    /// <inheritdoc />
+    public partial class InitialCreate : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
+                name: "VendorCategories",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_VendorCategories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Vendors",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    RegistrationNumber = table.Column<string>(type: "TEXT", nullable: false),
+                    VendorCode = table.Column<string>(type: "TEXT", nullable: false),
+                    GSTNo = table.Column<string>(type: "TEXT", nullable: false),
+                    YearOfIncorporation = table.Column<int>(type: "INTEGER", nullable: true),
+                    AuthPersonName = table.Column<string>(type: "TEXT", nullable: false),
+                    Mobile = table.Column<string>(type: "TEXT", nullable: false),
+                    AlternativeNumber = table.Column<string>(type: "TEXT", nullable: false),
+                    ContactEmail = table.Column<string>(type: "TEXT", nullable: false),
+                    RegistrationDetails = table.Column<string>(type: "TEXT", nullable: false),
+                    CategoryId = table.Column<Guid>(type: "TEXT", nullable: true),
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Status = table.Column<string>(type: "TEXT", nullable: false),
+                    PerformanceScore = table.Column<decimal>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Vendors", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Vendors_VendorCategories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "VendorCategories",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vendors_CategoryId",
+                table: "Vendors",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vendors_VendorCode",
+                table: "Vendors",
+                column: "VendorCode",
+                unique: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "Vendors");
+
+            migrationBuilder.DropTable(
+                name: "VendorCategories");
+        }
+    }
+}
