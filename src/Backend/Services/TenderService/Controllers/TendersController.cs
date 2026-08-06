@@ -53,9 +53,19 @@ public class TendersController : ControllerBase
     // Finance's "Total Budget" renders as a confident ₹0.
     [HttpGet]
     [Authorize(Roles = "Admin,PMU,Department,Inspector,Finance")]
-    public async Task<IActionResult> GetAllTenders()
+    public async Task<IActionResult> GetAllTenders(
+        [FromQuery] Guid? ulbId = null,
+        [FromQuery] Guid? zoneId = null,
+        [FromQuery] Guid? wardId = null)
     {
-        var tenders = await _context.Tenders
+        var query = _context.Tenders.AsQueryable();
+
+        // Location filters. Applied after scoping so they can only ever narrow the result set.
+        if (ulbId is Guid u) query = query.Where(x => x.UlbId == u);
+        if (zoneId is Guid z) query = query.Where(x => x.ZoneId == z);
+        if (wardId is Guid w) query = query.Where(x => x.WardId == w);
+
+        var tenders = await query
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new
             {
@@ -97,6 +107,9 @@ public class TendersController : ControllerBase
             EMDAmount   = dto.EMDAmount,
             Portal      = dto.Portal ?? string.Empty,
             DepartmentId = dto.DepartmentId,
+            UlbId = dto.UlbId,
+            ZoneId = dto.ZoneId,
+            WardId = dto.WardId,
             DocumentUrl = documentUrl,
             PublishDate = dto.PublishDate,
             CloseDate   = dto.CloseDate,
@@ -126,6 +139,9 @@ public class TendersController : ControllerBase
         tender.EMDAmount = dto.EMDAmount;
         tender.Portal = dto.Portal ?? string.Empty;
         tender.DepartmentId = dto.DepartmentId;
+        tender.UlbId = dto.UlbId;
+        tender.ZoneId = dto.ZoneId;
+        tender.WardId = dto.WardId;
         tender.PublishDate = dto.PublishDate;
         tender.CloseDate = dto.CloseDate;
 
@@ -195,6 +211,9 @@ public class TendersController : ControllerBase
         public DateTime? PublishDate { get; set; }
         public DateTime? CloseDate { get; set; }
         public Guid? DepartmentId { get; set; }
+        public Guid? UlbId { get; set; }
+        public Guid? ZoneId { get; set; }
+        public Guid? WardId { get; set; }
     }
 }
 

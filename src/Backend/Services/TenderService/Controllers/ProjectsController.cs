@@ -38,10 +38,18 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetProjects()
+    public async Task<IActionResult> GetProjects(
+        [FromQuery] Guid? ulbId = null,
+        [FromQuery] Guid? zoneId = null,
+        [FromQuery] Guid? wardId = null)
     {
         var query = ScopedProjects();
         if (query is null) return Forbid();
+
+        // Location filters. Applied after scoping so they can only ever narrow the result set.
+        if (ulbId is Guid u) query = query.Where(x => x.UlbId == u);
+        if (zoneId is Guid z) query = query.Where(x => x.ZoneId == z);
+        if (wardId is Guid w) query = query.Where(x => x.WardId == w);
 
         return Ok(await query.OrderByDescending(p => p.CreatedAt).ToListAsync());
     }

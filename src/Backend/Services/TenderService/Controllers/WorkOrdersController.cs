@@ -27,7 +27,12 @@ public class WorkOrdersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetWorkOrders([FromQuery] Guid? vendorId, [FromQuery] Guid? inspectorId)
+    public async Task<IActionResult> GetWorkOrders(
+        [FromQuery] Guid? vendorId,
+        [FromQuery] Guid? inspectorId,
+        [FromQuery] Guid? ulbId = null,
+        [FromQuery] Guid? zoneId = null,
+        [FromQuery] Guid? wardId = null)
     {
         var query = _context.WorkOrders.AsQueryable();
 
@@ -36,6 +41,11 @@ public class WorkOrdersController : ControllerBase
 
         if (inspectorId.HasValue)
             query = query.Where(w => w.InspectorId == inspectorId.Value);
+
+        // Location filters. Applied after scoping so they can only ever narrow the result set.
+        if (ulbId is Guid u) query = query.Where(x => x.UlbId == u);
+        if (zoneId is Guid z) query = query.Where(x => x.ZoneId == z);
+        if (wardId is Guid w) query = query.Where(x => x.WardId == w);
 
         var workOrders = await query.OrderByDescending(w => w.CreatedAt).ToListAsync();
         return Ok(workOrders);
@@ -160,6 +170,9 @@ public class WorkOrdersController : ControllerBase
             // Work almost always sits with the department that floated the tender, so
             // inherit it rather than making the caller restate it; an explicit value wins.
             DepartmentId = dto.DepartmentId ?? tender.DepartmentId,
+            UlbId = dto.UlbId ?? tender.UlbId,
+            ZoneId = dto.ZoneId ?? tender.ZoneId,
+            WardId = dto.WardId ?? tender.WardId,
             Status = "Draft"
         };
 
@@ -244,6 +257,9 @@ public class WorkOrdersController : ControllerBase
                 Name = $"Project for WO {workOrder.WorkOrderNo}",
                 Budget = workOrder.TotalValue,
                 DepartmentId = workOrder.DepartmentId,
+                UlbId = workOrder.UlbId,
+                ZoneId = workOrder.ZoneId,
+                WardId = workOrder.WardId,
                 Status = "Activated"
             });
         }
@@ -293,6 +309,10 @@ public class WorkOrdersController : ControllerBase
         public Guid? InspectorId { get; set; }
         /// <summary>Optional — defaults to the parent tender's department.</summary>
         public Guid? DepartmentId { get; set; }
+        /// <summary>Optional — each defaults to the parent tender's corresponding location id.</summary>
+        public Guid? UlbId { get; set; }
+        public Guid? ZoneId { get; set; }
+        public Guid? WardId { get; set; }
         public List<MilestoneInput> Milestones { get; set; } = new();
     }
 
