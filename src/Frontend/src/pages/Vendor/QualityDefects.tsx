@@ -15,6 +15,7 @@ import type { RootState } from '../../store';
 import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 import { severityChipClass } from '../../utils/defectSeverity';
 import { statusChipClass } from '../../utils/statusTone';
+import { ModalPortal } from '../../components/ModalPortal';
 
 interface Defect {
   id: string;
@@ -282,6 +283,7 @@ export const QualityDefects = () => {
 
       {/* Inspection Detail Modal — read-only; rectification is submitted from the card. */}
       {selectedInspection && (
+        <ModalPortal>
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-start gap-4">
@@ -383,10 +385,12 @@ export const QualityDefects = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Rework Submission Modal */}
       {selectedDefect && (
+        <ModalPortal>
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-card shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
@@ -448,6 +452,7 @@ export const QualityDefects = () => {
              </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

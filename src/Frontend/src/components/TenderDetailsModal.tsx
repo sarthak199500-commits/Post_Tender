@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { X, FileText, Calendar, Wallet, Users } from 'lucide-react';
 import type { RootState } from '../store';
 import axiosInstance from '../api/axiosInstance';
+import { ModalPortal } from './ModalPortal';
 
 interface Tender {
   id: string;
@@ -43,6 +44,7 @@ export const TenderDetailsModal = ({ tender, onClose }: Props) => {
   if (!tender) return null;
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
         {/* Header */}
@@ -126,5 +128,6 @@ export const TenderDetailsModal = ({ tender, onClose }: Props) => {
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };

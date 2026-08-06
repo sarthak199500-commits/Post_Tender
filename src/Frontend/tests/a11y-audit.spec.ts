@@ -33,7 +33,6 @@ const ROLES = [
       '/vendor/defects',
       '/vendor/progress',
       '/vendor/milestones',
-      '/vendor/documents',
       '/vendor/queries'
     ]
   },

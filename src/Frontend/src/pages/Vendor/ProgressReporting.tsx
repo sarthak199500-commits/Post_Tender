@@ -19,6 +19,7 @@ import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 import type { Project, Milestone, ProgressReport } from '../../types/domain';
 import { statusChipClass } from '../../utils/statusTone';
+import { ModalPortal } from '../../components/ModalPortal';
 
 // /progressreports/project/{id} enriches rows with the project name and linked milestone.
 type SubmissionRow = ProgressReport & { projectName?: string; milestone?: { title: string }; milestoneTitle?: string };
@@ -492,6 +493,7 @@ export const ProgressReporting = () => {
 
       {/* ─── Media Gallery Modal ─────────────────────────────────────────── */}
       {mediaModalOpen && (
+        <ModalPortal>
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
           <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -533,10 +535,12 @@ export const ProgressReporting = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ─── Submission Detail Modal ─────────────────────────────────────── */}
       {selectedSubmission && (
+        <ModalPortal>
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -629,6 +633,7 @@ export const ProgressReporting = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

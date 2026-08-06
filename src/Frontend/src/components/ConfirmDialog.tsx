@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { ModalPortal } from './ModalPortal';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const ConfirmDialog = ({
   }[variant];
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
@@ -67,5 +69,6 @@ export const ConfirmDialog = ({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };

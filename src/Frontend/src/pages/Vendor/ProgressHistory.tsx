@@ -18,6 +18,7 @@ import type { RootState } from '../../store';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 import { statusChipClass } from '../../utils/statusTone';
+import { ModalPortal } from '../../components/ModalPortal';
 
 // Still needed for evidence media rendered via <img src>/<video src>, which cannot go
 // through axios. Mirrors axiosInstance's base so this is not pinned to localhost.
@@ -307,6 +308,7 @@ export const ProgressHistory = () => {
 
       {/* ─── Detail Modal (Matching ProgressReporting) ─── */}
       {selectedSubmission && (
+        <ModalPortal>
         <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -395,6 +397,7 @@ export const ProgressHistory = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import {  CheckCircle2, ShieldAlert, Plus, Camera, X } from 'lucide-react';
 import type { RootState } from '../../store';
 import axiosInstance, { GATEWAY_BASE } from '../../api/axiosInstance';
 import { DEFECT_SEVERITIES, severityChipClass } from '../../utils/defectSeverity';
+import { ModalPortal } from '../../components/ModalPortal';
 
 interface ProjectOption {
   id: string;
@@ -238,6 +239,7 @@ export const InspectorDefects = () => {
       </div>
 
       {isLogging && (
+        <ModalPortal>
           <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-white rounded-card shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -354,6 +356,7 @@ export const InspectorDefects = () => {
                </div>
             </div>
           </div>
+        </ModalPortal>
       )}
     </div>
   );

@@ -50,7 +50,6 @@ import { BillingClaims } from './pages/Vendor/BillingClaims';
 import { QualityDefects } from './pages/Vendor/QualityDefects';
 import { ProgressReporting } from './pages/Vendor/ProgressReporting';
 import { MilestoneUpdates } from './pages/Vendor/MilestoneUpdates';
-import { DocumentUploads } from './pages/Vendor/DocumentUploads';
 import { QueriesClarifications } from './pages/Vendor/QueriesClarifications';
 import { ProgressHistory } from './pages/Vendor/ProgressHistory';
 import { MilestoneSubmissionPage } from './pages/Vendor/MilestoneSubmissionPage';
@@ -217,7 +216,6 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   '/vendor/progress': { title: 'Progress Reporting', subtitle: 'Report progress on your projects' },
   '/vendor/progress/history': { title: 'Progress History', subtitle: 'Your submitted progress reports' },
   '/vendor/milestones': { title: 'Milestone Updates', subtitle: 'Update and submit your milestones' },
-  '/vendor/documents': { title: 'Document Uploads', subtitle: 'Upload required documents' },
   '/vendor/queries': { title: 'Queries & Clarifications', subtitle: 'Raise and track your queries' },
   '/inspector/dashboard': { title: 'Dashboard', subtitle: 'Your inspection assignments' },
   '/inspector/work-orders': { title: 'Work Orders', subtitle: 'Work orders assigned for inspection' },
@@ -542,7 +540,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   <NavItem to="/vendor/progress/history" text="Progress History" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>} />
                 )}
                 <NavItem to="/vendor/milestones" text="Milestone Updates" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>} />
-                <NavItem to="/vendor/documents" text="Document Uploads" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>} />
                 <NavItem to="/vendor/bills" text="Bill Submission" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>} />
                 <NavItem to="/vendor/defects" text="Inspections & Defects" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
                 <NavItem to="/vendor/queries" text="Queries & Clarif." icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>} />
@@ -740,7 +737,6 @@ function App() {
       <Route path="/vendor/progress/history" element={<PrivateRoute roles={['Vendor']}><Layout><ProgressHistory /></Layout></PrivateRoute>} />
       <Route path="/vendor/milestones" element={<PrivateRoute roles={['Vendor']}><Layout><MilestoneUpdates /></Layout></PrivateRoute>} />
       <Route path="/vendor/milestones/:milestoneId/submit" element={<PrivateRoute roles={['Vendor']}><Layout><MilestoneSubmissionPage /></Layout></PrivateRoute>} />
-      <Route path="/vendor/documents" element={<PrivateRoute roles={['Vendor']}><Layout><DocumentUploads /></Layout></PrivateRoute>} />
       <Route path="/vendor/queries" element={<PrivateRoute roles={['Vendor']}><Layout><QueriesClarifications /></Layout></PrivateRoute>} />
 
       {/* Inspector Routes */}

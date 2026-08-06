@@ -9,6 +9,7 @@ import {
 import type { RootState } from '../../store';
 import axiosInstance from '../../api/axiosInstance';
 import type { QueryThread, QueryMessage } from '../../types/domain';
+import { ModalPortal } from '../../components/ModalPortal';
 
 export const QueriesClarifications = () => {
   const [queries, setQueries] = useState<QueryThread[]>([]);
@@ -202,6 +203,7 @@ export const QueriesClarifications = () => {
 
       {/* New Query Modal */}
       {isCreating && (
+        <ModalPortal>
           <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-white rounded-card shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
@@ -242,6 +244,7 @@ export const QueriesClarifications = () => {
                </div>
             </div>
           </div>
+        </ModalPortal>
       )}
     </div>
   );

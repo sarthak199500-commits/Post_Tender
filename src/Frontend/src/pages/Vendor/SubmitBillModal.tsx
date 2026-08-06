@@ -6,6 +6,7 @@ import { rupeesCompact } from '../../utils/currency';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 import type { WorkOrder, Milestone, Bill, BillingPolicy } from '../../types/domain';
+import { ModalPortal } from '../../components/ModalPortal';
 
 interface SubmitBillModalProps {
   onClose: () => void;
@@ -243,9 +244,10 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
   const canSubmitAdvance = advanceAmountNum > 0 && !hasPendingAdvance && outstandingAdvance === 0 && !loading;
 
   return (
-    <div className="fixed inset-0 !mt-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <ModalPortal>
+    <div className="fixed inset-0 !mt-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-card w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
-        <div className="border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
+        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
           <h2 className="text-xl font-bold text-slate-800">Raise New Claim</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600">
             <X className="w-5 h-5" />
@@ -275,7 +277,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
           </div>
         </div>
 
-        <div className="overflow-y-auto">
+        <div className="p-6 overflow-y-auto">
           {error && (
             <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-card flex gap-3 text-sm font-medium">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -454,7 +456,7 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
           </form>
         </div>
 
-        <div className="border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
+        <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
           <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-card font-semibold text-slate-600 hover:bg-slate-200 transition-colors">
             Cancel
           </button>
@@ -469,5 +471,6 @@ export const SubmitBillModal: React.FC<SubmitBillModalProps> = ({ onClose, onSuc
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };

@@ -4,6 +4,7 @@ import axiosInstance from '../../api/axiosInstance';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { RootState } from '../../store';
+import { ModalPortal } from '../../components/ModalPortal';
 
 interface Visit {
     id: string;
@@ -271,6 +272,7 @@ const InspectorVisits: React.FC = () => {
 
             {/* ─── Schedule Visit Modal ─── */}
             {isModalOpen && (
+              <ModalPortal>
                 <div className="fixed inset-0 !mt-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                     <div className="bg-white rounded-card shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -348,6 +350,7 @@ const InspectorVisits: React.FC = () => {
                         </form>
                     </div>
                 </div>
+              </ModalPortal>
             )}
         </div>
     );
