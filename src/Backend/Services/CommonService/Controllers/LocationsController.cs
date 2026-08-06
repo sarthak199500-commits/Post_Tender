@@ -22,6 +22,10 @@ public class LocationsController : ControllerBase
     private readonly CommonService.Persistence.CommonServiceDbContext _context;
     public LocationsController(CommonService.Persistence.CommonServiceDbContext context) { _context = context; }
 
+    /// <summary>UP has exactly three statutory ULB tiers. Kept in code because this build is
+    /// UP-only; promote to a master table if another state is ever onboarded.</summary>
+    private static readonly string[] UlbTypes = { "NagarNigam", "NagarPalikaParishad", "NagarPanchayat" };
+
     public class LocationDto
     {
         [Required(AllowEmptyStrings = false), StringLength(150, MinimumLength = 2)]
@@ -32,6 +36,9 @@ public class LocationsController : ControllerBase
 
         [StringLength(50)]
         public string LocationType { get; set; } = string.Empty;
+
+        [StringLength(40)]
+        public string? UlbType { get; set; }
 
         public Guid? ParentLocationId { get; set; }
         public bool IsActive { get; set; } = true;
@@ -52,6 +59,7 @@ public class LocationsController : ControllerBase
             Name = dto.Name.Trim(),
             Code = dto.Code.Trim(),
             LocationType = dto.LocationType?.Trim() ?? string.Empty,
+            UlbType = string.IsNullOrWhiteSpace(dto.UlbType) ? null : dto.UlbType.Trim(),
             ParentLocationId = dto.ParentLocationId,
             IsActive = dto.IsActive
         };
@@ -74,6 +82,7 @@ public class LocationsController : ControllerBase
         entity.Name = dto.Name.Trim();
         entity.Code = dto.Code.Trim();
         entity.LocationType = dto.LocationType?.Trim() ?? string.Empty;
+        entity.UlbType = string.IsNullOrWhiteSpace(dto.UlbType) ? null : dto.UlbType.Trim();
         entity.ParentLocationId = dto.ParentLocationId;
         entity.IsActive = dto.IsActive;
 
@@ -106,6 +115,9 @@ public class LocationsController : ControllerBase
             if (!await _context.Locations.AnyAsync(l => l.Id == parent))
                 return $"Parent location '{parent}' does not exist.";
         }
+
+        if (!string.IsNullOrWhiteSpace(dto.UlbType) && !UlbTypes.Contains(dto.UlbType.Trim()))
+            return $"UlbType must be one of: {string.Join(", ", UlbTypes)}.";
 
         return null;
     }
