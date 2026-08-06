@@ -78,6 +78,9 @@ public class WorkOrdersController : ControllerBase
                 w.AgreementDocumentUrl,
                 w.Status,
                 w.DepartmentId,
+                w.UlbId,
+                w.ZoneId,
+                w.WardId,
                 w.CreatedAt,
                 Tender = w.Tender == null ? null : new
                 {
@@ -200,6 +203,9 @@ public class WorkOrdersController : ControllerBase
             workOrder.AgreementDocumentUrl,
             workOrder.Status,
             workOrder.DepartmentId,
+            workOrder.UlbId,
+            workOrder.ZoneId,
+            workOrder.WardId,
             workOrder.CreatedAt
         });
     }

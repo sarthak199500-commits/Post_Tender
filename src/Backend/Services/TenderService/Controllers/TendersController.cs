@@ -40,6 +40,9 @@ public class TendersController : ControllerBase
                 t.Budget,
                 t.CreatedAt,
                 t.DepartmentId,
+                t.UlbId,
+                t.ZoneId,
+                t.WardId,
                 HasWorkOrder = t.WorkOrders.Any()
             })
             .ToListAsync();
@@ -71,7 +74,8 @@ public class TendersController : ControllerBase
             {
                 t.Id, t.TenderNo, t.Title, t.TenderType, t.Budget,
                 t.EMDAmount, t.Portal, t.DocumentUrl,
-                t.PublishDate, t.CloseDate, t.Status, t.CreatedAt, t.DepartmentId
+                t.PublishDate, t.CloseDate, t.Status, t.CreatedAt, t.DepartmentId,
+                t.UlbId, t.ZoneId, t.WardId
             })
             .ToListAsync();
         return Ok(tenders);
