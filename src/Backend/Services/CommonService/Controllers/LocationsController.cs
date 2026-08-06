@@ -44,8 +44,28 @@ public class LocationsController : ControllerBase
         public bool IsActive { get; set; } = true;
     }
 
+    /// <summary>
+    /// All filters are optional and compose. No filter returns everything, which is what the
+    /// Locations master screen wants; the cascade passes parentId (or type+ulbType at the top).
+    /// Ordered by Name so the dropdowns are alphabetical without client-side sorting — except
+    /// Wards, which sort by Code because "Ward 10" must not precede "Ward 2".
+    /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Get() => Ok(await _context.Locations.ToListAsync());
+    public async Task<IActionResult> Get(
+        [FromQuery] string? type,
+        [FromQuery] string? ulbType,
+        [FromQuery] Guid? parentId)
+    {
+        var q = _context.Locations.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(type)) q = q.Where(l => l.LocationType == type);
+        if (!string.IsNullOrWhiteSpace(ulbType)) q = q.Where(l => l.UlbType == ulbType);
+        if (parentId is Guid p) q = q.Where(l => l.ParentLocationId == p);
+
+        q = type == "Ward" ? q.OrderBy(l => l.Code) : q.OrderBy(l => l.Name);
+
+        return Ok(await q.ToListAsync());
+    }
 
     [HttpPost]
     [Authorize(Roles = "Admin,PMU")]
