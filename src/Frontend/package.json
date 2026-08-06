@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "seed:demo": "node scripts/seed-demo-data.mjs",
+    "seed:locations": "node scripts/seed-locations.mjs",
     "backfill:visit-vendors": "node scripts/backfill-visit-vendors.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
