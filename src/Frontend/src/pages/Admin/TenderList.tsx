@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../api/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 import { Edit2, Trash2, Plus } from 'lucide-react';
+import { LocationCascade, type LocationValue } from '../../components/LocationCascade';
 
 interface Tender {
     id: string;
@@ -18,13 +19,21 @@ const TenderList: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState('');
+    const [locationFilter, setLocationFilter] = useState<LocationValue>({ ulbId: '', zoneId: '', wardId: '' });
     const navigate = useNavigate();
 
+    // Location narrows server-side (the ids are indexed columns on Tender), unlike search and
+    // type which filter the fetched page client-side.
     const fetchTenders = async () => {
         try {
             const token = localStorage.getItem('token');
             const res = await axiosInstance.get('/tenders', {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${token}` },
+                params: {
+                    ...(locationFilter.ulbId && { ulbId: locationFilter.ulbId }),
+                    ...(locationFilter.zoneId && { zoneId: locationFilter.zoneId }),
+                    ...(locationFilter.wardId && { wardId: locationFilter.wardId }),
+                },
             });
             setTenders(res.data);
         } catch (err) {
@@ -36,7 +45,8 @@ const TenderList: React.FC = () => {
 
     useEffect(() => {
         fetchTenders();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [locationFilter]);
 
     const handleDelete = async (id: string) => {
         if (!window.confirm('Are you sure you want to delete this tender? This will also affect any work orders linked to it.')) return;
@@ -89,6 +99,19 @@ const TenderList: React.FC = () => {
                     >
                         <Plus size={18} /> Create New Tender
                     </button>
+                </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-card border border-slate-200 mb-6">
+                <div className="flex items-end gap-3 flex-wrap">
+                    <LocationCascade value={locationFilter} onChange={setLocationFilter} inline />
+                    {(locationFilter.ulbId || locationFilter.wardId) && (
+                        <button type="button"
+                            onClick={() => setLocationFilter({ ulbId: '', zoneId: '', wardId: '' })}
+                            className="px-4 py-2 rounded-control font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200">
+                            Clear
+                        </button>
+                    )}
                 </div>
             </div>
 
