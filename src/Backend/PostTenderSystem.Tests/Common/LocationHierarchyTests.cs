@@ -163,6 +163,122 @@ public class LocationHierarchyTests
         Assert.Equal(new[] { "Ward 2", "Ward 10" }, rows.Select(r => r.Name));
     }
 
+    // --- Shape rules -----------------------------------------------------------------------
+    // UP's three tiers do not share a shape. A Nagar Nigam (metropolitan corporation) is divided
+    // into Zones and its wards sit under those Zones. A Nagar Palika Parishad (city) and a Nagar
+    // Panchayat (town) have no Zones and hold their wards directly.
+
+    /// <summary>Seeds one urban local body of the given tier and returns it.</summary>
+    private static async Task<Location> SeedUlb(CommonServiceDbContext ctx, string ulbType)
+    {
+        var ulb = Row($"{ulbType} Body", $"C-{Guid.NewGuid().ToString("N")[..6]}", "Ulb", ulbType: ulbType);
+        ctx.Locations.Add(ulb);
+        await ctx.SaveChangesAsync();
+        return ulb;
+    }
+
+    [Fact]
+    public async Task Zone_IsRejected_UnderANagarPalikaParishad()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var ulb = await SeedUlb(ctx, "NagarPalikaParishad");
+
+        var result = await Build(ctx).Post(new LocationsController.LocationDto
+        {
+            Name = "Zone A", Code = "Z-A", LocationType = "Zone", ParentLocationId = ulb.Id
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("Nagar Nigam", bad.Value!.ToString());
+        Assert.Single(ctx.Locations);   // nothing created
+    }
+
+    [Fact]
+    public async Task Zone_IsAccepted_UnderANagarNigam()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var ulb = await SeedUlb(ctx, "NagarNigam");
+
+        var result = await Build(ctx).Post(new LocationsController.LocationDto
+        {
+            Name = "Zone 1", Code = "Z-1", LocationType = "Zone", ParentLocationId = ulb.Id
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("Zone 1", ctx.Locations.Single(l => l.LocationType == "Zone").Name);
+    }
+
+    [Fact]
+    public async Task Ward_IsRejected_DirectlyUnderANagarNigam()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var ulb = await SeedUlb(ctx, "NagarNigam");
+
+        // The whole point of the rule: a corporation's wards belong to one of its zones.
+        var result = await Build(ctx).Post(new LocationsController.LocationDto
+        {
+            Name = "Ward 1", Code = "W-1", LocationType = "Ward", ParentLocationId = ulb.Id
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("zone", bad.Value!.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Single(ctx.Locations);
+    }
+
+    [Theory]
+    [InlineData("NagarPalikaParishad")]
+    [InlineData("NagarPanchayat")]
+    public async Task Ward_IsAccepted_DirectlyUnderACityOrTown(string ulbType)
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var ulb = await SeedUlb(ctx, ulbType);
+
+        var result = await Build(ctx).Post(new LocationsController.LocationDto
+        {
+            Name = "Ward 1", Code = "W-1", LocationType = "Ward", ParentLocationId = ulb.Id
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("Ward 1", ctx.Locations.Single(l => l.LocationType == "Ward").Name);
+    }
+
+    [Fact]
+    public async Task Ward_IsAccepted_UnderAZone()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var ulb = Row("Lucknow Nagar Nigam", "NN-LKO", "Ulb", ulbType: "NagarNigam");
+        ctx.Locations.Add(ulb);
+        await ctx.SaveChangesAsync();
+        var zone = Row("Zone 1", "NN-LKO-Z1", "Zone", ulb.Id);
+        ctx.Locations.Add(zone);
+        await ctx.SaveChangesAsync();
+
+        var result = await Build(ctx).Post(new LocationsController.LocationDto
+        {
+            Name = "Ward 1", Code = "NN-LKO-W001", LocationType = "Ward", ParentLocationId = zone.Id
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(zone.Id, ctx.Locations.Single(l => l.LocationType == "Ward").ParentLocationId);
+    }
+
+    [Fact]
+    public async Task Ulb_RequiresAUlbType()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+
+        // Without a tier the cascade cannot place the body at all, and the shape rules above
+        // have nothing to test against.
+        var result = await Build(ctx).Post(new LocationsController.LocationDto
+        {
+            Name = "Some Body", Code = "SB-1", LocationType = "Ulb"
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("UlbType", bad.Value!.ToString());
+        Assert.Empty(ctx.Locations);
+    }
+
     /// <summary>Non-ward levels stay alphabetical: the municipality dropdown is browsed by name.</summary>
     [Fact]
     public async Task Get_OrdersNonWardLevelsByName()

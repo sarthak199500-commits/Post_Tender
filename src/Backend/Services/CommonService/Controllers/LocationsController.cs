@@ -124,7 +124,17 @@ public class LocationsController : ControllerBase
         return Ok();
     }
 
-    /// <summary>Rules the annotations cannot express. `excludeId` is the row being edited.</summary>
+    /// <summary>
+    /// Rules the annotations cannot express. `excludeId` is the row being edited.
+    ///
+    /// The three UP tiers do not share a shape, and the shape rules below enforce that:
+    ///   Nagar Nigam (metropolitan)        Ulb -> Zone -> Ward
+    ///   Nagar Palika Parishad (city)      Ulb -> Ward
+    ///   Nagar Panchayat (town)            Ulb -> Ward
+    /// Only a Nagar Nigam has Zones. Without these checks the master accepted a Zone under a
+    /// town, or a ward hung straight off a corporation — trees the cascade cannot render and
+    /// which quietly misreport which body a tender belongs to.
+    /// </summary>
     private async Task<string?> Validate(LocationDto dto, Guid? excludeId)
     {
         if (string.IsNullOrWhiteSpace(dto.Name)) return "Name is required.";
@@ -134,15 +144,44 @@ public class LocationsController : ControllerBase
         if (await _context.Locations.AnyAsync(l => l.Code == code && (excludeId == null || l.Id != excludeId)))
             return $"A location with code '{code}' already exists.";
 
-        if (dto.ParentLocationId is Guid parent)
+        // Loaded rather than merely existence-checked: the shape rules below need its tier.
+        Location? parent = null;
+        if (dto.ParentLocationId is Guid parentId)
         {
-            if (parent == excludeId) return "A location cannot be its own parent.";
-            if (!await _context.Locations.AnyAsync(l => l.Id == parent))
-                return $"Parent location '{parent}' does not exist.";
+            if (parentId == excludeId) return "A location cannot be its own parent.";
+            parent = await _context.Locations.FirstOrDefaultAsync(l => l.Id == parentId);
+            if (parent is null) return $"Parent location '{parentId}' does not exist.";
         }
 
         if (!string.IsNullOrWhiteSpace(dto.UlbType) && !UlbTypes.Contains(dto.UlbType.Trim()))
             return $"UlbType must be one of: {string.Join(", ", UlbTypes)}.";
+
+        // Legacy levels (e.g. District) predate this hierarchy and are left unconstrained.
+        switch (dto.LocationType?.Trim())
+        {
+            case "Ulb":
+                if (string.IsNullOrWhiteSpace(dto.UlbType))
+                    return $"UlbType is required for an urban local body — one of: {string.Join(", ", UlbTypes)}.";
+                break;
+
+            case "Zone":
+                if (parent is null)
+                    return "A zone must belong to a Nagar Nigam.";
+                if (parent.LocationType != "Ulb" || parent.UlbType != "NagarNigam")
+                    return $"'{parent.Name}' is not a Nagar Nigam. Only a Nagar Nigam is divided into zones; "
+                         + "a Nagar Palika Parishad or Nagar Panchayat holds its wards directly.";
+                break;
+
+            case "Ward":
+                if (parent is null)
+                    return "A ward must belong to a zone or an urban local body.";
+                if (parent.LocationType == "Ulb" && parent.UlbType == "NagarNigam")
+                    return $"'{parent.Name}' is a Nagar Nigam, so its wards belong to one of its zones, "
+                         + "not to the corporation directly.";
+                if (parent.LocationType != "Zone" && parent.LocationType != "Ulb")
+                    return $"A ward's parent must be a zone or an urban local body, not a {parent.LocationType}.";
+                break;
+        }
 
         return null;
     }
