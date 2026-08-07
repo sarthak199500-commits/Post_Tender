@@ -120,7 +120,17 @@ public class LocationsController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var e = await _context.Locations.FindAsync(id);
-        if (e != null) { _context.Locations.Remove(e); await _context.SaveChangesAsync(); }
+        if (e is null) return Ok();
+
+        // Nothing enforced this before, so deleting a corporation silently orphaned its zones
+        // and every ward beneath them — 118 rows for Lucknow — leaving tenders pointing at ids
+        // that no longer resolve. Cheaper to refuse than to repair.
+        var children = await _context.Locations.CountAsync(l => l.ParentLocationId == id);
+        if (children > 0)
+            return BadRequest($"'{e.Name}' still has {children} location(s) under it. Delete or move those first.");
+
+        _context.Locations.Remove(e);
+        await _context.SaveChangesAsync();
         return Ok();
     }
 

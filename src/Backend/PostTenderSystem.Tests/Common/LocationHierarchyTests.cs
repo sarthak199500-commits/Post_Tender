@@ -295,4 +295,35 @@ public class LocationHierarchyTests
         var rows = Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<Location>>(ok.Value);
         Assert.Equal(new[] { "Agra Nagar Nigam", "Varanasi Nagar Nigam" }, rows.Select(r => r.Name));
     }
+
+    [Fact]
+    public async Task Delete_IsRejected_WhileChildrenExist()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var city = Row("Lucknow Nagar Nigam", "NN-LKO", "Ulb", ulbType: "NagarNigam");
+        ctx.Locations.Add(city);
+        await ctx.SaveChangesAsync();
+        ctx.Locations.Add(Row("Zone 1", "NN-LKO-Z01", "Zone", city.Id));
+        await ctx.SaveChangesAsync();
+
+        var result = await Build(ctx).Delete(city.Id);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("still has", bad.Value!.ToString());
+        Assert.Equal(2, ctx.Locations.Count());   // nothing removed
+    }
+
+    [Fact]
+    public async Task Delete_Succeeds_WhenNoChildrenRemain()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var city = Row("Sitapur", "NPP-SITAPUR", "Ulb", ulbType: "NagarPalikaParishad");
+        ctx.Locations.Add(city);
+        await ctx.SaveChangesAsync();
+
+        var result = await Build(ctx).Delete(city.Id);
+
+        Assert.IsType<OkResult>(result);
+        Assert.Empty(ctx.Locations);
+    }
 }

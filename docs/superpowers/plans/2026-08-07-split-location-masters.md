@@ -105,7 +105,7 @@ Append inside the `LocationHierarchyTests` class, just before its closing `}`:
 
         var result = await Build(ctx).Delete(city.Id);
 
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<OkResult>(result);
         Assert.Empty(ctx.Locations);
     }
 ```
@@ -117,8 +117,10 @@ cd "src/Backend" && dotnet test PostTenderSystem.Tests/PostTenderSystem.Tests.cs
 ```
 
 Expected: `Delete_IsRejected_WhileChildrenExist` FAILS (it currently returns `OkResult` and
-deletes the row). `Delete_Succeeds_WhenNoChildrenRemain` already passes — that is fine, it is
-the regression guard for the change you are about to make.
+deletes the row). `Delete_Succeeds_WhenNoChildrenRemain` already passes — it is the regression
+guard for the change you are about to make. (If you asserted `OkObjectResult` instead of
+`OkResult` here, both tests fail: the current success path returns a bare `Ok()`, not
+`Ok(entity)`, and the planned fix below does not change that — only `OkResult` is correct.)
 
 > **Build note:** the running services lock their own `bin/Debug`, which is why every command
 > here uses the throwaway `-c TestRun` configuration and targets the `.csproj` directly (the
