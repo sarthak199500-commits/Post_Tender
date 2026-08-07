@@ -136,4 +136,47 @@ public class LocationHierarchyTests
         var rows = Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<Location>>(ok.Value);
         Assert.Equal(new[] { "Ward 2", "Ward 10" }, rows.Select(r => r.Name));
     }
+
+    /// <summary>
+    /// The cascade loads a ULB's children with parentId alone and no `type`, because it has to
+    /// see Zones and Wards together to decide whether the Zone step applies at all. Ordering
+    /// therefore has to key off each row's own LocationType, not off whether the caller
+    /// happened to pass `type` — keying off the request meant every real ward dropdown
+    /// rendered as Ward 1, Ward 10, Ward 100, Ward 101 while the type=Ward test above passed.
+    /// </summary>
+    [Fact]
+    public async Task Get_ByParentOnly_StillOrdersWardsByCode()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        var ulb = Row("Lucknow Nagar Nigam", "NN-LKO", "Ulb", ulbType: "NagarNigam");
+        ctx.Locations.Add(ulb);
+        await ctx.SaveChangesAsync();
+        ctx.Locations.AddRange(
+            Row("Ward 10", "NN-LKO-W010", "Ward", ulb.Id),
+            Row("Ward 2", "NN-LKO-W002", "Ward", ulb.Id));
+        await ctx.SaveChangesAsync();
+
+        var result = await Build(ctx).Get(type: null, ulbType: null, parentId: ulb.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<Location>>(ok.Value);
+        Assert.Equal(new[] { "Ward 2", "Ward 10" }, rows.Select(r => r.Name));
+    }
+
+    /// <summary>Non-ward levels stay alphabetical: the municipality dropdown is browsed by name.</summary>
+    [Fact]
+    public async Task Get_OrdersNonWardLevelsByName()
+    {
+        using var ctx = TestDb.Create<CommonServiceDbContext>();
+        ctx.Locations.AddRange(
+            Row("Varanasi Nagar Nigam", "NN-VNS", "Ulb", ulbType: "NagarNigam"),
+            Row("Agra Nagar Nigam", "NN-AGR", "Ulb", ulbType: "NagarNigam"));
+        await ctx.SaveChangesAsync();
+
+        var result = await Build(ctx).Get(type: "Ulb", ulbType: null, parentId: null);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<Location>>(ok.Value);
+        Assert.Equal(new[] { "Agra Nagar Nigam", "Varanasi Nagar Nigam" }, rows.Select(r => r.Name));
+    }
 }

@@ -48,7 +48,12 @@ public class LocationsController : ControllerBase
     /// All filters are optional and compose. No filter returns everything, which is what the
     /// Locations master screen wants; the cascade passes parentId (or type+ulbType at the top).
     /// Ordered by Name so the dropdowns are alphabetical without client-side sorting — except
-    /// Wards, which sort by Code because "Ward 10" must not precede "Ward 2".
+    /// Wards, which sort by zero-padded Code because "Ward 10" must not precede "Ward 2".
+    ///
+    /// The ward rule keys off each row's own LocationType, not off the `type` argument: the
+    /// cascade fetches a ULB's children by parentId alone (it needs Zones and Wards together
+    /// to decide whether the Zone step applies), so keying off the request sorted every real
+    /// ward dropdown as Ward 1, Ward 10, Ward 100 while a type=Ward test still passed.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Get(
@@ -62,7 +67,7 @@ public class LocationsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(ulbType)) q = q.Where(l => l.UlbType == ulbType);
         if (parentId is Guid p) q = q.Where(l => l.ParentLocationId == p);
 
-        q = type == "Ward" ? q.OrderBy(l => l.Code) : q.OrderBy(l => l.Name);
+        q = q.OrderBy(l => l.LocationType == "Ward" ? l.Code : l.Name);
 
         return Ok(await q.ToListAsync());
     }
