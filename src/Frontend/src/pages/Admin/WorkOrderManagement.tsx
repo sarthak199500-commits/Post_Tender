@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { rupeesCompact } from '../../utils/currency';
 import axiosInstance from '../../api/axiosInstance';
 import { statusChipClass } from '../../utils/statusTone';
+import { LocationCascade, type LocationValue } from '../../components/LocationCascade';
 
 interface VendorRecord { id: string; name: string; vendorCode?: string; }
 interface MilestoneRecord { workOrderId: string; status: string; }
@@ -46,6 +47,7 @@ export const WorkOrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
   const [showWorkflow, setShowWorkflow] = useState(false);
+  const [locationFilter, setLocationFilter] = useState<LocationValue>({ ulbId: '', zoneId: '', wardId: '' });
   const { token, user } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 
@@ -68,7 +70,15 @@ export const WorkOrderManagement = () => {
   const loadWOs = async () => {
     try {
       const [woRes, vendorsRes, milestonesRes, billsRes] = await Promise.all([
-        axiosInstance.get<RawWorkOrder[]>('/workorders'),
+        // Only the work orders narrow by location; the joins below are looked up by id
+        // from whatever came back, so filtering them too would just cost extra round trips.
+        axiosInstance.get<RawWorkOrder[]>('/workorders', {
+          params: {
+            ...(locationFilter.ulbId && { ulbId: locationFilter.ulbId }),
+            ...(locationFilter.zoneId && { zoneId: locationFilter.zoneId }),
+            ...(locationFilter.wardId && { wardId: locationFilter.wardId }),
+          },
+        }),
         axiosInstance.get<VendorRecord[]>('/vendors').catch(() => null),
         axiosInstance.get<MilestoneRecord[]>('/execution/milestones').catch(() => null),
         axiosInstance.get<BillRecord[]>('/bills').catch(() => null),
@@ -105,7 +115,8 @@ export const WorkOrderManagement = () => {
     }
   };
 
-  useEffect(() => { loadWOs(); }, [token]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadWOs(); }, [token, locationFilter]);
 
   const approve = async (id: string) => {
     setActing(id);
@@ -159,6 +170,19 @@ export const WorkOrderManagement = () => {
           <FilePlus className="w-4 h-4" />
           <span>New Work Order</span>
         </button>
+      </div>
+
+      <div className="bg-white p-4 rounded-card border border-slate-200">
+        <div className="flex items-end gap-3 flex-wrap">
+          <LocationCascade value={locationFilter} onChange={setLocationFilter} inline />
+          {(locationFilter.ulbId || locationFilter.wardId) && (
+            <button type="button"
+              onClick={() => setLocationFilter({ ulbId: '', zoneId: '', wardId: '' })}
+              className="px-4 py-2 rounded-control font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200">
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Workflow Legend */}
@@ -305,7 +329,11 @@ export const WorkOrderManagement = () => {
         {workOrders.length === 0 && (
           <div className="bg-white rounded-card border border-slate-200 p-16 text-center">
             <FilePlus className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-600">No work orders yet. Create one from an Awarded Tender.</p>
+            <p className="text-slate-600">
+              {locationFilter.ulbId || locationFilter.wardId
+                ? 'No work orders match this location.'
+                : 'No work orders yet. Create one from an Awarded Tender.'}
+            </p>
           </div>
         )}
       </div>

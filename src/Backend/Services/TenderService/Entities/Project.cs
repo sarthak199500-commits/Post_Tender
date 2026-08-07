@@ -19,6 +19,14 @@ public class Project
     // pattern used for vendor and inspector names.
     public Guid? DepartmentId { get; set; }
 
+    // Urban local body location. Locations are mastered in CommonService, so only ids are
+    // stored here and names are joined client-side — the same cross-service pattern as
+    // DepartmentId. All three levels are denormalised (rather than deriving Ulb/Zone by
+    // walking up from the ward) so list filters stay a single-table query.
+    public Guid? UlbId { get; set; }
+    public Guid? ZoneId { get; set; }   // null wherever the ULB has no zones
+    public Guid? WardId { get; set; }
+
     public string Status { get; set; } = "Not Started";
     
     public double Latitude { get; set; }

@@ -79,6 +79,66 @@
 
 ---
 
+## 🏛️ Urban Local Body Location Hierarchy (UP)
+
+Locations are a self-referencing tree in CommonService (`Location.ParentLocationId` +
+`LocationType` ∈ `Ulb` | `Zone` | `Ward`). The three UP tiers **do not share a shape**:
+
+| Tier (`Location.UlbType`) | Scope | Shape |
+|---|---|---|
+| `NagarNigam` | metropolitan city (Mahanagar) | Ulb → **Zone** → Ward |
+| `NagarPalikaParishad` | city | Ulb → Ward |
+| `NagarPanchayat` | small town | Ulb → Ward |
+
+Zones exist **only** under a Nagar Nigam, and a Nagar Nigam's wards must hang off a Zone —
+never off the corporation. `LocationsController.Validate` enforces this; the Locations master
+mirrors the same rules in its Parent dropdown so the UI cannot offer a rejected combination.
+
+**Derive from data, not from type.** `LocationCascade` shows the Zone step only when the
+selected ULB actually *has* Zone children, rather than branching on `UlbType`. A corporation
+whose zone data has not been loaded yet correctly skips the step, and gains it the moment
+zones exist — no code change. Same rule drives the Ward step.
+
+| Page | URL | File |
+|---|---|---|
+| City Master (Metropolitan City / City / Town) | `/admin/masters/cities` | `src/Frontend/src/pages/Admin/Masters/CityMaster.tsx` |
+| Zone Master (scoped to one metropolitan city) | `/admin/masters/zones` | `src/Frontend/src/pages/Admin/Masters/ZoneMaster.tsx` |
+| Ward Master (scoped to a city, and a zone when metropolitan) | `/admin/masters/wards` | `src/Frontend/src/pages/Admin/Masters/WardMaster.tsx` |
+| Ward Members Master (Sabhasad — reference data, no login) | `/admin/masters/ward-members` | `src/Frontend/src/pages/Admin/Masters/WardMemberMaster.tsx` |
+| Cascading selector (reused by Add Tender and filter bars) | — | `src/Frontend/src/components/LocationCascade.tsx` |
+
+Each master owns one level and fetches only that level (`?type=` / `?parentId=`) via the shared
+`useLocationMaster` hook, rather than pulling the whole ~1,672-row tree per page. Zone and Ward
+use a scope selector (pick a city, then a zone) whose selection is also the parent for new rows,
+so an invalid parent is unreachable from the UI — there is no flat parent dropdown to search
+through. A location that still has children cannot be deleted (`LocationsController.Delete`
+returns 400 naming the child count). The original single Locations Master (one screen with a
+Level switcher and a flat parent dropdown) was split into these three on 2026-08-07.
+
+`UlbId` / `ZoneId` / `WardId` are denormalised onto **Tender, WorkOrder and Project** (like
+`DepartmentId`) so list filters stay a single-table query. They cascade down the chain at
+creation (`dto.X ?? parent.X`), and `PATCH /api/{tenders|workorders|projects}/{id}/location`
+updates them on existing rows. All three list endpoints accept `ulbId`/`zoneId`/`wardId`.
+
+### Seed scripts
+- `npm run seed:locations` — 17 Nagar Nigams (83 zones, 1,370 wards) + 201 Nagar Palika
+  Parishads, from `scripts/data/up-ulb.json`. **Convergent**, not merely idempotent: a row
+  under the wrong parent is moved, which is how the wards were migrated under zones.
+- `npm run backfill:locations` — assigns location to pre-existing tenders/work orders/
+  projects and reconciles `ZoneId` from each row's ward. Supports `--dry-run`.
+
+### Known data gaps
+- Zone data is **published for 6 of 17** corporations (Agra, Ghaziabad, Varanasi by name;
+  Lucknow 8, Kanpur 6, Prayagraj 8 by count). The other 11 are `zonesSource: "assumed"` at
+  ~18 wards/zone.
+- The **real ward→zone boundary is not published** machine-readably. Wards are assigned to
+  zones in contiguous numeric blocks — deterministic and stable, but **synthetic**.
+- Wards are numbered, not named; Nagar Palika Parishads have no wards seeded; the 541 Nagar
+  Panchayats are not seeded at all.
+- Backfill assignment onto demo tenders is a hash of the row id — not real-world accurate.
+
+---
+
 ## ❌ Missing from Your Requirements (Not Yet Built)
 
 | Module | Description |

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TenderService.Persistence;
 
@@ -10,9 +11,11 @@ using TenderService.Persistence;
 namespace TenderService.Migrations
 {
     [DbContext(typeof(TenderServiceDbContext))]
-    partial class TenderServiceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806105935_AddUlbLocationToTenderWorkOrderProject")]
+    partial class AddUlbLocationToTenderWorkOrderProject
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");

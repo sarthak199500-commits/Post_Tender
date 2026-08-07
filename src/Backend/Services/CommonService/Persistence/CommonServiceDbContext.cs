@@ -8,6 +8,7 @@ public class CommonServiceDbContext : DbContext {
     public DbSet<ContractDocument> ContractDocuments { get; set; }
     public DbSet<Alert> Alerts { get; set; }
     public DbSet<AlertRead> AlertReads { get; set; }
+    public DbSet<WardMember> WardMembers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

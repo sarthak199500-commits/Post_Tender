@@ -4,6 +4,7 @@ import { Activity, Target, AlertTriangle, CheckCircle, Clock, ArrowRight } from 
 import { rupees, rupeesCompact } from '../../utils/currency';
 import axiosInstance from '../../api/axiosInstance';
 import type { Bill, Milestone as MilestoneDto, Vendor, WorkOrder } from '../../types/domain';
+import { LocationCascade, type LocationValue } from '../../components/LocationCascade';
 
 /**
  * The view model this page renders. GET /projects returns only the bare Project entity
@@ -37,9 +38,9 @@ interface RawProject {
 }
 
 /** Resolves to [] rather than rejecting — one failed join must not blank the page. */
-const soft = async <T,>(url: string): Promise<T[]> => {
+const soft = async <T,>(url: string, params?: Record<string, string>): Promise<T[]> => {
   try {
-    const { data } = await axiosInstance.get<T[]>(url);
+    const { data } = await axiosInstance.get<T[]>(url, params ? { params } : undefined);
     return Array.isArray(data) ? data : [];
   } catch {
     return [];
@@ -64,11 +65,18 @@ const computeLd = (budget: number, endDate: string, status: string) => {
 export const GlobalProjects = () => {
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locationFilter, setLocationFilter] = useState<LocationValue>({ ulbId: '', zoneId: '', wardId: '' });
 
   useEffect(() => {
     const load = async () => {
       try {
-        const raw = await soft<RawProject>('/projects');
+        // Only projects narrow by location; the joins below are looked up by id from
+        // whatever came back, so filtering them too would just cost extra round trips.
+        const raw = await soft<RawProject>('/projects', {
+          ...(locationFilter.ulbId && { ulbId: locationFilter.ulbId }),
+          ...(locationFilter.zoneId && { zoneId: locationFilter.zoneId }),
+          ...(locationFilter.wardId && { wardId: locationFilter.wardId }),
+        });
         const [workOrders, vendors, bills] = await Promise.all([
           soft<WorkOrder>('/workorders'),
           soft<Vendor>('/vendors'),
@@ -124,7 +132,7 @@ export const GlobalProjects = () => {
       }
     };
     load();
-  }, []);
+  }, [locationFilter]);
 
   if (loading) return <div className="text-slate-600">Loading projects...</div>;
 
@@ -134,6 +142,25 @@ export const GlobalProjects = () => {
         <h1 className="text-3xl font-bold text-slate-800">Project Monitoring</h1>
         <p className="text-slate-600 mt-1">Global view of all active projects — milestones, financial utilization and delays.</p>
       </div>
+
+      <div className="bg-white p-4 rounded-card border border-slate-200">
+        <div className="flex items-end gap-3 flex-wrap">
+          <LocationCascade value={locationFilter} onChange={setLocationFilter} inline />
+          {(locationFilter.ulbId || locationFilter.wardId) && (
+            <button type="button"
+              onClick={() => setLocationFilter({ ulbId: '', zoneId: '', wardId: '' })}
+              className="px-4 py-2 rounded-control font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200">
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {projects.length === 0 && (
+        <div className="bg-white rounded-card border border-slate-200 p-10 text-center text-slate-600">
+          No projects match this location.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6">
         {projects.map(proj => (

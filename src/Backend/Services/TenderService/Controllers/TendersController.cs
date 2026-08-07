@@ -40,6 +40,9 @@ public class TendersController : ControllerBase
                 t.Budget,
                 t.CreatedAt,
                 t.DepartmentId,
+                t.UlbId,
+                t.ZoneId,
+                t.WardId,
                 HasWorkOrder = t.WorkOrders.Any()
             })
             .ToListAsync();
@@ -53,15 +56,26 @@ public class TendersController : ControllerBase
     // Finance's "Total Budget" renders as a confident ₹0.
     [HttpGet]
     [Authorize(Roles = "Admin,PMU,Department,Inspector,Finance")]
-    public async Task<IActionResult> GetAllTenders()
+    public async Task<IActionResult> GetAllTenders(
+        [FromQuery] Guid? ulbId = null,
+        [FromQuery] Guid? zoneId = null,
+        [FromQuery] Guid? wardId = null)
     {
-        var tenders = await _context.Tenders
+        var query = _context.Tenders.AsQueryable();
+
+        // Location filters. Applied after scoping so they can only ever narrow the result set.
+        if (ulbId is Guid u) query = query.Where(x => x.UlbId == u);
+        if (zoneId is Guid z) query = query.Where(x => x.ZoneId == z);
+        if (wardId is Guid w) query = query.Where(x => x.WardId == w);
+
+        var tenders = await query
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new
             {
                 t.Id, t.TenderNo, t.Title, t.TenderType, t.Budget,
                 t.EMDAmount, t.Portal, t.DocumentUrl,
-                t.PublishDate, t.CloseDate, t.Status, t.CreatedAt, t.DepartmentId
+                t.PublishDate, t.CloseDate, t.Status, t.CreatedAt, t.DepartmentId,
+                t.UlbId, t.ZoneId, t.WardId
             })
             .ToListAsync();
         return Ok(tenders);
@@ -97,6 +111,9 @@ public class TendersController : ControllerBase
             EMDAmount   = dto.EMDAmount,
             Portal      = dto.Portal ?? string.Empty,
             DepartmentId = dto.DepartmentId,
+            UlbId = dto.UlbId,
+            ZoneId = dto.ZoneId,
+            WardId = dto.WardId,
             DocumentUrl = documentUrl,
             PublishDate = dto.PublishDate,
             CloseDate   = dto.CloseDate,
@@ -126,6 +143,9 @@ public class TendersController : ControllerBase
         tender.EMDAmount = dto.EMDAmount;
         tender.Portal = dto.Portal ?? string.Empty;
         tender.DepartmentId = dto.DepartmentId;
+        tender.UlbId = dto.UlbId;
+        tender.ZoneId = dto.ZoneId;
+        tender.WardId = dto.WardId;
         tender.PublishDate = dto.PublishDate;
         tender.CloseDate = dto.CloseDate;
 
@@ -142,6 +162,38 @@ public class TendersController : ControllerBase
 
         await _context.SaveChangesAsync();
         return Ok(tender);
+    }
+
+    /// <summary>
+    /// Narrow location-only update, matching the equivalent on WorkOrders and Projects.
+    /// UpdateTender can also set these, but it binds [FromForm] and the list projection never
+    /// returns Description, so a caller updating only the location through it silently blanks
+    /// the description. Full replace of the three columns — a city or town legitimately has
+    /// no zone, so a null Zone must be writable.
+    /// </summary>
+    [HttpPatch("{id}/location")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> UpdateLocation(Guid id, [FromBody] UpdateLocationRequest request)
+    {
+        if (request == null) return BadRequest("Request body is required.");
+
+        var tender = await _context.Tenders.FirstOrDefaultAsync(t => t.Id == id);
+        if (tender == null) return NotFound();
+
+        tender.UlbId = request.UlbId;
+        tender.ZoneId = request.ZoneId;
+        tender.WardId = request.WardId;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { tender.Id, tender.UlbId, tender.ZoneId, tender.WardId });
+    }
+
+    public class UpdateLocationRequest
+    {
+        public Guid? UlbId { get; set; }
+        public Guid? ZoneId { get; set; }
+        public Guid? WardId { get; set; }
     }
 
     [HttpDelete("{id}")]
@@ -195,6 +247,9 @@ public class TendersController : ControllerBase
         public DateTime? PublishDate { get; set; }
         public DateTime? CloseDate { get; set; }
         public Guid? DepartmentId { get; set; }
+        public Guid? UlbId { get; set; }
+        public Guid? ZoneId { get; set; }
+        public Guid? WardId { get; set; }
     }
 }
 
