@@ -300,6 +300,32 @@ public class WorkOrdersController : ControllerBase
         return Ok(new { message = "Work Order approved and sent to vendor." });
     }
 
+    // Narrow, location-only update for a pre-existing Work Order. Deliberately not a generic
+    // PUT: a full-entity update endpoint here would be much larger surface than the one thing
+    // this needs to fix (backfilling UlbId/ZoneId/WardId onto rows created before those columns
+    // existed), and the Tender service's generic form-based PUT already shows the footgun that
+    // shape invites — it silently blanks Description because the read side never round-trips it.
+    // This is a full replace of the three fields, not a merge: the caller is expected to always
+    // send all three, so a field left off the request body clears that field rather than
+    // preserving the old value.
+    [HttpPatch("{id}/location")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> UpdateLocation(Guid id, [FromBody] UpdateLocationRequest request)
+    {
+        if (request == null) return BadRequest("Request body is required.");
+
+        var workOrder = await _context.WorkOrders.FirstOrDefaultAsync(w => w.Id == id);
+        if (workOrder == null) return NotFound("Work Order not found.");
+
+        workOrder.UlbId = request.UlbId;
+        workOrder.ZoneId = request.ZoneId;
+        workOrder.WardId = request.WardId;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { workOrder.Id, workOrder.UlbId, workOrder.ZoneId, workOrder.WardId });
+    }
+
     public class CreateWorkOrderDto
     {
         public Guid VendorId { get; set; }
@@ -333,5 +359,12 @@ public class WorkOrdersController : ControllerBase
     public class UpdateStatusRequest
     {
         public string NewStatus { get; set; } = string.Empty;
+    }
+
+    public class UpdateLocationRequest
+    {
+        public Guid? UlbId { get; set; }
+        public Guid? ZoneId { get; set; }
+        public Guid? WardId { get; set; }
     }
 }

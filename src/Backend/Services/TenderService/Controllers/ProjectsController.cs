@@ -66,4 +66,37 @@ public class ProjectsController : ControllerBase
         if (p == null) return NotFound();
         return Ok(p);
     }
+
+    // Narrow, location-only update for a pre-existing Project. Same rationale as
+    // WorkOrdersController.UpdateLocation: a full-entity PUT is far more surface than this
+    // needs, so this stays scoped to just the three location fields. Admin/PMU only, so it
+    // goes straight at _context.Projects rather than ScopedProjects() — vendors can never
+    // reach this action, so there is nothing to scope.
+    // Full replace of the three fields, not a merge: the caller is expected to always send
+    // all three, so a field left off the request body clears that field rather than
+    // preserving the old value.
+    [HttpPatch("{id}/location")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> UpdateLocation(Guid id, [FromBody] UpdateLocationRequest request)
+    {
+        if (request == null) return BadRequest("Request body is required.");
+
+        var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
+        if (project == null) return NotFound();
+
+        project.UlbId = request.UlbId;
+        project.ZoneId = request.ZoneId;
+        project.WardId = request.WardId;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { project.Id, project.UlbId, project.ZoneId, project.WardId });
+    }
+
+    public class UpdateLocationRequest
+    {
+        public Guid? UlbId { get; set; }
+        public Guid? ZoneId { get; set; }
+        public Guid? WardId { get; set; }
+    }
 }

@@ -7,8 +7,8 @@
  * wards) so re-running is stable and a given tender always lands in the same ward.
  * Only touches rows whose wardId is still null. Run: npm run backfill:locations
  *
- * Two API gaps discovered while wiring this up (confirmed live, not just from reading the
- * controllers — see the PUT helpers below):
+ * API gap, still live (confirmed live, not just from reading the controller — see the PUT
+ * helper below):
  *
  *  - PUT /api/tenders/{id} binds [FromForm] TenderFormDto, not JSON. A JSON body leaves
  *    every field at its default and fails validation with 400 "Tender ID is required."
@@ -20,14 +20,14 @@
  *    its edit path), not something introduced by this script. Flagging it rather than
  *    working around it — there is no C# change in scope here to fix the root cause.
  *
- *  - WorkOrdersController exposes no generic PUT /api/workorders/{id} — only
- *    {id}/status and {id}/approve. ProjectsController exposes no write endpoint at all
- *    (GET only). Both return HTTP 405 for a plain PUT. So the "push down to work orders
- *    and projects" step below can only be *computed*, not written back through the API;
- *    it probes once, reports the gap plainly, and does not fabricate success. Nothing here
- *    invents a workaround (e.g. writing the DB directly) since that would break the
- *    "everything through the gateway, same rules as production" pattern the rest of this
- *    script's siblings (seed-demo-data.mjs, backfill-visit-vendors.mjs) follow.
+ * API gap, now closed: WorkOrdersController and ProjectsController used to expose no way to
+ * update an existing row's location — WorkOrders had only {id}/status and {id}/approve;
+ * Projects was GET-only. A plain PUT to either returned 404/405 (confirmed live), so the
+ * work-order/project sections below could only *compute* the target location, never write
+ * it back. That gap is why PATCH /api/workorders/{id}/location and
+ * PATCH /api/projects/{id}/location now exist (Admin/PMU only, location-only, full replace
+ * of UlbId/ZoneId/WardId — deliberately not a generic PUT, to avoid the Description-blanking
+ * footgun described above). The sections below call those endpoints directly.
  */
 
 // Same override convention as the sibling seed/backfill scripts in this folder.
@@ -62,6 +62,7 @@ async function call(method, path, { body, form } = {}) {
 const get = (path) => call('GET', path);
 const postJson = (path, body) => call('POST', path, { body });
 const putForm = (path, form) => call('PUT', path, { form });
+const patchJson = (path, body) => call('PATCH', path, { body });
 
 /** Stable index from a guid so the same tender always maps to the same ward. */
 const pick = (id, list) => {
@@ -69,9 +70,6 @@ const pick = (id, list) => {
   for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return list[h % list.length];
 };
-
-/** True for a 404/405 that means "this route does not exist", not a per-row validation failure. */
-const isMissingRoute = (err) => err.status === 404 || err.status === 405;
 
 const main = async () => {
   const login = await postJson('/auth/login', { email: EMAIL, password: PASSWORD });
@@ -145,23 +143,18 @@ const main = async () => {
   const woEligible = pendingWO.filter((w) => tenderById.get(w.tenderId)?.wardId);
 
   let workOrdersUpdated = 0;
-  let woRouteMissing = null;
+  let workOrdersSkipped = 0;
   for (const wo of woEligible) {
-    if (woRouteMissing) break; // confirmed missing — do not hammer a dead route
     const t = tenderById.get(wo.tenderId);
     console.log(`  ${wo.workOrderNo} <- ${t.tenderNo}`);
     if (DRY_RUN) continue;
     try {
-      await call('PUT', `/workorders/${wo.id}`, { body: { ...wo, ulbId: t.ulbId, zoneId: t.zoneId, wardId: t.wardId } });
+      await patchJson(`/workorders/${wo.id}/location`, { ulbId: t.ulbId, zoneId: t.zoneId, wardId: t.wardId });
       workOrdersUpdated++;
     } catch (err) {
-      if (!isMissingRoute(err)) throw err;
-      woRouteMissing = err;
-      console.warn(
-        `  ! PUT /api/workorders/{id} -> HTTP ${err.status}: no such route. ` +
-        `WorkOrdersController exposes only {id}/status and {id}/approve, not a generic update. ` +
-        `Stopping this section rather than repeating a confirmed-dead call.`
-      );
+      // Same discipline as the tender loop above: one bad row must not abort the run.
+      workOrdersSkipped++;
+      console.warn(`  ! ${wo.workOrderNo} (${wo.id}) skipped: ${err.message}`);
     }
   }
 
@@ -172,23 +165,18 @@ const main = async () => {
   const projEligible = pendingProjects.filter((p) => woById.get(p.workOrderId)?.wardId);
 
   let projectsUpdated = 0;
-  let projRouteMissing = null;
+  let projectsSkipped = 0;
   for (const p of projEligible) {
-    if (projRouteMissing) break;
     const wo = woById.get(p.workOrderId);
     console.log(`  ${p.name} <- ${wo.workOrderNo}`);
     if (DRY_RUN) continue;
     try {
-      await call('PUT', `/projects/${p.id}`, { body: { ...p, ulbId: wo.ulbId, zoneId: wo.zoneId, wardId: wo.wardId } });
+      await patchJson(`/projects/${p.id}/location`, { ulbId: wo.ulbId, zoneId: wo.zoneId, wardId: wo.wardId });
       projectsUpdated++;
     } catch (err) {
-      if (!isMissingRoute(err)) throw err;
-      projRouteMissing = err;
-      console.warn(
-        `  ! PUT /api/projects/{id} -> HTTP ${err.status}: no such route. ` +
-        `ProjectsController exposes GET only, no write endpoint at all. ` +
-        `Stopping this section rather than repeating a confirmed-dead call.`
-      );
+      // Same discipline as the tender loop above: one bad row must not abort the run.
+      projectsSkipped++;
+      console.warn(`  ! ${p.name} (${p.id}) skipped: ${err.message}`);
     }
   }
 
@@ -201,22 +189,13 @@ const main = async () => {
   console.log(
     `  Work orders: ${workOrdersUpdated}/${pendingWO.length} assigned` +
     (pendingWO.length - woEligible.length > 0 ? ` (${pendingWO.length - woEligible.length} blocked upstream — their tender still has no ward)` : '') +
-    (woRouteMissing ? ` — remainder blocked: no generic update endpoint on WorkOrdersController.` : '.')
+    (workOrdersSkipped ? ` (${workOrdersSkipped} skipped — see warnings above).` : '.')
   );
   console.log(
     `  Projects:    ${projectsUpdated}/${pendingProjects.length} assigned` +
     (pendingProjects.length - projEligible.length > 0 ? ` (${pendingProjects.length - projEligible.length} blocked upstream — their work order still has no ward)` : '') +
-    (projRouteMissing ? ` — remainder blocked: ProjectsController has no write endpoint.` : '.')
+    (projectsSkipped ? ` (${projectsSkipped} skipped — see warnings above).` : '.')
   );
-  if (woRouteMissing || projRouteMissing) {
-    console.log(
-      '\nNOTE: Work orders and/or projects could not be fully backfilled because the API has ' +
-      'no endpoint to update their location on an existing row (confirmed via a live 404/405, ' +
-      'not assumed). Adding one is a backend change outside this script\'s scope. Tenders are ' +
-      'fully assigned; re-run this script once such an endpoint exists — it will pick up ' +
-      'exactly the rows still missing a ward.'
-    );
-  }
 };
 
 main().catch((err) => {

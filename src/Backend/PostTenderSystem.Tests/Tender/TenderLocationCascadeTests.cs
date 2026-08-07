@@ -16,12 +16,23 @@ namespace PostTenderSystem.Tests.Tender;
 /// <see cref="WorkOrdersController.Create"/> and <see cref="WorkOrdersController.UpdateStatus"/>
 /// actions — not a hand-copied Arrange step — so they fail if the `dto.X ?? tender.X` /
 /// `workOrder.X` cascade lines are ever removed or reversed.
+///
+/// Also covers the update-time counterpart: <see cref="WorkOrdersController.UpdateLocation"/>
+/// and <see cref="ProjectsController.UpdateLocation"/>, the PATCH {id}/location endpoints that
+/// let a pre-existing row (created before these columns existed) be backfilled directly.
 /// </summary>
 public class TenderLocationCascadeTests
 {
     private static WorkOrdersController Build(TenderServiceDbContext ctx, string role)
     {
         var controller = new WorkOrdersController(ctx, TestAudit.ForTender());
+        FakeUser.Attach(controller, FakeUser.With(role));
+        return controller;
+    }
+
+    private static ProjectsController BuildProjects(TenderServiceDbContext ctx, string role)
+    {
+        var controller = new ProjectsController(ctx);
         FakeUser.Attach(controller, FakeUser.With(role));
         return controller;
     }
@@ -130,5 +141,106 @@ public class TenderLocationCascadeTests
         Assert.Equal(ulb, project.UlbId);
         Assert.Equal(zone, project.ZoneId);
         Assert.Equal(ward, project.WardId);
+    }
+
+    // --- PATCH {id}/location: the update-time counterpart, for rows that already existed
+    // before UlbId/ZoneId/WardId were added and so never went through the cascade above. ---
+
+    [Fact]
+    public async Task PatchLocation_ReplacesAllThreeFields_OnWorkOrder()
+    {
+        using var ctx = TestDb.Create<TenderServiceDbContext>();
+        var wo = new WorkOrder
+        {
+            WorkOrderNo = "WO-PATCH-LOC",
+            Status = "Draft",
+            VendorId = Guid.NewGuid(),
+            TotalValue = 10_000m,
+            UlbId = Guid.NewGuid(),
+            ZoneId = Guid.NewGuid(),
+            WardId = Guid.NewGuid()
+        };
+        ctx.WorkOrders.Add(wo);
+        await ctx.SaveChangesAsync();
+
+        var newUlb = Guid.NewGuid();
+        var newWard = Guid.NewGuid();
+
+        // ZoneId is explicitly sent as null here — this is a full replace, so the old
+        // (non-null) ZoneId must be overwritten with null, not preserved.
+        var request = new WorkOrdersController.UpdateLocationRequest
+        {
+            UlbId = newUlb,
+            ZoneId = null,
+            WardId = newWard
+        };
+
+        var result = await Build(ctx, "Admin").UpdateLocation(wo.Id, request);
+
+        Assert.IsType<OkObjectResult>(result);
+        var saved = ctx.WorkOrders.Single(w => w.Id == wo.Id);
+        Assert.Equal(newUlb, saved.UlbId);
+        Assert.Null(saved.ZoneId);
+        Assert.Equal(newWard, saved.WardId);
+    }
+
+    [Fact]
+    public async Task PatchLocation_ReturnsNotFound_ForNonexistentWorkOrder()
+    {
+        using var ctx = TestDb.Create<TenderServiceDbContext>();
+        var request = new WorkOrdersController.UpdateLocationRequest
+        {
+            UlbId = Guid.NewGuid(),
+            ZoneId = Guid.NewGuid(),
+            WardId = Guid.NewGuid()
+        };
+
+        var result = await Build(ctx, "Admin").UpdateLocation(Guid.NewGuid(), request);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task PatchLocation_ReplacesAllThreeFields_OnProject()
+    {
+        using var ctx = TestDb.Create<TenderServiceDbContext>();
+        var wo = new WorkOrder
+        {
+            WorkOrderNo = "WO-FOR-PROJECT-PATCH",
+            Status = "Accepted",
+            VendorId = Guid.NewGuid(),
+            TotalValue = 10_000m
+        };
+        ctx.WorkOrders.Add(wo);
+
+        var project = new TenderService.Entities.Project
+        {
+            WorkOrderId = wo.Id,
+            Name = "Project for patch test",
+            Budget = 10_000m,
+            UlbId = Guid.NewGuid(),
+            ZoneId = Guid.NewGuid(),
+            WardId = Guid.NewGuid()
+        };
+        ctx.Projects.Add(project);
+        await ctx.SaveChangesAsync();
+
+        var newUlb = Guid.NewGuid();
+        var newZone = Guid.NewGuid();
+        var newWard = Guid.NewGuid();
+        var request = new ProjectsController.UpdateLocationRequest
+        {
+            UlbId = newUlb,
+            ZoneId = newZone,
+            WardId = newWard
+        };
+
+        var result = await BuildProjects(ctx, "Admin").UpdateLocation(project.Id, request);
+
+        Assert.IsType<OkObjectResult>(result);
+        var saved = ctx.Projects.Single(p => p.Id == project.Id);
+        Assert.Equal(newUlb, saved.UlbId);
+        Assert.Equal(newZone, saved.ZoneId);
+        Assert.Equal(newWard, saved.WardId);
     }
 }
