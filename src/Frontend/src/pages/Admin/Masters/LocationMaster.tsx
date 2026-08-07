@@ -139,10 +139,15 @@ const LocationMaster: React.FC = () => {
                                 onChange={e => setFormData({...formData, parentLocationId: e.target.value})}
                                 className="w-full border border-slate-300 rounded-control px-4 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none" required>
                                 <option value="">Select parent</option>
+                                {/* Mirrors the shape rules LocationsController enforces: only a
+                                    Nagar Nigam has zones, and only a Nagar Nigam's wards go
+                                    through one. Offering anything else here would just produce
+                                    a 400 after the user had already filled the form in. */}
                                 {data
                                     .filter(l => formData.locationType === 'Zone'
-                                        ? l.locationType === 'Ulb'
-                                        : l.locationType === 'Ulb' || l.locationType === 'Zone')
+                                        ? l.locationType === 'Ulb' && l.ulbType === 'NagarNigam'
+                                        : l.locationType === 'Zone'
+                                          || (l.locationType === 'Ulb' && l.ulbType !== 'NagarNigam'))
                                     .map(l => <option key={l.id} value={l.id}>{l.name} ({l.locationType})</option>)}
                             </select>
                         </div>

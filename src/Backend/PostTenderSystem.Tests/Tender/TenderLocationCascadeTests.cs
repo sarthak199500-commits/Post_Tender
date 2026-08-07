@@ -111,6 +111,39 @@ public class TenderLocationCascadeTests
         Assert.Equal(dtoWard, saved.WardId);
     }
 
+    /// <summary>
+    /// Mirrors the work-order and project location PATCH. Tender already had a full update
+    /// endpoint, but it binds [FromForm] and its read projection never returns Description,
+    /// so any caller updating location through it silently blanks the description. This
+    /// narrow endpoint touches only the three location columns.
+    /// </summary>
+    [Fact]
+    public async Task PatchLocation_ReplacesAllThreeFields_WithoutTouchingDescription()
+    {
+        using var ctx = TestDb.Create<TenderServiceDbContext>();
+        var tender = SeedTender(ctx, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        tender.Description = "Resurface Main Street, 2.4km";
+        await ctx.SaveChangesAsync();
+
+        var ulb = Guid.NewGuid();
+        var ward = Guid.NewGuid();
+        // IWebHostEnvironment is only reached by the document-upload path in AddTender/
+        // UpdateTender; UpdateLocation never touches it.
+        var controller = new TendersController(ctx, null!);
+        FakeUser.Attach(controller, FakeUser.With("Admin"));
+
+        // Zone deliberately null: a city or town has none, and this is a replace, not a merge.
+        var result = await controller.UpdateLocation(tender.Id,
+            new TendersController.UpdateLocationRequest { UlbId = ulb, ZoneId = null, WardId = ward });
+
+        Assert.IsType<OkObjectResult>(result);
+        var saved = ctx.Tenders.Single(t => t.Id == tender.Id);
+        Assert.Equal(ulb, saved.UlbId);
+        Assert.Null(saved.ZoneId);
+        Assert.Equal(ward, saved.WardId);
+        Assert.Equal("Resurface Main Street, 2.4km", saved.Description);
+    }
+
     [Fact]
     public async Task Accept_CreatesProject_InheritingLocationFromWorkOrder()
     {

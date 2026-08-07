@@ -164,6 +164,38 @@ public class TendersController : ControllerBase
         return Ok(tender);
     }
 
+    /// <summary>
+    /// Narrow location-only update, matching the equivalent on WorkOrders and Projects.
+    /// UpdateTender can also set these, but it binds [FromForm] and the list projection never
+    /// returns Description, so a caller updating only the location through it silently blanks
+    /// the description. Full replace of the three columns — a city or town legitimately has
+    /// no zone, so a null Zone must be writable.
+    /// </summary>
+    [HttpPatch("{id}/location")]
+    [Authorize(Roles = "Admin,PMU")]
+    public async Task<IActionResult> UpdateLocation(Guid id, [FromBody] UpdateLocationRequest request)
+    {
+        if (request == null) return BadRequest("Request body is required.");
+
+        var tender = await _context.Tenders.FirstOrDefaultAsync(t => t.Id == id);
+        if (tender == null) return NotFound();
+
+        tender.UlbId = request.UlbId;
+        tender.ZoneId = request.ZoneId;
+        tender.WardId = request.WardId;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { tender.Id, tender.UlbId, tender.ZoneId, tender.WardId });
+    }
+
+    public class UpdateLocationRequest
+    {
+        public Guid? UlbId { get; set; }
+        public Guid? ZoneId { get; set; }
+        public Guid? WardId { get; set; }
+    }
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin,PMU")]
     public async Task<IActionResult> DeleteTender(Guid id)

@@ -7,27 +7,17 @@
  * wards) so re-running is stable and a given tender always lands in the same ward.
  * Only touches rows whose wardId is still null. Run: npm run backfill:locations
  *
- * API gap, still live (confirmed live, not just from reading the controller — see the PUT
- * helper below):
+ * All three entities are written through PATCH /{resource}/{id}/location (Admin/PMU only,
+ * location-only, full replace of UlbId/ZoneId/WardId). Those endpoints exist precisely
+ * because the alternatives did not work: WorkOrders exposed only {id}/status and
+ * {id}/approve, Projects was GET-only, and the Tender PUT binds [FromForm] and blanks
+ * Description on every write because the list projection never returns it. A narrow PATCH
+ * avoids all three problems and, for tenders, also sidesteps the tenderNo uniqueness check
+ * that made duplicate legacy rows unbackfillable.
  *
- *  - PUT /api/tenders/{id} binds [FromForm] TenderFormDto, not JSON. A JSON body leaves
- *    every field at its default and fails validation with 400 "Tender ID is required."
- *    This script sends multipart/form-data instead. Because GET /api/tenders (the list
- *    endpoint this script reads) never projects Description — see
- *    TendersController.GetAllTenders — and there is no GetById endpoint to recover it,
- *    ANY update through this endpoint blanks a tender's Description. That is a pre-existing
- *    gap shared by the Edit Tender screen (AddTender.tsx has the identical limitation on
- *    its edit path), not something introduced by this script. Flagging it rather than
- *    working around it — there is no C# change in scope here to fix the root cause.
- *
- * API gap, now closed: WorkOrdersController and ProjectsController used to expose no way to
- * update an existing row's location — WorkOrders had only {id}/status and {id}/approve;
- * Projects was GET-only. A plain PUT to either returned 404/405 (confirmed live), so the
- * work-order/project sections below could only *compute* the target location, never write
- * it back. That gap is why PATCH /api/workorders/{id}/location and
- * PATCH /api/projects/{id}/location now exist (Admin/PMU only, location-only, full replace
- * of UlbId/ZoneId/WardId — deliberately not a generic PUT, to avoid the Description-blanking
- * footgun described above). The sections below call those endpoints directly.
+ * A Nagar Nigam's wards belong to its zones, not to the corporation, so ZoneId is derived
+ * from the chosen ward rather than left null — see zoneOf() and the reconcile pass, which
+ * repairs rows assigned a ward before zones existed.
  */
 
 // Same override convention as the sibling seed/backfill scripts in this folder.
@@ -61,7 +51,6 @@ async function call(method, path, { body, form } = {}) {
 
 const get = (path) => call('GET', path);
 const postJson = (path, body) => call('POST', path, { body });
-const putForm = (path, form) => call('PUT', path, { form });
 const patchJson = (path, body) => call('PATCH', path, { body });
 
 /** Stable index from a guid so the same tender always maps to the same ward. */
@@ -89,8 +78,21 @@ const main = async () => {
     );
   }
 
+  // A Nagar Nigam's wards hang off its zones, not off the corporation, so collecting them
+  // means going one level deeper. byId lets zoneOf() walk back up from a ward.
+  const byId = new Map(locations.map((l) => [l.id, l]));
+
+  /** The zone a ward belongs to, or null for a city/town ward held directly by its ULB. */
+  const zoneOf = (ward) => {
+    const parent = ward?.parentLocationId ? byId.get(ward.parentLocationId) : null;
+    return parent?.locationType === 'Zone' ? parent : null;
+  };
+
   const wardsByUlb = new Map(
-    targets.map((u) => [u.id, locations.filter((l) => l.locationType === 'Ward' && l.parentLocationId === u.id)])
+    targets.map((u) => {
+      const zoneIds = new Set(locations.filter((l) => l.locationType === 'Zone' && l.parentLocationId === u.id).map((z) => z.id));
+      return [u.id, locations.filter((l) => l.locationType === 'Ward' && (zoneIds.has(l.parentLocationId) || l.parentLocationId === u.id))];
+    })
   );
   for (const u of targets) {
     if (!wardsByUlb.get(u.id)?.length) throw new Error(`${u.name} has no wards seeded — run \`npm run seed:locations\` first.`);
@@ -106,31 +108,14 @@ const main = async () => {
   for (const t of pendingTenders) {
     const ulb = pick(t.id, targets);
     const ward = pick(t.id, wardsByUlb.get(ulb.id));
-    console.log(`  ${t.tenderNo} -> ${ulb.name} / ${ward.name}`);
+    console.log(`  ${t.tenderNo} -> ${ulb.name} / ${zoneOf(ward)?.name ?? '(no zone)'} / ${ward.name}`);
     if (DRY_RUN) continue;
-
-    // See the file-level comment: this must be multipart, matching [FromForm] TenderFormDto,
-    // and Description cannot be round-tripped because the list endpoint never returns it.
-    const form = new FormData();
-    form.append('tenderNo', t.tenderNo);
-    form.append('title', t.title);
-    form.append('tenderType', t.tenderType ?? '');
-    form.append('budget', String(t.budget));
-    form.append('emdAmount', String(t.emdAmount));
-    form.append('portal', t.portal ?? '');
-    if (t.publishDate) form.append('publishDate', t.publishDate);
-    if (t.closeDate) form.append('closeDate', t.closeDate);
-    if (t.departmentId) form.append('departmentId', t.departmentId);
-    form.append('ulbId', ulb.id);
-    form.append('wardId', ward.id);
-    // zoneId intentionally omitted (binds to null) — no zones are seeded yet.
-
     try {
-      await putForm(`/tenders/${t.id}`, form);
+      await patchJson(`/tenders/${t.id}/location`, {
+        ulbId: ulb.id, zoneId: zoneOf(ward)?.id ?? null, wardId: ward.id,
+      });
       tendersUpdated++;
     } catch (err) {
-      // Pre-existing data-quality issue (e.g. two rows sharing a tenderNo from a flaky
-      // E2E double-submit) must not abort every other row's backfill. Skip and report.
       tendersSkipped++;
       console.warn(`  ! ${t.tenderNo} (${t.id}) skipped: ${err.message}`);
     }
@@ -180,6 +165,33 @@ const main = async () => {
     }
   }
 
+  // --- Reconcile zones -----------------------------------------------------------------
+  // Rows assigned a ward before Nagar Nigam zones existed carry a null ZoneId, and a row
+  // whose ward later moved to a different zone would carry a stale one. Both are derivable:
+  // the ward knows its zone. Anything already agreeing is left untouched.
+  const reconcile = [];
+  for (const [res, path] of [['tenders', 'tenders'], ['workorders', 'workorders'], ['projects', 'projects']]) {
+    for (const row of await get(`/${res}`)) {
+      if (!row.wardId) continue;
+      const want = zoneOf(byId.get(row.wardId))?.id ?? null;
+      if ((row.zoneId ?? null) !== want) reconcile.push({ res, path, row, want });
+    }
+  }
+
+  let zonesFixed = 0;
+  let zonesSkipped = 0;
+  if (reconcile.length) console.log(`\n${reconcile.length} rows have a ward but the wrong zone`);
+  for (const { path, row, want } of reconcile) {
+    if (DRY_RUN) continue;
+    try {
+      await patchJson(`/${path}/${row.id}/location`, { ulbId: row.ulbId, zoneId: want, wardId: row.wardId });
+      zonesFixed++;
+    } catch (err) {
+      zonesSkipped++;
+      console.warn(`  ! ${path}/${row.id} skipped: ${err.message}`);
+    }
+  }
+
   // --- Summary -----------------------------------------------------------------------------
   console.log(DRY_RUN ? '\nDry run — nothing written.' : '\nBackfill complete.');
   console.log(
@@ -195,6 +207,10 @@ const main = async () => {
     `  Projects:    ${projectsUpdated}/${pendingProjects.length} assigned` +
     (pendingProjects.length - projEligible.length > 0 ? ` (${pendingProjects.length - projEligible.length} blocked upstream — their work order still has no ward)` : '') +
     (projectsSkipped ? ` (${projectsSkipped} skipped — see warnings above).` : '.')
+  );
+  console.log(
+    `  Zones:       ${zonesFixed}/${reconcile.length} rows reconciled to their ward's zone` +
+    (zonesSkipped ? ` (${zonesSkipped} skipped — see warnings above).` : '.')
   );
 };
 
