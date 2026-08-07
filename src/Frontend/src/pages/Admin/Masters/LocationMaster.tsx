@@ -84,7 +84,32 @@ const LocationMaster: React.FC = () => {
         }
     };
 
-    const nameById = new Map(data.map(l => [l.id, l.name]));
+    const byId = new Map(data.map(l => [l.id, l]));
+
+    /**
+     * "Zone 1" alone is ambiguous — 14 corporations each have one — so a zone is always
+     * qualified with the corporation it sits in. Zones are never nested (a zone's own parent
+     * is always a Ulb), so one level of lookup is enough; no recursion needed.
+     */
+    const qualify = (id?: string | null): string => {
+        if (!id) return '—';
+        const l = byId.get(id);
+        if (!l) return '—';
+        if (l.locationType !== 'Zone') return l.name;
+        const corp = l.parentLocationId ? byId.get(l.parentLocationId)?.name : null;
+        return corp ? `${corp} › ${l.name}` : l.name;
+    };
+
+    // Mirrors the shape rules LocationsController enforces: only a Nagar Nigam has zones, and
+    // only a Nagar Nigam's wards go through one. Offering anything else would just produce a
+    // 400 after the user had already filled the form in.
+    const tierOf = (l: Location) => ULB_TYPES.find(t => t.key === l.ulbType)?.label.split(' (')[0] ?? l.locationType;
+    const parentOptions = data
+        .filter(l => formData.locationType === 'Zone'
+            ? l.locationType === 'Ulb' && l.ulbType === 'NagarNigam'
+            : l.locationType === 'Zone' || (l.locationType === 'Ulb' && l.ulbType !== 'NagarNigam'))
+        .map(l => ({ id: l.id, label: l.locationType === 'Zone' ? qualify(l.id) : `${l.name} (${tierOf(l)})` }))
+        .sort((a, b) => a.label.localeCompare(b.label));
 
     const filteredData = data.filter(item => {
         if (levelFilter && item.locationType !== levelFilter) return false;
@@ -139,16 +164,9 @@ const LocationMaster: React.FC = () => {
                                 onChange={e => setFormData({...formData, parentLocationId: e.target.value})}
                                 className="w-full border border-slate-300 rounded-control px-4 py-2 focus:ring-2 focus:ring-brand-500 focus:outline-none" required>
                                 <option value="">Select parent</option>
-                                {/* Mirrors the shape rules LocationsController enforces: only a
-                                    Nagar Nigam has zones, and only a Nagar Nigam's wards go
-                                    through one. Offering anything else here would just produce
-                                    a 400 after the user had already filled the form in. */}
-                                {data
-                                    .filter(l => formData.locationType === 'Zone'
-                                        ? l.locationType === 'Ulb' && l.ulbType === 'NagarNigam'
-                                        : l.locationType === 'Zone'
-                                          || (l.locationType === 'Ulb' && l.ulbType !== 'NagarNigam'))
-                                    .map(l => <option key={l.id} value={l.id}>{l.name} ({l.locationType})</option>)}
+                                {/* "Zone 1" alone is ambiguous — 14 corporations each have one —
+                                    so a zone option is qualified with its corporation's name. */}
+                                {parentOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                             </select>
                         </div>
                     )}
@@ -211,7 +229,7 @@ const LocationMaster: React.FC = () => {
                                     {item.locationType}{item.ulbType ? ` · ${item.ulbType}` : ''}
                                 </td>
                                 <td className="px-6 py-4 text-slate-600">
-                                    {item.parentLocationId ? nameById.get(item.parentLocationId) ?? '—' : '—'}
+                                    {qualify(item.parentLocationId)}
                                 </td>
                                 <td className="px-6 py-4 text-right space-x-3">
                                     <button onClick={() => handleEdit(item)} className="text-brand-600 hover:text-brand-800 font-bold underline text-sm">Edit</button>
