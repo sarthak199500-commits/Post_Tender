@@ -32,6 +32,7 @@ import TenderList from './pages/Admin/TenderList';
 import InspectorList from './pages/Admin/InspectorList';
 import DepartmentMaster from './pages/Admin/Masters/DepartmentMaster';
 import LocationMaster from './pages/Admin/Masters/LocationMaster';
+import WardMemberMaster from './pages/Admin/Masters/WardMemberMaster';
 import DefectCategoryMaster from './pages/Admin/Masters/DefectCategoryMaster';
 import MilestoneTemplateMaster from './pages/Admin/Masters/MilestoneTemplateMaster';
 import TaxConfigurationMaster from './pages/Admin/Masters/TaxConfigurationMaster';
@@ -206,6 +207,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   '/admin/masters/users/add': { title: 'Add Internal User', subtitle: 'Create an internal user account' },
   '/admin/masters/departments': { title: 'Departments', subtitle: 'Manage department master' },
   '/admin/masters/locations': { title: 'Locations', subtitle: 'Manage location master' },
+  '/admin/masters/ward-members': { title: 'Ward Members', subtitle: 'Elected ward representatives (Sabhasad)' },
   '/admin/masters/defect-categories': { title: 'Defect Categories', subtitle: 'Manage defect category master' },
   '/admin/masters/milestone-templates': { title: 'Milestone Templates', subtitle: 'Reusable milestone templates' },
   '/admin/masters/tax-configurations': { title: 'Tax Configurations', subtitle: 'Manage tax configuration master' },
@@ -298,6 +300,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     '/admin/masters/vendor-categories',
     '/admin/masters/tax-configurations',
     '/admin/masters/locations',
+    '/admin/masters/ward-members',
     '/admin/masters/departments',
     '/admin/masters/defect-categories',
     '/admin/masters/milestone-templates'
@@ -481,6 +484,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     <NavItem to="/admin/masters/vendor-categories" text="Vendor Categories" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>} />
                     <NavItem to="/admin/masters/tax-configurations" text="Tax Configurations" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12" /><path d="M6 8h12" /><path d="m6 13 8.5 8" /><path d="M6 13h3" /><path d="M9 13c6.667 0 6.667-10 0-10" /></svg>} />
                     <NavItem to="/admin/masters/locations" text="Locations" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>} />
+                    <NavItem to="/admin/masters/ward-members" text="Ward Members" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>} />
                     <NavItem to="/admin/masters/departments" text="Departments" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>} />
                     <NavItem to="/admin/masters/defect-categories" text="Defect Categories" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
                     <NavItem to="/admin/masters/milestone-templates" text="Milestone Templates" indent={true} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>} />
@@ -724,6 +728,7 @@ function App() {
 
       <Route path="/admin/masters/departments" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><DepartmentMaster /></Layout></PrivateRoute>} />
       <Route path="/admin/masters/locations" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><LocationMaster /></Layout></PrivateRoute>} />
+      <Route path="/admin/masters/ward-members" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><WardMemberMaster /></Layout></PrivateRoute>} />
       <Route path="/admin/masters/defect-categories" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><DefectCategoryMaster /></Layout></PrivateRoute>} />
       <Route path="/admin/masters/milestone-templates" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><MilestoneTemplateMaster /></Layout></PrivateRoute>} />
       <Route path="/admin/masters/tax-configurations" element={<PrivateRoute roles={['Admin', 'PMU']}><Layout><TaxConfigurationMaster /></Layout></PrivateRoute>} />
