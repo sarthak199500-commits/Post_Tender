@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import axiosInstance from '../../api/axiosInstance';
 import { AmountInput } from '../../components/AmountInput';
+import { LocationCascade } from '../../components/LocationCascade';
 
 const PORTALS = ['GeM Portal', 'CPPP', 'eProcurement', 'NIC Tender', 'State Portal', 'Other'];
 
@@ -18,6 +19,9 @@ interface TenderRecord {
   publishDate?: string;
   closeDate?: string;
   departmentId?: string | null;
+  ulbId?: string | null;
+  zoneId?: string | null;
+  wardId?: string | null;
 }
 
 export const AddTender = () => {
@@ -33,6 +37,7 @@ export const AddTender = () => {
     publishDate: '',
     closeDate: '',
     departmentId: '',
+    ulbId: '', zoneId: '', wardId: '',
   });
   const [document, setDocument] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,6 +80,9 @@ export const AddTender = () => {
               publishDate: tender.publishDate ? tender.publishDate.split('T')[0] : '',
               closeDate: tender.closeDate ? tender.closeDate.split('T')[0] : '',
               departmentId: tender.departmentId ?? '',
+              ulbId: tender.ulbId ?? '',
+              zoneId: tender.zoneId ?? '',
+              wardId: tender.wardId ?? '',
             });
           }
         } catch (err) {
@@ -105,6 +113,11 @@ export const AddTender = () => {
     if (formData.publishDate) data.append('publishDate', formData.publishDate);
     if (formData.closeDate)   data.append('closeDate', formData.closeDate);
     if (formData.departmentId) data.append('departmentId', formData.departmentId);
+    // Only send what was chosen. Zone is legitimately blank for a ULB with no zones, and an
+    // empty string would fail Guid binding server-side.
+    if (formData.ulbId) data.append('ulbId', formData.ulbId);
+    if (formData.zoneId) data.append('zoneId', formData.zoneId);
+    if (formData.wardId) data.append('wardId', formData.wardId);
     if (document)             data.append('document', document);
 
     try {
@@ -176,6 +189,16 @@ export const AddTender = () => {
                 <option value="">Unassigned</option>
                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
+            </div>
+            <div className="col-span-2">
+              <LocationCascade
+                value={{
+                  ulbId: formData.ulbId ?? '',
+                  zoneId: formData.zoneId ?? '',
+                  wardId: formData.wardId ?? '',
+                }}
+                onChange={(next) => setFormData({ ...formData, ...next })}
+              />
             </div>
             <div>
               <label className={labelCls}>Uploaded On (Portal)</label>
