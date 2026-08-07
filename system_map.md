@@ -101,9 +101,19 @@ zones exist — no code change. Same rule drives the Ward step.
 
 | Page | URL | File |
 |---|---|---|
-| Locations Master (hierarchy-aware, level + search filter) | `/admin/masters/locations` | `src/Frontend/src/pages/Admin/Masters/LocationMaster.tsx` |
+| City Master (Metropolitan City / City / Town) | `/admin/masters/cities` | `src/Frontend/src/pages/Admin/Masters/CityMaster.tsx` |
+| Zone Master (scoped to one metropolitan city) | `/admin/masters/zones` | `src/Frontend/src/pages/Admin/Masters/ZoneMaster.tsx` |
+| Ward Master (scoped to a city, and a zone when metropolitan) | `/admin/masters/wards` | `src/Frontend/src/pages/Admin/Masters/WardMaster.tsx` |
 | Ward Members Master (Sabhasad — reference data, no login) | `/admin/masters/ward-members` | `src/Frontend/src/pages/Admin/Masters/WardMemberMaster.tsx` |
-| Cascading selector (reused by forms and filter bars) | — | `src/Frontend/src/components/LocationCascade.tsx` |
+| Cascading selector (reused by Add Tender and filter bars) | — | `src/Frontend/src/components/LocationCascade.tsx` |
+
+Each master owns one level and fetches only that level (`?type=` / `?parentId=`) via the shared
+`useLocationMaster` hook, rather than pulling the whole ~1,672-row tree per page. Zone and Ward
+use a scope selector (pick a city, then a zone) whose selection is also the parent for new rows,
+so an invalid parent is unreachable from the UI — there is no flat parent dropdown to search
+through. A location that still has children cannot be deleted (`LocationsController.Delete`
+returns 400 naming the child count). The original single Locations Master (one screen with a
+Level switcher and a flat parent dropdown) was split into these three on 2026-08-07.
 
 `UlbId` / `ZoneId` / `WardId` are denormalised onto **Tender, WorkOrder and Project** (like
 `DepartmentId`) so list filters stay a single-table query. They cascade down the chain at
